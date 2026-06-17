@@ -18,6 +18,17 @@ AppKit / ScreenCaptureKit); **Windows** follows as a separate native project.
 - **Persistent history**: last 10 edited images in the left sidebar, survive restart.
 - **Menu-bar item**: capture or reopen the editor; closing the window hides it.
 
+## Install (macOS)
+
+1. Download the latest **`DM_Screenshot-vX.Y.Z.dmg`** from the
+   [Releases page](https://github.com/m0nji/DM_Screenshot/releases/latest).
+2. Open the `.dmg` and **drag `DM_Screenshot` into the `Applications` folder**.
+3. Launch it from Applications. On first capture, macOS asks for **Screen
+   Recording** permission (see below).
+
+The app is **signed with a Developer ID and notarized by Apple**, so it opens
+without any "unidentified developer" warning.
+
 ## Project layout
 
 ```
@@ -45,7 +56,13 @@ On first capture macOS prompts for **Screen Recording** (System Settings → Pri
 Security → Screen Recording). Grant it to DM_Screenshot, then re-launch if needed.
 Without it, captures are black.
 
-## Distribution (later)
+## Distribution
 
-Developer ID signing + notarization via GitHub Actions/`xcodebuild` once signing
-secrets are configured. App icon will match the DM_Voice / DM_Workspace palette.
+Releases are built, **Developer ID-signed and notarized by Apple** in GitHub
+Actions (`.github/workflows/release.yml`, runs on `macos-14`) and published as a
+notarized `.dmg` on the [Releases page](https://github.com/m0nji/DM_Screenshot/releases).
+
+Source of truth is the private GitLab repo; this public GitHub repo hosts the
+source mirror + releases. To cut a release, run `scripts/sync-to-github.sh vX.Y.Z`
+from the GitLab checkout — it pushes the source-only snapshot and tags the version,
+which triggers the notarization workflow.

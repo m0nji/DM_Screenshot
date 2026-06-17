@@ -21,7 +21,17 @@ final class CanvasNSView: NSView {
     override var isFlipped: Bool { true }
     override var acceptsFirstResponder: Bool { true }
 
-    func refresh() { needsDisplay = true }
+    func refresh() {
+        needsDisplay = true
+        window?.invalidateCursorRects(for: self)  // re-evaluate the cursor when the tool changes
+    }
+
+    override func resetCursorRects() {
+        // Crosshair while a drawing/editing tool is active (like during capture);
+        // normal arrow for the select/move tool.
+        let cursor: NSCursor = model.tool == .select ? .arrow : .crosshair
+        addCursorRect(bounds, cursor: cursor)
+    }
 
     private func recomputeTransform() {
         let vr = model.viewRect

@@ -31,7 +31,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     private func setupStatusItem() {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        item.button?.title = "▣"
+        if let button = item.button {
+            let icon = NSImage(systemSymbolName: "camera.viewfinder",
+                               accessibilityDescription: "DM_Screenshot")
+            icon?.isTemplate = true  // monochrome, adapts to light/dark menu bar
+            button.image = icon
+        }
         let menu = NSMenu()
         let fullItem = NSMenuItem(title: "New Full Screen", action: #selector(captureFull), keyEquivalent: "")
         let areaItem = NSMenuItem(title: "New Selection", action: #selector(captureArea), keyEquivalent: "")
