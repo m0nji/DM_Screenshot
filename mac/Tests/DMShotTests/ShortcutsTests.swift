@@ -10,7 +10,7 @@ final class ShortcutModelTests: XCTestCase {
 
     func testKeyCapsOrderAndContent() {
         let s = ShortcutAction.fullScreen.defaultShortcut
-        XCTAssertEqual(s.keyCaps, ["⇧", "⌘", "1"])
+        XCTAssertEqual(s.keyCaps, ["⌘", "⇧", "1"])
     }
 
     func testKeyLabelForLetters() {

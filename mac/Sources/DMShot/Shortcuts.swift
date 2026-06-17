@@ -46,27 +46,19 @@ struct Shortcut: Equatable {
     var keyCode: Int
     var carbonModifiers: Int
 
-    /// Modifier symbols in ⌃⌥⇧⌘ order (System Preferences style), then the key label.
+    /// Modifier symbols in ⌘⇧⌥⌃ order (command-first, matching the app's menu
+    /// titles), then the key label.
     var keyCaps: [String] {
         var caps: [String] = []
-        if carbonModifiers & CarbonMod.control != 0 { caps.append("⌃") }
-        if carbonModifiers & CarbonMod.option != 0 { caps.append("⌥") }
-        if carbonModifiers & CarbonMod.shift != 0 { caps.append("⇧") }
         if carbonModifiers & CarbonMod.cmd != 0 { caps.append("⌘") }
+        if carbonModifiers & CarbonMod.shift != 0 { caps.append("⇧") }
+        if carbonModifiers & CarbonMod.option != 0 { caps.append("⌥") }
+        if carbonModifiers & CarbonMod.control != 0 { caps.append("⌃") }
         caps.append(keyLabel(for: keyCode))
         return caps
     }
 
-    /// Human-readable string in macOS menu-bar order (⌘⇧⌃⌥ + key).
-    var display: String {
-        var s = ""
-        if carbonModifiers & CarbonMod.cmd != 0 { s += "⌘" }
-        if carbonModifiers & CarbonMod.shift != 0 { s += "⇧" }
-        if carbonModifiers & CarbonMod.control != 0 { s += "⌃" }
-        if carbonModifiers & CarbonMod.option != 0 { s += "⌥" }
-        s += keyLabel(for: keyCode)
-        return s
-    }
+    var display: String { keyCaps.joined() }
 }
 
 /// Convert Cocoa modifier flags to Carbon modifier bits.
