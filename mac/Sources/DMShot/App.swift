@@ -151,6 +151,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     private func copyCurrent() {
         if let img = model.flatten() { ImageUtils.copyToClipboard(img) }
+        NSApp.hide(nil)  // return focus to the previous app so ⌘V pastes immediately
     }
 
     private func saveCurrent() {
