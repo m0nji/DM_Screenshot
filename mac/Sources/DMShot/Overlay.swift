@@ -45,7 +45,7 @@ final class SelectionView: NSView {
         img.draw(in: bounds)
         NSGraphicsContext.restoreGraphicsState()
 
-        NSColor.controlAccentColor.setStroke()
+        NSColor.dmAccent.setStroke()
         let border = NSBezierPath(rect: sel)
         border.lineWidth = 1.5
         border.stroke()
@@ -54,7 +54,7 @@ final class SelectionView: NSView {
         let attrs: [NSAttributedString.Key: Any] = [
             .foregroundColor: NSColor.white,
             .font: NSFont.systemFont(ofSize: 12, weight: .medium),
-            .backgroundColor: NSColor.controlAccentColor,
+            .backgroundColor: NSColor.dmAccent,
         ]
         NSAttributedString(string: " \(label) ", attributes: attrs)
             .draw(at: NSPoint(x: sel.minX, y: max(0, sel.minY - 18)))

@@ -51,6 +51,7 @@ struct EditorView: View {
             }
         }
         .frame(minWidth: 900, minHeight: 560)
+        .tint(.dmAccent)
     }
 
     private var toolbar: some View {
@@ -68,7 +69,7 @@ struct EditorView: View {
                     }
                     .help(spec.help)
                     .buttonStyle(.bordered)
-                    .tint(model.tool == spec.tool ? .accentColor : nil)
+                    .tint(model.tool == spec.tool ? Color.dmAccent : nil)
                     .disabled(model.image == nil)
                 }
                 Divider().frame(height: 22)
@@ -153,10 +154,18 @@ struct EditorView: View {
 
     private var sidebar: some View {
         VStack(spacing: 8) {
-            Button(action: onCaptureFull) { Label("Full Screen", systemImage: "rectangle.dashed") }
-                .frame(maxWidth: .infinity)
-            Button(action: onCaptureArea) { Label("Selection", systemImage: "selection.pin.in.out") }
-                .frame(maxWidth: .infinity)
+            Button(action: onCaptureFull) {
+                Label("Full Screen", systemImage: "rectangle.dashed")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.large)
+            Button(action: onCaptureArea) {
+                Label("Selection", systemImage: "selection.pin.in.out")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.large)
             Text("HISTORY").font(.caption2).foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
             ScrollView {
@@ -170,7 +179,7 @@ struct EditorView: View {
                                     .resizable().scaledToFit()
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 6)
-                                            .stroke(model.entryID == item.id ? Color.accentColor : .clear, lineWidth: 2))
+                                            .stroke(model.entryID == item.id ? Color.dmAccent : .clear, lineWidth: 2))
                             }
                             .buttonStyle(.plain)
                         }

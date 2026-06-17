@@ -70,7 +70,7 @@ final class CanvasNSView: NSView {
                 x: offset.x + (r.minX - vr.minX) * scale,
                 y: offset.y + (r.minY - vr.minY) * scale,
                 width: max(r.width, 1) * scale, height: max(r.height, 1) * scale)
-            NSColor.controlAccentColor.setStroke()
+            NSColor.dmAccent.setStroke()
             let p = NSBezierPath(rect: viewRect.insetBy(dx: -3, dy: -3))
             p.lineWidth = 1.5
             p.setLineDash([4, 3], count: 2, phase: 0)
