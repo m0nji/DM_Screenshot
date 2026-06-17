@@ -98,28 +98,40 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     // MARK: - Capture
 
     @objc private func captureFull() {
+        guard ensurePermission() else { return }
         Task { @MainActor in
             do {
                 let cap = try await ScreenCapture.captureActive()
                 deliver(cap.image)
-            } catch { handleCaptureFailure(error) }
+            } catch { NSLog("capture full failed: \(error)") }
         }
     }
 
     @objc private func captureArea() {
+        guard ensurePermission() else { return }
         Task { @MainActor in
             do {
                 let caps = try await ScreenCapture.captureAll()
                 overlay.begin(captures: caps)
-            } catch { handleCaptureFailure(error) }
+            } catch { NSLog("capture area failed: \(error)") }
         }
     }
 
-    private func handleCaptureFailure(_ error: Error) {
-        NSLog("capture failed: \(error)")
-        // The SCK call above already registered the app + triggered the system
-        // prompt; guide the user to grant permission if it's still missing.
-        if !ScreenPermission.hasAccess { showPermissionOnboarding() }
+    /// Returns true if Screen Recording is granted. If not, shows exactly ONE
+    /// prompt and aborts the capture: the native system prompt the first time
+    /// (which also registers the app in the Screen Recording list), or — once the
+    /// user has already responded and it's still missing — our alert that opens
+    /// System Settings (the native prompt won't reappear after that).
+    private func ensurePermission() -> Bool {
+        if ScreenPermission.hasAccess { return true }
+        let key = "didRequestScreenAccess"
+        if UserDefaults.standard.bool(forKey: key) {
+            showPermissionOnboarding()
+        } else {
+            UserDefaults.standard.set(true, forKey: key)
+            ScreenPermission.request()
+        }
+        return false
     }
 
     private func deliver(_ image: CGImage) {
@@ -204,7 +216,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     // MARK: - Permission
 
     private func showPermissionOnboarding() {
-        ScreenPermission.request()
         let alert = NSAlert()
         alert.messageText = "Screen Recording Required"
         alert.informativeText =
