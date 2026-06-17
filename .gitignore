@@ -1,0 +1,9 @@
+# Swift / SwiftPM
+mac/.build/
+mac/build/
+.swiftpm/
+*.xcuserstate
+
+# macOS
+.DS_Store
+.idea
