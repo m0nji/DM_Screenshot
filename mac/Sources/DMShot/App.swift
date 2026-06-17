@@ -23,6 +23,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         setupPersistence()
         overlay.onComplete = { [weak self] image in self?.deliver(image) }
         showEditor()
+        // Register with ScreenCaptureKit so the app appears in the Screen Recording
+        // list and (if needed) prompts on first launch.
+        Task { await ScreenCapture.registerForScreenRecording() }
     }
 
     // MARK: - Setup
@@ -64,23 +67,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     // MARK: - Capture
 
     @objc private func captureFull() {
-        guard ensurePermission() else { return }
         Task { @MainActor in
             do {
                 let cap = try await ScreenCapture.captureActive()
                 deliver(cap.image)
-            } catch { NSLog("capture full failed: \(error)") }
+            } catch { handleCaptureFailure(error) }
         }
     }
 
     @objc private func captureArea() {
-        guard ensurePermission() else { return }
         Task { @MainActor in
             do {
                 let caps = try await ScreenCapture.captureAll()
                 overlay.begin(captures: caps)
-            } catch { NSLog("capture area failed: \(error)") }
+            } catch { handleCaptureFailure(error) }
         }
+    }
+
+    private func handleCaptureFailure(_ error: Error) {
+        NSLog("capture failed: \(error)")
+        // The SCK call above already registered the app + triggered the system
+        // prompt; guide the user to grant permission if it's still missing.
+        if !ScreenPermission.hasAccess { showPermissionOnboarding() }
     }
 
     private func deliver(_ image: CGImage) {
@@ -162,8 +170,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     // MARK: - Permission
 
-    private func ensurePermission() -> Bool {
-        if ScreenPermission.hasAccess { return true }
+    private func showPermissionOnboarding() {
         ScreenPermission.request()
         let alert = NSAlert()
         alert.messageText = "Screen Recording Required"
@@ -178,6 +185,5 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 NSWorkspace.shared.open(url)
             }
         }
-        return false
     }
 }

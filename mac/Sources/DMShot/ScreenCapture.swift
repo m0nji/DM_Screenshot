@@ -14,6 +14,14 @@ struct DisplayCapture {
 enum CaptureError: Error { case noDisplay }
 
 enum ScreenCapture {
+    /// Touch ScreenCaptureKit so macOS registers the app in the Screen Recording
+    /// list and shows the permission prompt on first launch. Calling an SCK API is
+    /// what registers the app — a CGPreflight check alone never does.
+    static func registerForScreenRecording() async {
+        _ = try? await SCShareableContent.excludingDesktopWindows(
+            false, onScreenWindowsOnly: false)
+    }
+
     /// Capture every display immediately. Order matches SCShareableContent.
     static func captureAll() async throws -> [DisplayCapture] {
         let content = try await SCShareableContent.excludingDesktopWindows(
