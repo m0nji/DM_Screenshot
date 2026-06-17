@@ -18,7 +18,15 @@ cp "$BIN" "$APP/Contents/MacOS/DMShot"
 cp Info.plist "$APP/Contents/Info.plist"
 [ -f Resources/AppIcon.icns ] && cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns" || true
 
-echo "==> ad-hoc codesign"
-codesign --force --deep --sign - "$APP"
+# Prefer a STABLE self-signed identity (keeps macOS Screen Recording permission across
+# rebuilds). Falls back to ad-hoc. Create the identity once with ./make_cert.sh.
+SIGN_ID="${DMSHOT_SIGN_ID:-DMShot Dev}"
+if security find-identity -v -p codesigning 2>/dev/null | grep -q "$SIGN_ID"; then
+    echo "==> codesign with stable identity: $SIGN_ID"
+    codesign --force --deep --sign "$SIGN_ID" "$APP"
+else
+    echo "==> ad-hoc codesign (no '$SIGN_ID' identity; run ./make_cert.sh for a persistent permission)"
+    codesign --force --deep --sign - "$APP"
+fi
 
 echo "==> done: $APP"
