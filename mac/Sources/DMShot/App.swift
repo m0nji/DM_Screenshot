@@ -6,16 +6,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private let model = EditorModel()
     private let history = HistoryStore()
     private let overlay = OverlayController()
+    private let shortcutStore = ShortcutStore()
     private var hotkeys: HotkeyManager?
     private var statusItem: NSStatusItem?
     private var editorWindow: NSWindow?
     private var settingsWindow: NSWindow?
     private var cancellables: Set<AnyCancellable> = []
 
-    // Carbon virtual key codes.
-    private let kVK_1 = 0x12
-    private let kVK_2 = 0x13
-    private let cmdShift = 0x100 | 0x200  // cmdKey | shiftKey
+    private var fullMenuItem: NSMenuItem?
+    private var areaMenuItem: NSMenuItem?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         setupStatusItem()
@@ -34,8 +33,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         item.button?.title = "▣"
         let menu = NSMenu()
-        menu.addItem(NSMenuItem(title: "New Full Screen  (⌘⇧1)", action: #selector(captureFull), keyEquivalent: ""))
-        menu.addItem(NSMenuItem(title: "New Selection  (⌘⇧2)", action: #selector(captureArea), keyEquivalent: ""))
+        let fullItem = NSMenuItem(title: "New Full Screen", action: #selector(captureFull), keyEquivalent: "")
+        let areaItem = NSMenuItem(title: "New Selection", action: #selector(captureArea), keyEquivalent: "")
+        menu.addItem(fullItem)
+        menu.addItem(areaItem)
+        fullMenuItem = fullItem
+        areaMenuItem = areaItem
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: "Open Window", action: #selector(showEditor), keyEquivalent: ""))
         menu.addItem(NSMenuItem(title: "Settings…", action: #selector(openSettings), keyEquivalent: ","))
@@ -46,10 +49,38 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     private func setupHotkeys() {
-        let hk = HotkeyManager()
-        hk.register(keyCode: kVK_1, modifiers: cmdShift) { [weak self] in self?.captureFull() }
-        hk.register(keyCode: kVK_2, modifiers: cmdShift) { [weak self] in self?.captureArea() }
+        shortcutStore.onChange = { [weak self] in self?.applyShortcuts() }
+        applyShortcuts()
+    }
+
+    private func applyShortcuts() {
+        let hk = hotkeys ?? HotkeyManager()
         hotkeys = hk
+        hk.unregisterAll()
+        var failure: ShortcutAction?
+        for action in ShortcutAction.allCases {
+            let s = shortcutStore.shortcuts[action] ?? action.defaultShortcut
+            let ok = hk.register(keyCode: s.keyCode, modifiers: s.carbonModifiers) { [weak self] in
+                self?.handle(action)
+            }
+            if !ok && failure == nil { failure = action }
+        }
+        shortcutStore.registrationFailure = failure
+        updateMenuTitles()
+    }
+
+    private func handle(_ action: ShortcutAction) {
+        switch action {
+        case .fullScreen: captureFull()
+        case .areaSelection: captureArea()
+        }
+    }
+
+    private func updateMenuTitles() {
+        let full = shortcutStore.shortcuts[.fullScreen] ?? ShortcutAction.fullScreen.defaultShortcut
+        let area = shortcutStore.shortcuts[.areaSelection] ?? ShortcutAction.areaSelection.defaultShortcut
+        fullMenuItem?.title = "New Full Screen  (\(full.display))"
+        areaMenuItem?.title = "New Selection  (\(area.display))"
     }
 
     private func setupPersistence() {
@@ -132,7 +163,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 contentRect: NSRect(x: 0, y: 0, width: 640, height: 420),
                 styleMask: [.titled, .closable], backing: .buffered, defer: false)
             win.title = "Settings"
-            win.contentView = NSHostingView(rootView: SettingsView(appVersion: version))
+            win.contentView = NSHostingView(rootView: SettingsView(store: shortcutStore, appVersion: version))
             win.delegate = self
             win.isReleasedWhenClosed = false
             win.center()

@@ -129,7 +129,7 @@ struct SettingsView: View {
         case .needsModifier:
             lastError[action] = "Use at least one modifier (⌘, ⌥, ⌃ or ⇧)."
         case .conflict(let other):
-            lastError[action] = "Already used by "\(other.title)"."
+            lastError[action] = "Already used by \"\(other.title)\"."
         }
     }
 
