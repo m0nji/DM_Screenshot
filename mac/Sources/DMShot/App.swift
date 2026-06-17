@@ -9,6 +9,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private var hotkeys: HotkeyManager?
     private var statusItem: NSStatusItem?
     private var editorWindow: NSWindow?
+    private var settingsWindow: NSWindow?
     private var cancellables: Set<AnyCancellable> = []
 
     // Carbon virtual key codes.
@@ -34,6 +35,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         menu.addItem(NSMenuItem(title: "New Selection  (⌘⇧2)", action: #selector(captureArea), keyEquivalent: ""))
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: "Open Window", action: #selector(showEditor), keyEquivalent: ""))
+        menu.addItem(NSMenuItem(title: "Settings…", action: #selector(openSettings), keyEquivalent: ","))
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
         item.menu = menu
@@ -112,6 +114,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             editorWindow = win
         }
         editorWindow?.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    @objc private func openSettings() {
+        if settingsWindow == nil {
+            let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.1.0"
+            let win = NSWindow(
+                contentRect: NSRect(x: 0, y: 0, width: 640, height: 420),
+                styleMask: [.titled, .closable], backing: .buffered, defer: false)
+            win.title = "Settings"
+            win.contentView = NSHostingView(rootView: SettingsView(appVersion: version))
+            win.delegate = self
+            win.isReleasedWhenClosed = false
+            win.center()
+            settingsWindow = win
+        }
+        settingsWindow?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
     }
 
