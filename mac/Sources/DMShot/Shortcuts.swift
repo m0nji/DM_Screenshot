@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 
 /// Carbon modifier bit values (Carbon.HIToolbox Events.h).
 enum CarbonMod {
@@ -92,8 +93,6 @@ private let keyCodeLabels: [Int: String] = [
     0x7A: "F1", 0x78: "F2", 0x63: "F3", 0x76: "F4", 0x60: "F5", 0x61: "F6",
     0x62: "F7", 0x64: "F8", 0x65: "F9", 0x6D: "F10", 0x67: "F11", 0x6F: "F12",
 ]
-
-import Combine
 
 /// Persists and validates the editable shortcuts. Mutations fire `onChange`
 /// so the app re-registers hotkeys and refreshes menu titles.
