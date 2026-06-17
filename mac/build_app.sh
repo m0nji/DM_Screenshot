@@ -27,6 +27,10 @@ if security find-identity -v -p codesigning 2>/dev/null | grep -q "$SIGN_ID"; th
 else
     echo "==> ad-hoc codesign (no '$SIGN_ID' identity; run ./make_cert.sh for a persistent permission)"
     codesign --force --deep --sign - "$APP"
+    # Ad-hoc hash changes every build -> macOS keeps a stale Screen Recording grant
+    # that can't be re-toggled. Reset it so the next capture prompts fresh (1 click).
+    tccutil reset ScreenCapture de.dmscreenshot.app >/dev/null 2>&1 \
+        && echo "==> reset Screen Recording permission (re-grant on next capture)"
 fi
 
 echo "==> done: $APP"
