@@ -92,3 +92,65 @@ private let keyCodeLabels: [Int: String] = [
     0x7A: "F1", 0x78: "F2", 0x63: "F3", 0x76: "F4", 0x60: "F5", 0x61: "F6",
     0x62: "F7", 0x64: "F8", 0x65: "F9", 0x6D: "F10", 0x67: "F11", 0x6F: "F12",
 ]
+
+import Combine
+
+/// Persists and validates the editable shortcuts. Mutations fire `onChange`
+/// so the app re-registers hotkeys and refreshes menu titles.
+final class ShortcutStore: ObservableObject {
+    @Published private(set) var shortcuts: [ShortcutAction: Shortcut] = [:]
+    /// Set by the app layer when a combo could not be registered with the OS.
+    @Published var registrationFailure: ShortcutAction?
+    var onChange: (() -> Void)?
+
+    private let defaults: UserDefaults
+
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+        var dict: [ShortcutAction: Shortcut] = [:]
+        for action in ShortcutAction.allCases {
+            if let kc = defaults.object(forKey: action.keyCodeKey) as? Int,
+               let mods = defaults.object(forKey: action.modifiersKey) as? Int {
+                dict[action] = Shortcut(keyCode: kc, carbonModifiers: mods)
+            } else {
+                dict[action] = action.defaultShortcut
+            }
+        }
+        shortcuts = dict
+    }
+
+    enum SetResult: Equatable {
+        case ok
+        case needsModifier
+        case conflict(ShortcutAction)
+    }
+
+    @discardableResult
+    func set(_ action: ShortcutAction, to candidate: Shortcut) -> SetResult {
+        if candidate.carbonModifiers == 0 { return .needsModifier }
+        if let other = conflict(of: candidate, excluding: action) { return .conflict(other) }
+        shortcuts[action] = candidate
+        defaults.set(candidate.keyCode, forKey: action.keyCodeKey)
+        defaults.set(candidate.carbonModifiers, forKey: action.modifiersKey)
+        registrationFailure = nil
+        onChange?()
+        return .ok
+    }
+
+    func conflict(of candidate: Shortcut, excluding action: ShortcutAction) -> ShortcutAction? {
+        for (other, existing) in shortcuts where other != action {
+            if existing == candidate { return other }
+        }
+        return nil
+    }
+
+    func reset() {
+        for action in ShortcutAction.allCases {
+            shortcuts[action] = action.defaultShortcut
+            defaults.removeObject(forKey: action.keyCodeKey)
+            defaults.removeObject(forKey: action.modifiersKey)
+        }
+        registrationFailure = nil
+        onChange?()
+    }
+}
