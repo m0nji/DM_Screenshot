@@ -46,6 +46,7 @@ struct ToolButtonStyle: ButtonStyle {
                     .stroke(Color.secondary.opacity(active ? 0 : 0.3), lineWidth: 1)
             )
             .foregroundStyle(active ? Color.dmOnAccent : Color.primary)
+            .contentShape(Rectangle())  // whole 30×24 area is clickable, not just the glyph
             .opacity(configuration.isPressed ? 0.8 : 1)
     }
 }

@@ -31,6 +31,7 @@ struct EditorView: View {
     var onCaptureFull: () -> Void
     var onCaptureArea: () -> Void
     var onSelectHistory: (String) -> Void
+    var onOpenSettings: () -> Void
 
     @State private var colorOpen = false
 
@@ -186,6 +187,12 @@ struct EditorView: View {
                     }
                 }
             }
+            Divider()
+            Button(action: onOpenSettings) {
+                Label("Settings", systemImage: "gearshape")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(.bordered)
         }
         .padding(8)
         .frame(width: 150)

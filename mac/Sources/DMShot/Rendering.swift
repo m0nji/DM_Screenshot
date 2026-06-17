@@ -81,18 +81,25 @@ enum SceneRenderer {
     private static func drawArrow(from: CGPoint, to: CGPoint, width: CGFloat, color: NSColor) {
         color.setStroke()
         color.setFill()
+        let angle = atan2(to.y - from.y, to.x - from.x)
+        let head = width * 3.5
+        let spread = CGFloat.pi / 7
+        // Stop the shaft at the BASE of the arrowhead (not the tip) so the round
+        // line cap doesn't poke past the point — otherwise the tip looks blunt and
+        // the triangle appears set back from the front.
+        let backInset = head * cos(spread)
+        let shaftEnd = CGPoint(x: to.x - cos(angle) * backInset,
+                               y: to.y - sin(angle) * backInset)
         let line = NSBezierPath()
         line.move(to: from)
-        line.line(to: to)
+        line.line(to: shaftEnd)
         line.lineWidth = width
         line.lineCapStyle = .round
         line.stroke()
-        let angle = atan2(to.y - from.y, to.x - from.x)
-        let head = width * 3.5
-        let a1 = angle + .pi - .pi / 7
-        let a2 = angle + .pi + .pi / 7
+        let a1 = angle + .pi - spread
+        let a2 = angle + .pi + spread
         let tri = NSBezierPath()
-        tri.move(to: to)
+        tri.move(to: to)  // tip is the frontmost point
         tri.line(to: CGPoint(x: to.x + cos(a1) * head, y: to.y + sin(a1) * head))
         tri.line(to: CGPoint(x: to.x + cos(a2) * head, y: to.y + sin(a2) * head))
         tri.close()

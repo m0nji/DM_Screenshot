@@ -140,7 +140,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 onSave: { [weak self] in self?.saveCurrent() },
                 onCaptureFull: { [weak self] in self?.captureFull() },
                 onCaptureArea: { [weak self] in self?.captureArea() },
-                onSelectHistory: { [weak self] id in self?.loadHistory(id) })
+                onSelectHistory: { [weak self] id in self?.loadHistory(id) },
+                onOpenSettings: { [weak self] in self?.openSettings() })
             let win = NSWindow(
                 contentRect: NSRect(x: 0, y: 0, width: 1100, height: 720),
                 styleMask: [.titled, .closable, .miniaturizable, .resizable],
