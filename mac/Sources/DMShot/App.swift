@@ -6,16 +6,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private let model = EditorModel()
     private let history = HistoryStore()
     private let overlay = OverlayController()
+    private let shortcutStore = ShortcutStore()
     private var hotkeys: HotkeyManager?
     private var statusItem: NSStatusItem?
     private var editorWindow: NSWindow?
     private var settingsWindow: NSWindow?
     private var cancellables: Set<AnyCancellable> = []
 
-    // Carbon virtual key codes.
-    private let kVK_1 = 0x12
-    private let kVK_2 = 0x13
-    private let cmdShift = 0x100 | 0x200  // cmdKey | shiftKey
+    private var fullMenuItem: NSMenuItem?
+    private var areaMenuItem: NSMenuItem?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         setupStatusItem()
@@ -34,22 +33,54 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         item.button?.title = "▣"
         let menu = NSMenu()
-        menu.addItem(NSMenuItem(title: "New Full Screen  (⌘⇧1)", action: #selector(captureFull), keyEquivalent: ""))
-        menu.addItem(NSMenuItem(title: "New Selection  (⌘⇧2)", action: #selector(captureArea), keyEquivalent: ""))
+        let fullItem = NSMenuItem(title: "New Full Screen", action: #selector(captureFull), keyEquivalent: "")
+        let areaItem = NSMenuItem(title: "New Selection", action: #selector(captureArea), keyEquivalent: "")
+        menu.addItem(fullItem)
+        menu.addItem(areaItem)
+        fullMenuItem = fullItem
+        areaMenuItem = areaItem
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: "Open Window", action: #selector(showEditor), keyEquivalent: ""))
-        menu.addItem(NSMenuItem(title: "Settings…", action: #selector(openSettings), keyEquivalent: ","))
+        menu.addItem(NSMenuItem(title: "Settings…", action: #selector(openSettings), keyEquivalent: ""))
         menu.addItem(.separator())
-        menu.addItem(NSMenuItem(title: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+        menu.addItem(NSMenuItem(title: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: ""))
         item.menu = menu
         statusItem = item
     }
 
     private func setupHotkeys() {
-        let hk = HotkeyManager()
-        hk.register(keyCode: kVK_1, modifiers: cmdShift) { [weak self] in self?.captureFull() }
-        hk.register(keyCode: kVK_2, modifiers: cmdShift) { [weak self] in self?.captureArea() }
+        shortcutStore.onChange = { [weak self] in self?.applyShortcuts() }
+        applyShortcuts()
+    }
+
+    private func applyShortcuts() {
+        let hk = hotkeys ?? HotkeyManager()
         hotkeys = hk
+        hk.unregisterAll()
+        var failure: ShortcutAction?
+        for action in ShortcutAction.allCases {
+            let s = shortcutStore.shortcuts[action] ?? action.defaultShortcut
+            let ok = hk.register(keyCode: s.keyCode, modifiers: s.carbonModifiers) { [weak self] in
+                self?.handle(action)
+            }
+            if !ok && failure == nil { failure = action }
+        }
+        shortcutStore.registrationFailure = failure
+        updateMenuTitles()
+    }
+
+    private func handle(_ action: ShortcutAction) {
+        switch action {
+        case .fullScreen: captureFull()
+        case .areaSelection: captureArea()
+        }
+    }
+
+    private func updateMenuTitles() {
+        let full = shortcutStore.shortcuts[.fullScreen] ?? ShortcutAction.fullScreen.defaultShortcut
+        let area = shortcutStore.shortcuts[.areaSelection] ?? ShortcutAction.areaSelection.defaultShortcut
+        fullMenuItem?.title = "New Full Screen  (\(full.display))"
+        areaMenuItem?.title = "New Selection  (\(area.display))"
     }
 
     private func setupPersistence() {
@@ -67,28 +98,40 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     // MARK: - Capture
 
     @objc private func captureFull() {
+        guard ensurePermission() else { return }
         Task { @MainActor in
             do {
                 let cap = try await ScreenCapture.captureActive()
                 deliver(cap.image)
-            } catch { handleCaptureFailure(error) }
+            } catch { NSLog("capture full failed: \(error)") }
         }
     }
 
     @objc private func captureArea() {
+        guard ensurePermission() else { return }
         Task { @MainActor in
             do {
                 let caps = try await ScreenCapture.captureAll()
                 overlay.begin(captures: caps)
-            } catch { handleCaptureFailure(error) }
+            } catch { NSLog("capture area failed: \(error)") }
         }
     }
 
-    private func handleCaptureFailure(_ error: Error) {
-        NSLog("capture failed: \(error)")
-        // The SCK call above already registered the app + triggered the system
-        // prompt; guide the user to grant permission if it's still missing.
-        if !ScreenPermission.hasAccess { showPermissionOnboarding() }
+    /// Returns true if Screen Recording is granted. If not, shows exactly ONE
+    /// prompt and aborts the capture: the native system prompt the first time
+    /// (which also registers the app in the Screen Recording list), or — once the
+    /// user has already responded and it's still missing — our alert that opens
+    /// System Settings (the native prompt won't reappear after that).
+    private func ensurePermission() -> Bool {
+        if ScreenPermission.hasAccess { return true }
+        let key = "didRequestScreenAccess"
+        if UserDefaults.standard.bool(forKey: key) {
+            showPermissionOnboarding()
+        } else {
+            UserDefaults.standard.set(true, forKey: key)
+            ScreenPermission.request()
+        }
+        return false
     }
 
     private func deliver(_ image: CGImage) {
@@ -109,7 +152,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 onSave: { [weak self] in self?.saveCurrent() },
                 onCaptureFull: { [weak self] in self?.captureFull() },
                 onCaptureArea: { [weak self] in self?.captureArea() },
-                onSelectHistory: { [weak self] id in self?.loadHistory(id) })
+                onSelectHistory: { [weak self] id in self?.loadHistory(id) },
+                onOpenSettings: { [weak self] in self?.openSettings() })
             let win = NSWindow(
                 contentRect: NSRect(x: 0, y: 0, width: 1100, height: 720),
                 styleMask: [.titled, .closable, .miniaturizable, .resizable],
@@ -132,7 +176,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 contentRect: NSRect(x: 0, y: 0, width: 640, height: 420),
                 styleMask: [.titled, .closable], backing: .buffered, defer: false)
             win.title = "Settings"
-            win.contentView = NSHostingView(rootView: SettingsView(appVersion: version))
+            win.contentView = NSHostingView(rootView: SettingsView(store: shortcutStore, appVersion: version))
             win.delegate = self
             win.isReleasedWhenClosed = false
             win.center()
@@ -151,6 +195,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     private func copyCurrent() {
         if let img = model.flatten() { ImageUtils.copyToClipboard(img) }
+        NSApp.hide(nil)  // return focus to the previous app so ⌘V pastes immediately
     }
 
     private func saveCurrent() {
@@ -171,7 +216,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     // MARK: - Permission
 
     private func showPermissionOnboarding() {
-        ScreenPermission.request()
         let alert = NSAlert()
         alert.messageText = "Screen Recording Required"
         alert.informativeText =

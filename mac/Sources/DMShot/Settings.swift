@@ -17,8 +17,9 @@ enum SettingsSection: String, CaseIterable, Identifiable {
 }
 
 struct SettingsView: View {
-    @State private var section: SettingsSection = .general
+    @ObservedObject var store: ShortcutStore
     let appVersion: String
+    @State private var section: SettingsSection = .general
 
     var body: some View {
         HStack(spacing: 0) {
@@ -47,13 +48,10 @@ struct SettingsView: View {
             }
         }
         .frame(width: 640, height: 420)
-        .tint(.dmAccent)
     }
 
     private func navButton(_ s: SettingsSection) -> some View {
         let active = section == s
-        let bg: Color = active ? Color.dmAccent.opacity(0.16) : Color.clear
-        let fg: Color = active ? Color.dmAccent : Color.primary
         return Button {
             section = s
         } label: {
@@ -61,8 +59,8 @@ struct SettingsView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 7)
-                .background(RoundedRectangle(cornerRadius: 7).fill(bg))
-                .foregroundStyle(fg)
+                .background(RoundedRectangle(cornerRadius: 7).fill(active ? Color.dmAccent : Color.clear))
+                .foregroundStyle(active ? Color.dmOnAccent : Color.primary)
         }
         .buttonStyle(.plain)
     }
@@ -77,13 +75,7 @@ struct SettingsView: View {
                 Text("Open editor + copy to clipboard").foregroundStyle(.secondary)
             }
         case .shortcuts:
-            settingRow("Full screen", "Capture the whole screen.") {
-                Text("⌘⇧1").font(.system(.body, design: .monospaced))
-            }
-            settingRow("Area selection", "Capture a selected area (frozen).") {
-                Text("⌘⇧2").font(.system(.body, design: .monospaced))
-            }
-            Text("Editable shortcuts are coming next.").font(.caption).foregroundStyle(.secondary)
+            shortcutsDetail
         case .language:
             settingRow("Language", "Interface language.") {
                 Text("English").foregroundStyle(.secondary)
@@ -94,9 +86,58 @@ struct SettingsView: View {
                 Text(appVersion).foregroundStyle(.secondary)
             }
             Button("Check for Updates") {}
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(AccentFilledButtonStyle())
             Text("Automatic update checks will be added later.").font(.caption).foregroundStyle(.secondary)
         }
+    }
+
+    @ViewBuilder private var shortcutsDetail: some View {
+        ForEach(ShortcutAction.allCases) { action in
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(action.title)
+                        Text(action.subtitle).font(.caption).foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    ShortcutRecorderView(
+                        shortcut: Binding(
+                            get: { store.shortcuts[action] ?? action.defaultShortcut },
+                            set: { _ in }
+                        ),
+                        onCapture: { captured in handleCapture(action, captured) }
+                    )
+                }
+                if let msg = errorMessage(for: action) {
+                    Text(msg).font(.caption).foregroundStyle(Color(nsColor: NSColor(hex: "#ff8a8a")))
+                }
+            }
+            .padding(.vertical, 6)
+        }
+
+        Button("Reset to defaults") { store.reset(); lastError = [:] }
+            .buttonStyle(.bordered)
+            .padding(.top, 4)
+    }
+
+    @State private var lastError: [ShortcutAction: String] = [:]
+
+    private func handleCapture(_ action: ShortcutAction, _ captured: Shortcut) {
+        switch store.set(action, to: captured) {
+        case .ok:
+            lastError[action] = nil
+        case .needsModifier:
+            lastError[action] = "Use at least one modifier (⌘, ⌥, ⌃ or ⇧)."
+        case .conflict(let other):
+            lastError[action] = "Already used by \"\(other.title)\"."
+        }
+    }
+
+    private func errorMessage(for action: ShortcutAction) -> String? {
+        if store.registrationFailure == action {
+            return "This combination is already in use by the system."
+        }
+        return lastError[action]
     }
 
     private func settingRow<Trailing: View>(

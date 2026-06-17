@@ -31,6 +31,7 @@ struct EditorView: View {
     var onCaptureFull: () -> Void
     var onCaptureArea: () -> Void
     var onSelectHistory: (String) -> Void
+    var onOpenSettings: () -> Void
 
     @State private var colorOpen = false
 
@@ -51,7 +52,6 @@ struct EditorView: View {
             }
         }
         .frame(minWidth: 900, minHeight: 560)
-        .tint(.dmAccent)
     }
 
     private var toolbar: some View {
@@ -68,8 +68,7 @@ struct EditorView: View {
                         Image(systemName: spec.icon).frame(width: 18)
                     }
                     .help(spec.help)
-                    .buttonStyle(.bordered)
-                    .tint(model.tool == spec.tool ? Color.dmAccent : nil)
+                    .buttonStyle(ToolButtonStyle(active: model.tool == spec.tool))
                     .disabled(model.image == nil)
                 }
                 Divider().frame(height: 22)
@@ -139,6 +138,7 @@ struct EditorView: View {
             HStack(spacing: 6) {
                 Text("Blur").font(.caption).foregroundStyle(.secondary).fixedSize()
                 Slider(value: $model.blurStrength, in: 2...60).frame(width: 90)
+                    .tint(.dmAccent)
                     .onChange(of: model.blurStrength) { _, v in applyBlurToSelection(v) }
                 Text("\(Int(model.blurStrength))").font(.caption).monospacedDigit().fixedSize()
             }
@@ -146,6 +146,7 @@ struct EditorView: View {
             HStack(spacing: 6) {
                 Text("Size").font(.caption).foregroundStyle(.secondary).fixedSize()
                 Slider(value: $model.strokeWidth, in: 1...20).frame(width: 90)
+                    .tint(.dmAccent)
                     .onChange(of: model.strokeWidth) { _, v in applyStrokeToSelection(v) }
                 Text("\(Int(model.strokeWidth))px").font(.caption).monospacedDigit().fixedSize()
             }
@@ -186,6 +187,12 @@ struct EditorView: View {
                     }
                 }
             }
+            Divider()
+            Button(action: onOpenSettings) {
+                Label("Settings", systemImage: "gearshape")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(.bordered)
         }
         .padding(8)
         .frame(width: 150)

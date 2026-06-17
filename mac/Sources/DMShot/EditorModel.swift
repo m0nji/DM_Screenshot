@@ -83,6 +83,14 @@ final class EditorModel: ObservableObject {
                 space: CGColorSpaceCreateDeviceRGB(),
                 bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
         else { return nil }
+        // The on-screen canvas is a flipped (top-left origin) NSView, for which
+        // AppKit flips the backing CTM. A raw CGContext is bottom-left, and
+        // NSGraphicsContext(flipped:) only sets the isFlipped flag — it does NOT
+        // flip the CTM. Flip it manually so SceneRenderer (built for flipped
+        // contexts) produces the same upright orientation as the canvas;
+        // otherwise the exported/copied image comes out vertically mirrored.
+        cg.translateBy(x: 0, y: CGFloat(h))
+        cg.scaleBy(x: 1, y: -1)
         let nsctx = NSGraphicsContext(cgContext: cg, flipped: true)
         NSGraphicsContext.saveGraphicsState()
         NSGraphicsContext.current = nsctx
