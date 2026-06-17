@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import SwiftUI
 
 /// AppKit canvas: renders the image + annotations and handles mouse interaction.
@@ -202,6 +203,18 @@ final class CanvasNSView: NSView {
 struct CanvasView: NSViewRepresentable {
     @ObservedObject var model: EditorModel
 
-    func makeNSView(context: Context) -> CanvasNSView { CanvasNSView(model: model) }
+    func makeCoordinator() -> Coordinator { Coordinator() }
+
+    func makeNSView(context: Context) -> CanvasNSView {
+        let view = CanvasNSView(model: model)
+        // Redraw on ANY model change (covers undo/redo, tool/color edits).
+        context.coordinator.cancellable = model.objectWillChange.sink { [weak view] _ in
+            DispatchQueue.main.async { view?.refresh() }
+        }
+        return view
+    }
+
     func updateNSView(_ nsView: CanvasNSView, context: Context) { nsView.refresh() }
+
+    final class Coordinator { var cancellable: AnyCancellable? }
 }

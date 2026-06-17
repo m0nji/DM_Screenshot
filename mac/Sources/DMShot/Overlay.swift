@@ -23,6 +23,14 @@ final class SelectionView: NSView {
     override var isFlipped: Bool { true }
     override var acceptsFirstResponder: Bool { true }
 
+    override func resetCursorRects() {
+        addCursorRect(bounds, cursor: .crosshair)
+    }
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        NSCursor.crosshair.set()
+    }
+
     override func draw(_ dirtyRect: NSRect) {
         let img = ImageUtils.nsImage(capture.image)
         img.draw(in: bounds)
@@ -58,12 +66,13 @@ final class SelectionView: NSView {
             .font: NSFont.systemFont(ofSize: 13),
         ]
         let s = NSAttributedString(
-            string: "Ziehen zum Auswählen · Esc zum Abbrechen", attributes: attrs)
+            string: "Drag to select · Esc to cancel", attributes: attrs)
         let size = s.size()
         s.draw(at: NSPoint(x: (bounds.width - size.width) / 2, y: bounds.height - 60))
     }
 
     override func mouseDown(with event: NSEvent) {
+        NSCursor.crosshair.set()
         startPoint = convert(event.locationInWindow, from: nil)
         selection = NSRect(origin: startPoint!, size: .zero)
         needsDisplay = true

@@ -6,21 +6,21 @@ private let palette = [
 
 private struct ToolSpec {
     let tool: Tool
-    let label: String
+    let icon: String
     let help: String
 }
 
 private let toolSpecs: [ToolSpec] = [
-    .init(tool: .select, label: "▢", help: "Auswählen / Verschieben"),
-    .init(tool: .arrow, label: "↗", help: "Pfeil"),
-    .init(tool: .rect, label: "▭", help: "Rechteck"),
-    .init(tool: .ellipse, label: "◯", help: "Ellipse"),
-    .init(tool: .underline, label: "U\u{0332}", help: "Unterstreichen"),
-    .init(tool: .highlighter, label: "▤", help: "Highlighter"),
-    .init(tool: .step, label: "①", help: "Nummerierte Schritte"),
-    .init(tool: .text, label: "T", help: "Text"),
-    .init(tool: .blur, label: "░", help: "Blur / Pixelate"),
-    .init(tool: .crop, label: "⌗", help: "Zuschneiden"),
+    .init(tool: .select, icon: "cursorarrow", help: "Select / Move"),
+    .init(tool: .arrow, icon: "arrow.up.right", help: "Arrow"),
+    .init(tool: .rect, icon: "rectangle", help: "Rectangle"),
+    .init(tool: .ellipse, icon: "circle", help: "Ellipse"),
+    .init(tool: .underline, icon: "underline", help: "Underline"),
+    .init(tool: .highlighter, icon: "highlighter", help: "Highlighter"),
+    .init(tool: .step, icon: "number.circle.fill", help: "Numbered step"),
+    .init(tool: .text, icon: "textformat", help: "Text"),
+    .init(tool: .blur, icon: "circle.grid.3x3.fill", help: "Blur / Pixelate"),
+    .init(tool: .crop, icon: "crop", help: "Crop"),
 ]
 
 struct EditorView: View {
@@ -54,36 +54,42 @@ struct EditorView: View {
     }
 
     private var toolbar: some View {
-        HStack(spacing: 6) {
-            Button(action: onCopy) { Label("Copy", systemImage: "doc.on.doc") }
-                .disabled(model.image == nil)
-            Button(action: onSave) { Label("Save", systemImage: "square.and.arrow.down") }
-                .disabled(model.image == nil)
-            Divider().frame(height: 22)
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 6) {
+                Button(action: onCopy) { Label("Copy", systemImage: "doc.on.doc") }
+                    .disabled(model.image == nil)
+                Button(action: onSave) { Label("Save", systemImage: "square.and.arrow.down") }
+                    .disabled(model.image == nil)
+                Divider().frame(height: 22)
 
-            ForEach(toolSpecs, id: \.tool) { spec in
-                Button(spec.label) { model.tool = spec.tool }
+                ForEach(toolSpecs, id: \.tool) { spec in
+                    Button { model.tool = spec.tool } label: {
+                        Image(systemName: spec.icon).frame(width: 18)
+                    }
                     .help(spec.help)
                     .buttonStyle(.bordered)
                     .tint(model.tool == spec.tool ? .accentColor : nil)
                     .disabled(model.image == nil)
+                }
+                Divider().frame(height: 22)
+
+                colorPicker
+                Divider().frame(height: 22)
+                contextualSlider
+                Divider().frame(height: 22)
+
+                Button(action: model.undo) { Image(systemName: "arrow.uturn.backward") }
+                    .help("Undo")
+                Button(action: model.redo) { Image(systemName: "arrow.uturn.forward") }
+                    .help("Redo")
+                Divider().frame(height: 22)
+
+                Text("\(Int(model.viewRect.width)) × \(Int(model.viewRect.height)) px")
+                    .font(.caption).foregroundStyle(.secondary).fixedSize()
             }
-            Divider().frame(height: 22)
-
-            colorPicker
-            Divider().frame(height: 22)
-            contextualSlider
-            Divider().frame(height: 22)
-
-            Button(action: model.undo) { Image(systemName: "arrow.uturn.backward") }
-            Button(action: model.redo) { Image(systemName: "arrow.uturn.forward") }
-
-            Spacer()
-            Text("\(Int(model.viewRect.width)) × \(Int(model.viewRect.height)) px")
-                .font(.caption).foregroundStyle(.secondary)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
     }
 
     private var colorPicker: some View {
@@ -95,6 +101,7 @@ struct EditorView: View {
                 .overlay(Circle().stroke(.secondary, lineWidth: 1))
         }
         .buttonStyle(.plain)
+        .help("Color")
         .popover(isPresented: $colorOpen) {
             VStack(alignment: .leading, spacing: 10) {
                 let columns = Array(repeating: GridItem(.fixed(24), spacing: 8), count: 4)
@@ -113,47 +120,44 @@ struct EditorView: View {
                     }
                 }
                 Divider()
-                ColorPicker("Eigene Farbe", selection: Binding(
+                ColorPicker("Custom", selection: Binding(
                     get: { Color(nsColor: NSColor(hex: model.colorHex)) },
                     set: { newColor in
                         let hex = hexString(from: newColor)
                         model.colorHex = hex
                         applyColorToSelection(hex)
                     }))
-                    .labelsHidden()
             }
             .padding(12)
-            .frame(width: 160)
+            .frame(width: 170)
         }
     }
 
     @ViewBuilder private var contextualSlider: some View {
         if blurContext {
             HStack(spacing: 6) {
-                Text("Blur").font(.caption).foregroundStyle(.secondary)
-                Slider(value: $model.blurStrength, in: 2...60) {
-                    Text("Blur")
-                }.frame(width: 90)
+                Text("Blur").font(.caption).foregroundStyle(.secondary).fixedSize()
+                Slider(value: $model.blurStrength, in: 2...60).frame(width: 90)
                     .onChange(of: model.blurStrength) { _, v in applyBlurToSelection(v) }
-                Text("\(Int(model.blurStrength))").font(.caption).monospacedDigit()
+                Text("\(Int(model.blurStrength))").font(.caption).monospacedDigit().fixedSize()
             }
         } else {
             HStack(spacing: 6) {
-                Text("Dicke").font(.caption).foregroundStyle(.secondary)
+                Text("Size").font(.caption).foregroundStyle(.secondary).fixedSize()
                 Slider(value: $model.strokeWidth, in: 1...20).frame(width: 90)
                     .onChange(of: model.strokeWidth) { _, v in applyStrokeToSelection(v) }
-                Text("\(Int(model.strokeWidth))px").font(.caption).monospacedDigit()
+                Text("\(Int(model.strokeWidth))px").font(.caption).monospacedDigit().fixedSize()
             }
         }
     }
 
     private var sidebar: some View {
         VStack(spacing: 8) {
-            Button(action: onCaptureFull) { Label("Vollbild", systemImage: "rectangle.dashed") }
+            Button(action: onCaptureFull) { Label("Full Screen", systemImage: "rectangle.dashed") }
                 .frame(maxWidth: .infinity)
-            Button(action: onCaptureArea) { Label("Auswahl", systemImage: "selection.pin.in.out") }
+            Button(action: onCaptureArea) { Label("Selection", systemImage: "selection.pin.in.out") }
                 .frame(maxWidth: .infinity)
-            Text("VERLAUF").font(.caption2).foregroundStyle(.secondary)
+            Text("HISTORY").font(.caption2).foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
             ScrollView {
                 VStack(spacing: 8) {

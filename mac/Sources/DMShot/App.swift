@@ -30,12 +30,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         item.button?.title = "▣"
         let menu = NSMenu()
-        menu.addItem(NSMenuItem(title: "Neues Vollbild  (⌘⇧1)", action: #selector(captureFull), keyEquivalent: ""))
-        menu.addItem(NSMenuItem(title: "Neue Auswahl  (⌘⇧2)", action: #selector(captureArea), keyEquivalent: ""))
+        menu.addItem(NSMenuItem(title: "New Full Screen  (⌘⇧1)", action: #selector(captureFull), keyEquivalent: ""))
+        menu.addItem(NSMenuItem(title: "New Selection  (⌘⇧2)", action: #selector(captureArea), keyEquivalent: ""))
         menu.addItem(.separator())
-        menu.addItem(NSMenuItem(title: "Verlauf öffnen", action: #selector(showEditor), keyEquivalent: ""))
+        menu.addItem(NSMenuItem(title: "Open Window", action: #selector(showEditor), keyEquivalent: ""))
         menu.addItem(.separator())
-        menu.addItem(NSMenuItem(title: "Beenden", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+        menu.addItem(NSMenuItem(title: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
         item.menu = menu
         statusItem = item
     }
@@ -147,12 +147,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         if ScreenPermission.hasAccess { return true }
         ScreenPermission.request()
         let alert = NSAlert()
-        alert.messageText = "Bildschirmaufnahme erforderlich"
+        alert.messageText = "Screen Recording Required"
         alert.informativeText =
-            "Erlaube DM_Screenshot unter Systemeinstellungen → Datenschutz & Sicherheit → "
-            + "Bildschirmaufnahme und starte die App neu."
-        alert.addButton(withTitle: "Systemeinstellungen öffnen")
-        alert.addButton(withTitle: "Abbrechen")
+            "Allow DM_Screenshot under System Settings → Privacy & Security → "
+            + "Screen Recording, then relaunch the app."
+        alert.addButton(withTitle: "Open System Settings")
+        alert.addButton(withTitle: "Cancel")
         if alert.runModal() == .alertFirstButtonReturn {
             if let url = URL(string:
                 "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {

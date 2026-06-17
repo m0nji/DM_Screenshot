@@ -22,8 +22,22 @@ enum SceneRenderer {
 
     static func draw(image: CGImage, annotations: [Annotation]) {
         let imgRect = CGRect(x: 0, y: 0, width: image.width, height: image.height)
-        ImageUtils.nsImage(image).draw(in: imgRect)
+        drawImage(image, in: imgRect)
         for a in annotations { drawAnnotation(a, base: image) }
+    }
+
+    /// Draw a CGImage upright in a flipped (top-left origin) context. CGContextDrawImage
+    /// assumes bottom-left origin, so we flip Y locally to avoid an upside-down image.
+    private static func drawImage(_ image: CGImage, in rect: CGRect) {
+        guard let ctx = NSGraphicsContext.current?.cgContext else {
+            ImageUtils.nsImage(image).draw(in: rect)
+            return
+        }
+        ctx.saveGState()
+        ctx.translateBy(x: rect.minX, y: rect.maxY)
+        ctx.scaleBy(x: 1, y: -1)
+        ctx.draw(image, in: CGRect(x: 0, y: 0, width: rect.width, height: rect.height))
+        ctx.restoreGState()
     }
 
     private static func drawAnnotation(_ a: Annotation, base: CGImage) {
@@ -127,6 +141,6 @@ enum SceneRenderer {
         guard let output = filter.outputImage,
               let blurred = ciContext.createCGImage(output, from: ci.extent)
         else { return }
-        ImageUtils.nsImage(blurred).draw(in: r)
+        drawImage(blurred, in: r)
     }
 }
