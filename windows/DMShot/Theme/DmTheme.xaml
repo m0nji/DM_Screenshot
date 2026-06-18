@@ -208,14 +208,17 @@
     <Setter Property="CaretBrush" Value="{StaticResource DmText}"/>
     <Setter Property="BorderBrush" Value="{StaticResource DmBorder}"/>
     <Setter Property="BorderThickness" Value="1"/>
-    <Setter Property="Padding" Value="6,4"/>
+    <Setter Property="Padding" Value="10,0"/>
+    <Setter Property="MinHeight" Value="32"/>
+    <Setter Property="FontSize" Value="13"/>
     <Setter Property="VerticalContentAlignment" Value="Center"/>
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="TextBox">
           <Border Background="{TemplateBinding Background}" CornerRadius="6"
                   BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
-            <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}"/>
+            <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="Center"
+                          Padding="{TemplateBinding Padding}"/>
           </Border>
         </ControlTemplate>
       </Setter.Value>
@@ -293,6 +296,42 @@
         </Setter>
       </Trigger>
     </Style.Triggers>
+  </Style>
+
+  <!-- ===== ScrollViewer: dark corner where both scrollbars meet ===== -->
+  <Style TargetType="ScrollViewer">
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ScrollViewer">
+          <Grid Background="{TemplateBinding Background}">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*"/>
+              <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+              <RowDefinition Height="*"/>
+              <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <ScrollContentPresenter Grid.Row="0" Grid.Column="0"
+                                    Margin="{TemplateBinding Padding}"
+                                    Content="{TemplateBinding Content}"
+                                    ContentTemplate="{TemplateBinding ContentTemplate}"
+                                    CanContentScroll="{TemplateBinding CanContentScroll}"/>
+            <ScrollBar x:Name="PART_VerticalScrollBar" Grid.Row="0" Grid.Column="1" Orientation="Vertical"
+                       Value="{TemplateBinding VerticalOffset}"
+                       Maximum="{TemplateBinding ScrollableHeight}"
+                       ViewportSize="{TemplateBinding ViewportHeight}"
+                       Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}"/>
+            <ScrollBar x:Name="PART_HorizontalScrollBar" Grid.Row="1" Grid.Column="0" Orientation="Horizontal"
+                       Value="{TemplateBinding HorizontalOffset}"
+                       Maximum="{TemplateBinding ScrollableWidth}"
+                       ViewportSize="{TemplateBinding ViewportWidth}"
+                       Visibility="{TemplateBinding ComputedHorizontalScrollBarVisibility}"/>
+            <Rectangle Grid.Row="1" Grid.Column="1" Fill="{StaticResource DmSurfaceAlt}"/>
+          </Grid>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
   </Style>
 
 </ResourceDictionary>

@@ -76,7 +76,7 @@ public partial class SettingsWindow : Window
     {
         var rec = new ShortcutRecorderControl
         {
-            Text = current, Width = 220, Height = 30,
+            Text = current, Width = 220,
             Style = (Style)FindResource("DmTextBox")
         };
         rec.HotkeyChanged += onSet;
