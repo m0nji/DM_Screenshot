@@ -13,6 +13,7 @@ public partial class App : Application
     private readonly IClipboardService _clipboard = new WpfClipboard();
     private EditorWindow? _editor;
     private HistoryStore _history = null!;
+    private ITrayIcon _tray = null!;
 
     private const int HK_FULL = 1, HK_AREA = 2;
 
@@ -36,6 +37,28 @@ public partial class App : Application
         };
         _hotkeys.Register(HK_FULL, HotkeySpec.Parse("Ctrl+Shift+1"));
         _hotkeys.Register(HK_AREA, HotkeySpec.Parse("Ctrl+Shift+2"));
+
+        _tray = new NotifyIconTray();
+        _tray.FullScreenRequested += () => _coordinator.CaptureFullScreen();
+        _tray.AreaRequested += () => _coordinator.CaptureArea();
+        _tray.OpenRequested += ShowEditor;
+        _tray.QuitRequested += () => Shutdown();
+        _tray.Show();
+    }
+
+    private void ShowEditor()
+    {
+        if (_editor is null || !_editor.IsLoaded)
+        {
+            _editor = new EditorWindow
+            {
+                Store = _history,
+                OnRequestFullScreen = () => _coordinator.CaptureFullScreen(),
+                OnRequestArea = () => _coordinator.CaptureArea()
+            };
+        }
+        _editor.RefreshHistory();
+        _editor.Show(); _editor.WindowState = WindowState.Normal; _editor.Activate();
     }
 
     private void OnImageCaptured(System.Drawing.Bitmap bmp)
@@ -60,5 +83,5 @@ public partial class App : Application
         _editor.RefreshHistory();
     }
 
-    protected override void OnExit(ExitEventArgs e) { _hotkeys.Dispose(); base.OnExit(e); }
+    protected override void OnExit(ExitEventArgs e) { _hotkeys.Dispose(); _tray.Dispose(); base.OnExit(e); }
 }

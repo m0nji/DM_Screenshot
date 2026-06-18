@@ -108,6 +108,9 @@ public partial class EditorWindow : Window
         flat.Save(dlg.FileName, System.Drawing.Imaging.ImageFormat.Png);
     }
 
+    protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
+    { e.Cancel = true; Hide(); }
+
     private void OnKey(object sender, KeyEventArgs e)
     {
         if (Keyboard.Modifiers != ModifierKeys.Control) return;
