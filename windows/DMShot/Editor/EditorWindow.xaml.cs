@@ -166,6 +166,7 @@ public partial class EditorWindow : Window
         if (_baseImage is null) return;
         using var flat = Renderer.Flatten(_baseImage, Canvas.Model);
         _clipboard.SetImage(flat);
+        WindowState = WindowState.Minimized; // get out of the way so the user can paste
     }
 
     private void SaveClick(object s, RoutedEventArgs e)

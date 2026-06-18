@@ -1,12 +1,17 @@
 using System.Drawing;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Media.Imaging;
 using DMShot.Platform;
 namespace DMShot.Capture;
 
 public partial class OverlayWindow : Window
 {
+    [DllImport("user32.dll")] private static extern bool SetWindowPos(IntPtr hWnd, IntPtr after, int x, int y, int cx, int cy, uint flags);
+    private const uint SWP_NOZORDER = 0x0004, SWP_NOACTIVATE = 0x0010;
+
     private readonly DisplayInfo _display;
     private readonly Bitmap _frozen;
     private System.Windows.Point _start;
@@ -27,6 +32,7 @@ public partial class OverlayWindow : Window
         // Position BEFORE the first paint to avoid a flash at the default location.
         SourceInitialized += OnSourceInit;
         Loaded += OnLoaded;
+        SizeChanged += (_, _) => { if (!_dragging) UpdateDim(new Rect()); };
         MouseLeftButtonDown += OnDown;
         MouseMove += OnMove;
         MouseLeftButtonUp += OnUp;
@@ -35,12 +41,11 @@ public partial class OverlayWindow : Window
 
     private void OnSourceInit(object? s, EventArgs e)
     {
-        // Position the borderless window exactly over this monitor (in DIPs), before render.
-        var scale = VisualTreeHelperDpi();
-        Left = _display.Bounds.Left / scale;
-        Top = _display.Bounds.Top / scale;
-        Width = _display.Bounds.Width / scale;
-        Height = _display.Bounds.Height / scale;
+        // Position/size in PHYSICAL pixels — DPI-independent, so the window always covers
+        // the whole target monitor regardless of per-monitor scaling (fixes partial dim).
+        var h = new WindowInteropHelper(this).Handle;
+        var b = _display.Bounds;
+        SetWindowPos(h, IntPtr.Zero, b.Left, b.Top, b.Width, b.Height, SWP_NOZORDER | SWP_NOACTIVATE);
     }
 
     private void OnLoaded(object? s, RoutedEventArgs e)

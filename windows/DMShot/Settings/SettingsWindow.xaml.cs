@@ -115,7 +115,9 @@ public partial class SettingsWindow : Window
         left.Children.Add(new TextBlock { Text = "Version", Foreground = Text, FontSize = 15 });
         left.Children.Add(new TextBlock { Text = "Installed version.", Foreground = TextDim });
         Grid.SetColumn(left, 0);
-        var ver = new TextBlock { Text = "0.1.0", Foreground = Text, FontSize = 15, VerticalAlignment = VerticalAlignment.Center };
+        var v = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+        string verText = v is null ? "0.1.1" : $"{v.Major}.{v.Minor}.{v.Build}";
+        var ver = new TextBlock { Text = verText, Foreground = Text, FontSize = 15, VerticalAlignment = VerticalAlignment.Center };
         Grid.SetColumn(ver, 1);
         row.Children.Add(left); row.Children.Add(ver);
         Pane.Children.Add(row);

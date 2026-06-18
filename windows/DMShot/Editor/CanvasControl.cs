@@ -14,6 +14,9 @@ public sealed class CanvasControl : FrameworkElement
     private Point _start;
     private Point _last;
     private bool _moving;
+    private bool _resizing;
+    private int _handle = -1;
+    private const double HandleR = 5;
 
     public EditorModel Model { get; } = new();
     public ToolKind ActiveTool { get; set; } = ToolKind.Arrow;
@@ -59,7 +62,6 @@ public sealed class CanvasControl : FrameworkElement
         using (var comp = Renderer.RenderComposite(_source, anns))
             dc.DrawImage(ImageInterop.ToBitmapSource(comp), new Rect(0, 0, _w, _h));
 
-        // Crop overlay: dim everything outside the crop, accent border around it.
         if (Model.Crop is { } c)
         {
             var dim = new SolidColorBrush(Color.FromArgb(120, 0, 0, 0));
@@ -76,14 +78,17 @@ public sealed class CanvasControl : FrameworkElement
 
     private void DrawSelection(DrawingContext dc, Annotation a)
     {
-        var b = BBox(a);
-        b.Inflate(6, 6);
         var accent = Color.FromRgb(0xC9, 0x7B, 0x4A);
-        var pen = new Pen(new SolidColorBrush(accent), 1.5) { DashStyle = new DashStyle(new double[] { 4, 3 }, 0) };
-        dc.DrawRectangle(null, pen, b);
-        var handle = new SolidColorBrush(accent);
-        foreach (var p in new[] { b.TopLeft, b.TopRight, b.BottomLeft, b.BottomRight })
-            dc.DrawRectangle(handle, null, new Rect(p.X - 3, p.Y - 3, 6, 6));
+        if (!SelectionGeometry.IsLine(a))
+        {
+            var b = SelectionGeometry.BBox(a); b.Inflate(4, 4);
+            var pen = new Pen(new SolidColorBrush(accent), 1.5) { DashStyle = new DashStyle(new double[] { 4, 3 }, 0) };
+            dc.DrawRectangle(null, pen, b);
+        }
+        var fill = new SolidColorBrush(accent);
+        var white = new Pen(Brushes.White, 1);
+        foreach (var p in SelectionGeometry.Handles(a))
+            dc.DrawRectangle(fill, white, new Rect(p.X - HandleR, p.Y - HandleR, HandleR * 2, HandleR * 2));
     }
 
     // ===== Drawing / selecting =====
@@ -95,7 +100,12 @@ public sealed class CanvasControl : FrameworkElement
 
         if (ActiveTool == ToolKind.Select)
         {
-            var hit = HitTest(p);
+            if (_selected is not null)
+            {
+                int h = SelectionGeometry.HitHandle(p, _selected, HandleR + 3);
+                if (h >= 0) { _resizing = true; _handle = h; _last = p; CaptureMouse(); return; }
+            }
+            var hit = SelectionGeometry.HitTest(Model.Annotations, p);
             SetSelected(hit);
             if (hit is not null) { _moving = true; _last = p; CaptureMouse(); }
             return;
@@ -115,6 +125,14 @@ public sealed class CanvasControl : FrameworkElement
     protected override void OnMouseMove(MouseEventArgs e)
     {
         var p = e.GetPosition(this);
+
+        if (_resizing && _selected is not null)
+        {
+            SelectionGeometry.ResizeTo(_selected, _handle, p);
+            InvalidateVisual(); ContentChanged?.Invoke();
+            return;
+        }
+
         if (_moving && _selected is not null)
         {
             double dx = p.X - _last.X, dy = p.Y - _last.Y;
@@ -123,6 +141,10 @@ public sealed class CanvasControl : FrameworkElement
             InvalidateVisual(); ContentChanged?.Invoke();
             return;
         }
+
+        if (ActiveTool == ToolKind.Select && _selected is not null)
+            Cursor = SelectionGeometry.HitHandle(p, _selected, HandleR + 3) >= 0 ? Cursors.SizeNWSE : Cursors.Arrow;
+
         if (_draft is null) return;
         _draft.X1 = p.X; _draft.Y1 = p.Y;
         InvalidateVisual();
@@ -130,6 +152,7 @@ public sealed class CanvasControl : FrameworkElement
 
     protected override void OnMouseLeftButtonUp(MouseButtonEventArgs e)
     {
+        if (_resizing) { _resizing = false; _handle = -1; ReleaseMouseCapture(); return; }
         if (_moving) { _moving = false; ReleaseMouseCapture(); return; }
         if (_draft is null) return;
         ReleaseMouseCapture();
@@ -149,6 +172,7 @@ public sealed class CanvasControl : FrameworkElement
     }
 
     // ===== Edits applied to the current selection =====
+    public void SelectAt(Point p) => SetSelected(SelectionGeometry.HitTest(Model.Annotations, p));
     public void ApplyColorToSelected(uint argb)
     {
         if (_selected is null) return;
@@ -176,58 +200,5 @@ public sealed class CanvasControl : FrameworkElement
         _selected = a;
         InvalidateVisual();
         SelectionChanged?.Invoke();
-    }
-
-    // ===== Geometry helpers =====
-    private Annotation? HitTest(Point p)
-    {
-        // topmost first
-        for (int i = Model.Annotations.Count - 1; i >= 0; i--)
-        {
-            var a = Model.Annotations[i];
-            if (a.Kind is ToolKind.Arrow or ToolKind.Underline or ToolKind.Highlighter)
-            {
-                var (ax0, ay0, ax1, ay1) = a.Kind == ToolKind.Underline || a.Kind == ToolKind.Highlighter
-                    ? (a.X0, a.Y1, a.X1, a.Y1) : (a.X0, a.Y0, a.X1, a.Y1);
-                if (DistToSegment(p, new Point(ax0, ay0), new Point(ax1, ay1)) <= Math.Max(8, a.StrokeWidth + 6))
-                    return a;
-            }
-            else
-            {
-                var b = BBox(a); b.Inflate(6, 6);
-                if (b.Contains(p)) return a;
-            }
-        }
-        return null;
-    }
-
-    private static Rect BBox(Annotation a)
-    {
-        switch (a.Kind)
-        {
-            case ToolKind.Step:
-                double d = Math.Max(22, a.StrokeWidth * 7);
-                return new Rect(a.X0, a.Y0, d, d);
-            case ToolKind.Text:
-                double fs = Math.Max(10, a.StrokeWidth * 5);
-                double tw = Math.Max(20, (a.Text?.Length ?? 1) * fs * 0.6);
-                return new Rect(a.X0, a.Y0, tw, fs * 1.4);
-            case ToolKind.Underline:
-            case ToolKind.Highlighter:
-                return new Rect(Math.Min(a.X0, a.X1), a.Y1 - 6, Math.Abs(a.X1 - a.X0), 12);
-            default:
-                return new Rect(Math.Min(a.X0, a.X1), Math.Min(a.Y0, a.Y1),
-                                Math.Abs(a.X1 - a.X0), Math.Abs(a.Y1 - a.Y0));
-        }
-    }
-
-    private static double DistToSegment(Point p, Point a, Point b)
-    {
-        double dx = b.X - a.X, dy = b.Y - a.Y;
-        double len2 = dx * dx + dy * dy;
-        if (len2 < 1e-6) return (p - a).Length;
-        double t = Math.Clamp(((p.X - a.X) * dx + (p.Y - a.Y) * dy) / len2, 0, 1);
-        var proj = new Point(a.X + t * dx, a.Y + t * dy);
-        return (p - proj).Length;
     }
 }
