@@ -10,7 +10,8 @@
     <AssemblyName>DMShot</AssemblyName>
     <RootNamespace>DMShot</RootNamespace>
     <ApplicationIcon>Resources\AppIcon.ico</ApplicationIcon>
-    <Version>0.1.1</Version>
+    <!-- Single source of truth shared with the macOS app (repo-root VERSION file). -->
+    <Version>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\..\VERSION').Trim())</Version>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="System.Drawing.Common" Version="8.0.*" />
