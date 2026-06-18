@@ -207,7 +207,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         guard let img = model.flatten(), let png = ImageUtils.pngData(img) else { return }
         let panel = NSSavePanel()
         panel.allowedContentTypes = [.png]
-        panel.nameFieldStringValue = "screenshot.png"
+        let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
+        if let dir { panel.directoryURL = dir }
+        let base = ScreenshotFilename.base(for: Date())
+        panel.nameFieldStringValue = ScreenshotFilename.unique(base: base) { name in
+            guard let dir else { return false }
+            return FileManager.default.fileExists(atPath: dir.appendingPathComponent(name).path)
+        }
         if panel.runModal() == .OK, let url = panel.url {
             try? png.write(to: url)
         }
