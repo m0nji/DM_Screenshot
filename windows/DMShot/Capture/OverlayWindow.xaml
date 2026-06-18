@@ -1,0 +1,19 @@
+<Window x:Class="DMShot.Capture.OverlayWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        WindowStyle="None" ResizeMode="NoResize" AllowsTransparency="False"
+        ShowInTaskbar="False" Topmost="True" Background="Black" Cursor="Cross">
+  <Grid>
+    <Image x:Name="FrozenImage" Stretch="Fill"/>
+    <Canvas x:Name="Overlay">
+      <Rectangle x:Name="DimTop" Fill="#80000000"/>
+      <Rectangle x:Name="DimBottom" Fill="#80000000"/>
+      <Rectangle x:Name="DimLeft" Fill="#80000000"/>
+      <Rectangle x:Name="DimRight" Fill="#80000000"/>
+      <Rectangle x:Name="SelRect" Stroke="#C97B4A" StrokeThickness="1.5"/>
+      <Border x:Name="ReadoutBox" Background="#CC1F1F24" CornerRadius="3" Padding="6,2">
+        <TextBlock x:Name="Readout" Foreground="White" FontSize="12"/>
+      </Border>
+    </Canvas>
+  </Grid>
+</Window>

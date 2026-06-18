@@ -20,8 +20,31 @@ public sealed class CaptureCoordinator
         ImageCaptured?.Invoke(bmp);
     }
 
-    // Implemented in Task 6 (this stub does nothing yet).
-    public void CaptureArea() { /* replaced in Task 6 */ }
+    public void CaptureArea()
+    {
+        var displays = _capturer.GetDisplays();
+        var overlays = new List<OverlayWindow>();
+        bool done = false;
+
+        foreach (var d in displays)
+        {
+            var frozen = _capturer.CaptureDisplay(d);
+            var o = new OverlayWindow(d, frozen);
+            o.Finished += (win, committed) =>
+            {
+                if (done) return;
+                done = true;
+                foreach (var ov in overlays) ov.Close();
+                if (committed && win.Result is { } r && r.Width > 0 && r.Height > 0)
+                {
+                    var cropped = ImageInterop.Crop(win.Frozen, r);
+                    ImageCaptured?.Invoke(cropped);
+                }
+            };
+            overlays.Add(o);
+        }
+        foreach (var o in overlays) o.Show();
+    }
 
     private static DisplayInfo DisplayUnderCursor(IReadOnlyList<DisplayInfo> displays)
     {
