@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Input;
+using DMShot.History;
 using DMShot.Platform;
 namespace DMShot.Editor;
 
@@ -10,6 +11,9 @@ public partial class EditorWindow : Window
 
     public Action? OnRequestFullScreen { get; set; }
     public Action? OnRequestArea { get; set; }
+
+    public sealed record HistoryVM(string Id, System.Windows.Media.ImageSource Thumb);
+    public HistoryStore? Store { get; set; }
 
     public EditorWindow()
     {
@@ -50,6 +54,36 @@ public partial class EditorWindow : Window
         hex = hex.TrimStart('#');
         if (hex.Length == 6) hex = "FF" + hex;
         return Convert.ToUInt32(hex, 16);
+    }
+
+    public void RefreshHistory()
+    {
+        if (Store is null) return;
+        HistoryList.ItemsSource = Store.Entries
+            .OrderByDescending(e => e.CreatedUtc)
+            .Select(e => new HistoryVM(e.Id, LoadFrozen(e.ThumbnailPngPath)))
+            .ToList();
+    }
+
+    private static System.Windows.Media.ImageSource LoadFrozen(string path)
+    {
+        var bi = new System.Windows.Media.Imaging.BitmapImage();
+        bi.BeginInit();
+        bi.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
+        bi.UriSource = new Uri(path);
+        bi.EndInit(); bi.Freeze();
+        return bi;
+    }
+
+    private void HistorySelected(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (Store is null || HistoryList.SelectedItem is not HistoryVM vm) return;
+        var entry = Store.Entries.FirstOrDefault(x => x.Id == vm.Id);
+        if (entry is null) return;
+        using var bmp = new System.Drawing.Bitmap(entry.OriginalPngPath);
+        LoadImage(bmp);
+        foreach (var d in entry.Annotations) Canvas.Model.Add(d.To());
+        if (entry.Crop is { } c) Canvas.Model.SetCrop(c);
     }
 
     private void FullScreenClick(object s, RoutedEventArgs e) => OnRequestFullScreen?.Invoke();

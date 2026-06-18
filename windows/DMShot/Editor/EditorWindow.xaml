@@ -40,6 +40,15 @@
       <Separator/>
       <TextBlock x:Name="ZoomText" Foreground="#AAAAAA" Text="100%"/>
     </StatusBar>
+    <!-- History sidebar -->
+    <ListBox x:Name="HistoryList" DockPanel.Dock="Left" Width="180" Background="#1A1A1F"
+             SelectionChanged="HistorySelected" BorderThickness="0">
+      <ListBox.ItemTemplate>
+        <DataTemplate>
+          <Image Source="{Binding Thumb}" Height="100" Margin="4" Stretch="Uniform"/>
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
     <!-- Canvas area -->
     <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" Background="#141418">
       <ed:CanvasControl x:Name="Canvas" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="20"/>
