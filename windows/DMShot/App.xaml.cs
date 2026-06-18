@@ -1,5 +1,6 @@
 using System.Windows;
 using DMShot.Capture;
+using DMShot.Editor;
 using DMShot.Platform;
 namespace DMShot;
 
@@ -8,6 +9,7 @@ public partial class App : Application
     private Win32HotkeyManager _hotkeys = null!;
     private CaptureCoordinator _coordinator = null!;
     private readonly IClipboardService _clipboard = new WpfClipboard();
+    private EditorWindow? _editor;
 
     private const int HK_FULL = 1, HK_AREA = 2;
 
@@ -31,12 +33,13 @@ public partial class App : Application
 
     private void OnImageCaptured(System.Drawing.Bitmap bmp)
     {
-        _clipboard.SetImage(bmp);
-        // Temporary preview until the editor exists (Task 10 replaces this).
-        var w = new Window { Title = $"Captured {bmp.Width}x{bmp.Height}", Width = 800, Height = 600 };
-        w.Content = new System.Windows.Controls.Image
-        { Source = ImageInterop.ToBitmapSource(bmp), Stretch = System.Windows.Media.Stretch.Uniform };
-        w.Show();
+        _clipboard.SetImage(bmp);                 // auto-copy the raw capture immediately
+        if (_editor is null || !_editor.IsLoaded)
+            _editor = new EditorWindow();
+        _editor.LoadImage(bmp);
+        if (!_editor.IsVisible) _editor.Show();
+        _editor.Activate();
+        _editor.WindowState = WindowState.Normal;
     }
 
     protected override void OnExit(ExitEventArgs e) { _hotkeys.Dispose(); base.OnExit(e); }
