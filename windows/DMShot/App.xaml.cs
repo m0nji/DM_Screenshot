@@ -35,7 +35,13 @@ public partial class App : Application
     {
         _clipboard.SetImage(bmp);                 // auto-copy the raw capture immediately
         if (_editor is null || !_editor.IsLoaded)
-            _editor = new EditorWindow();
+        {
+            _editor = new EditorWindow
+            {
+                OnRequestFullScreen = () => _coordinator.CaptureFullScreen(),
+                OnRequestArea = () => _coordinator.CaptureArea()
+            };
+        }
         _editor.LoadImage(bmp);
         if (!_editor.IsVisible) _editor.Show();
         _editor.Activate();

@@ -29,6 +29,11 @@
       <Button Content="Copy" Click="CopyClick"/>
       <Button Content="Save" Click="SaveClick"/>
     </ToolBar>
+    <!-- In-editor capture buttons (equal width) -->
+    <UniformGrid DockPanel.Dock="Top" Rows="1" Columns="2" Margin="8" Background="#1F1F24">
+      <Button Content="Full Screen" Margin="4" Padding="0,8" Click="FullScreenClick"/>
+      <Button Content="Selection" Margin="4" Padding="0,8" Click="AreaClick"/>
+    </UniformGrid>
     <!-- Status bar -->
     <StatusBar DockPanel.Dock="Bottom" Background="#26262C">
       <TextBlock x:Name="DimText" Foreground="#AAAAAA"/>

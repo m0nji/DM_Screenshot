@@ -8,6 +8,9 @@ public partial class EditorWindow : Window
     private readonly IClipboardService _clipboard = new WpfClipboard();
     private System.Drawing.Bitmap? _baseImage;
 
+    public Action? OnRequestFullScreen { get; set; }
+    public Action? OnRequestArea { get; set; }
+
     public EditorWindow()
     {
         InitializeComponent();
@@ -48,6 +51,9 @@ public partial class EditorWindow : Window
         if (hex.Length == 6) hex = "FF" + hex;
         return Convert.ToUInt32(hex, 16);
     }
+
+    private void FullScreenClick(object s, RoutedEventArgs e) => OnRequestFullScreen?.Invoke();
+    private void AreaClick(object s, RoutedEventArgs e) => OnRequestArea?.Invoke();
 
     private void UndoClick(object s, RoutedEventArgs e) => Canvas.Model.Undo();
     private void RedoClick(object s, RoutedEventArgs e) => Canvas.Model.Redo();
