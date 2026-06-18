@@ -1,0 +1,13 @@
+<Window x:Class="DMShot.Editor.TextPromptWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Add text" Width="320" Height="130" WindowStartupLocation="CenterOwner"
+        WindowStyle="ToolWindow" ResizeMode="NoResize">
+  <StackPanel Margin="12">
+    <TextBox x:Name="Input" Height="26"/>
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+      <Button Content="Cancel" Width="70" IsCancel="True" Margin="0,0,8,0"/>
+      <Button Content="OK" Width="70" IsDefault="True" Click="Ok"/>
+    </StackPanel>
+  </StackPanel>
+</Window>
