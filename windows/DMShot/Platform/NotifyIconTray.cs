@@ -10,6 +10,7 @@ public sealed class NotifyIconTray : ITrayIcon
     public event Action? OpenRequested;
     public event Action? FullScreenRequested;
     public event Action? AreaRequested;
+    public event Action? SettingsRequested;
     public event Action? QuitRequested;
 
     public NotifyIconTray()
@@ -23,6 +24,7 @@ public sealed class NotifyIconTray : ITrayIcon
         menu.Items.Add(Item("New Fullscreen Shot", () => FullScreenRequested?.Invoke()));
         menu.Items.Add(Item("New Area Shot", () => AreaRequested?.Invoke()));
         menu.Items.Add(Item("Open Editor", () => OpenRequested?.Invoke()));
+        menu.Items.Add(Item("Settings…", () => SettingsRequested?.Invoke()));
         menu.Items.Add(new Separator());
         menu.Items.Add(Item("Quit", () => QuitRequested?.Invoke()));
         _icon.ContextMenu = menu;

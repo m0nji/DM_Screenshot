@@ -4,6 +4,7 @@ using DMShot.Capture;
 using DMShot.Editor;
 using DMShot.History;
 using DMShot.Platform;
+using DMShot.Settings;
 namespace DMShot;
 
 public partial class App : Application
@@ -14,6 +15,8 @@ public partial class App : Application
     private EditorWindow? _editor;
     private HistoryStore _history = null!;
     private ITrayIcon _tray = null!;
+    private Settings.Settings _settings = null!;
+    private SettingsStore _settingsStore = null!;
 
     private const int HK_FULL = 1, HK_AREA = 2;
 
@@ -29,21 +32,38 @@ public partial class App : Application
         _coordinator = new CaptureCoordinator(new GdiScreenCapturer());
         _coordinator.ImageCaptured += OnImageCaptured;
 
+        _settingsStore = SettingsStore.Default();
+        _settings = _settingsStore.Load();
+
         _hotkeys = new Win32HotkeyManager();
         _hotkeys.HotkeyPressed += id =>
         {
             if (id == HK_FULL) _coordinator.CaptureFullScreen();
             else if (id == HK_AREA) _coordinator.CaptureArea();
         };
-        _hotkeys.Register(HK_FULL, HotkeySpec.Parse("Ctrl+Shift+1"));
-        _hotkeys.Register(HK_AREA, HotkeySpec.Parse("Ctrl+Shift+2"));
+        RegisterHotkeysFromSettings();
 
         _tray = new NotifyIconTray();
         _tray.FullScreenRequested += () => _coordinator.CaptureFullScreen();
         _tray.AreaRequested += () => _coordinator.CaptureArea();
         _tray.OpenRequested += ShowEditor;
+        _tray.SettingsRequested += OpenSettings;
         _tray.QuitRequested += () => Shutdown();
         _tray.Show();
+    }
+
+    private void RegisterHotkeysFromSettings()
+    {
+        _hotkeys.UnregisterAll();
+        _hotkeys.Register(HK_FULL, HotkeySpec.Parse(_settings.FullScreenHotkey));
+        _hotkeys.Register(HK_AREA, HotkeySpec.Parse(_settings.AreaHotkey));
+    }
+
+    private void OpenSettings()
+    {
+        var w = new SettingsWindow(_settings, _settingsStore);
+        w.Saved += s => { _settings = s; RegisterHotkeysFromSettings(); };
+        w.Show();
     }
 
     private void ShowEditor()
