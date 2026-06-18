@@ -43,6 +43,26 @@
     <!-- History sidebar -->
     <ListBox x:Name="HistoryList" DockPanel.Dock="Left" Width="180" Background="#1A1A1F"
              SelectionChanged="HistorySelected" BorderThickness="0">
+      <ListBox.ItemContainerStyle>
+        <Style TargetType="ListBoxItem">
+          <Setter Property="Padding" Value="0"/>
+          <Setter Property="Template">
+            <Setter.Value>
+              <ControlTemplate TargetType="ListBoxItem">
+                <Border x:Name="Bd" BorderThickness="2" BorderBrush="Transparent" CornerRadius="3" Margin="2">
+                  <ContentPresenter/>
+                </Border>
+                <ControlTemplate.Triggers>
+                  <Trigger Property="IsSelected" Value="True">
+                    <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource DmAccent}"/>
+                    <Setter TargetName="Bd" Property="Background" Value="{StaticResource DmAccentTint}"/>
+                  </Trigger>
+                </ControlTemplate.Triggers>
+              </ControlTemplate>
+            </Setter.Value>
+          </Setter>
+        </Style>
+      </ListBox.ItemContainerStyle>
       <ListBox.ItemTemplate>
         <DataTemplate>
           <Image Source="{Binding Thumb}" Height="100" Margin="4" Stretch="Uniform"/>
