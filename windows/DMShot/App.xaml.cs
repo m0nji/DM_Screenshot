@@ -74,7 +74,8 @@ public partial class App : Application
             {
                 Store = _history,
                 OnRequestFullScreen = () => _coordinator.CaptureFullScreen(),
-                OnRequestArea = () => _coordinator.CaptureArea()
+                OnRequestArea = () => _coordinator.CaptureArea(),
+                OnRequestSettings = OpenSettings
             };
         }
         _editor.RefreshHistory();
@@ -89,7 +90,8 @@ public partial class App : Application
             _editor = new EditorWindow
             {
                 OnRequestFullScreen = () => _coordinator.CaptureFullScreen(),
-                OnRequestArea = () => _coordinator.CaptureArea()
+                OnRequestArea = () => _coordinator.CaptureArea(),
+                OnRequestSettings = OpenSettings
             };
         }
         _editor.LoadImage(bmp);
@@ -103,5 +105,5 @@ public partial class App : Application
         _editor.RefreshHistory();
     }
 
-    protected override void OnExit(ExitEventArgs e) { _hotkeys.Dispose(); _tray.Dispose(); base.OnExit(e); }
+    protected override void OnExit(ExitEventArgs e) { _hotkeys?.Dispose(); _tray?.Dispose(); base.OnExit(e); }
 }

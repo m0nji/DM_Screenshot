@@ -57,6 +57,7 @@ public sealed class CanvasControl : FrameworkElement
     {
         if (_image is null) return;
         Focus();
+        if (ActiveTool == ToolKind.Select) return; // Select is a no-draw idle tool
         _start = e.GetPosition(this);
         _draft = new Annotation
         {

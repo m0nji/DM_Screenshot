@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Media;
 using DMShot.History;
 using DMShot.Platform;
 namespace DMShot.Editor;
@@ -11,6 +12,7 @@ public partial class EditorWindow : Window
 
     public Action? OnRequestFullScreen { get; set; }
     public Action? OnRequestArea { get; set; }
+    public Action? OnRequestSettings { get; set; }
 
     public sealed record HistoryVM(string Id, System.Windows.Media.ImageSource Thumb);
     public HistoryStore? Store { get; set; }
@@ -18,10 +20,19 @@ public partial class EditorWindow : Window
     public EditorWindow()
     {
         InitializeComponent();
-        StrokeSlider.ValueChanged += (_, _) => Canvas.ActiveStroke = StrokeSlider.Value;
-        BlurSlider.ValueChanged += (_, _) => Canvas.ActiveBlurStrength = (int)BlurSlider.Value;
+        StrokeSlider.ValueChanged += (_, _) =>
+        {
+            Canvas.ActiveStroke = StrokeSlider.Value;
+            StrokeVal.Text = $"{(int)StrokeSlider.Value}px";
+        };
+        BlurSlider.ValueChanged += (_, _) =>
+        {
+            Canvas.ActiveBlurStrength = (int)BlurSlider.Value;
+            BlurVal.Text = $"{(int)BlurSlider.Value}";
+        };
         Canvas.ContentChanged += UpdateStatus;
         KeyDown += OnKey;
+        Canvas.ActiveTool = ToolKind.Select; // matches the Select tool checked by default
     }
 
     public void LoadImage(System.Drawing.Bitmap bmp)
@@ -40,13 +51,40 @@ public partial class EditorWindow : Window
         DimText.Text = $"{w} × {h} px";
     }
 
-    private void ToolClick(object sender, RoutedEventArgs e)
-        => Canvas.ActiveTool = Enum.Parse<ToolKind>((string)((FrameworkElement)sender).Tag);
+    // ===== Tools =====
+    private void ToolChecked(object sender, RoutedEventArgs e)
+    {
+        if (Canvas is null) return; // fires once during InitializeComponent before fields are ready
+        var tool = Enum.Parse<ToolKind>((string)((FrameworkElement)sender).Tag);
+        Canvas.ActiveTool = tool;
+        bool blur = tool == ToolKind.Blur;
+        SizePanel.Visibility = blur ? Visibility.Collapsed : Visibility.Visible;
+        BlurPanel.Visibility = blur ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    // ===== Color =====
+    private void OpenColorPopup(object sender, RoutedEventArgs e) => ColorPopup.IsOpen = !ColorPopup.IsOpen;
+
+    private void PaletteClick(object sender, RoutedEventArgs e)
+    {
+        var hex = (string)((FrameworkElement)sender).Tag;
+        SetColor(hex);
+        ColorPopup.IsOpen = false;
+    }
 
     private void HexChanged(object sender, KeyEventArgs e)
     {
         if (e.Key != Key.Enter) return;
-        try { Canvas.ActiveColor = ParseHex(HexBox.Text); } catch { /* ignore bad input */ }
+        try { SetColor(HexBox.Text); ColorPopup.IsOpen = false; } catch { /* ignore bad input */ }
+    }
+
+    private void SetColor(string hex)
+    {
+        uint argb = ParseHex(hex);
+        Canvas.ActiveColor = argb;
+        HexBox.Text = "#" + (argb & 0xFFFFFF).ToString("X6");
+        SwatchFill.Fill = new SolidColorBrush(Color.FromRgb(
+            (byte)((argb >> 16) & 0xFF), (byte)((argb >> 8) & 0xFF), (byte)(argb & 0xFF)));
     }
 
     private static uint ParseHex(string hex)
@@ -56,6 +94,7 @@ public partial class EditorWindow : Window
         return Convert.ToUInt32(hex, 16);
     }
 
+    // ===== History =====
     public void RefreshHistory()
     {
         if (Store is null) return;
@@ -86,8 +125,10 @@ public partial class EditorWindow : Window
         if (entry.Crop is { } c) Canvas.Model.SetCrop(c);
     }
 
+    // ===== Commands =====
     private void FullScreenClick(object s, RoutedEventArgs e) => OnRequestFullScreen?.Invoke();
     private void AreaClick(object s, RoutedEventArgs e) => OnRequestArea?.Invoke();
+    private void SettingsClick(object s, RoutedEventArgs e) => OnRequestSettings?.Invoke();
 
     private void UndoClick(object s, RoutedEventArgs e) => Canvas.Model.Undo();
     private void RedoClick(object s, RoutedEventArgs e) => Canvas.Model.Redo();
