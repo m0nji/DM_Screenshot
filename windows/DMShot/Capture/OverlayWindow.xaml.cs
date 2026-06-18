@@ -24,6 +24,8 @@ public partial class OverlayWindow : Window
         InitializeComponent();
         _display = display; _frozen = frozen;
         FrozenImage.Source = ImageInterop.ToBitmapSource(frozen);
+        // Position BEFORE the first paint to avoid a flash at the default location.
+        SourceInitialized += OnSourceInit;
         Loaded += OnLoaded;
         MouseLeftButtonDown += OnDown;
         MouseMove += OnMove;
@@ -31,14 +33,18 @@ public partial class OverlayWindow : Window
         KeyDown += (_, e) => { if (e.Key == Key.Escape) Finish(false); };
     }
 
-    private void OnLoaded(object? s, RoutedEventArgs e)
+    private void OnSourceInit(object? s, EventArgs e)
     {
-        // Position the borderless window exactly over this monitor (in DIPs).
+        // Position the borderless window exactly over this monitor (in DIPs), before render.
         var scale = VisualTreeHelperDpi();
         Left = _display.Bounds.Left / scale;
         Top = _display.Bounds.Top / scale;
         Width = _display.Bounds.Width / scale;
         Height = _display.Bounds.Height / scale;
+    }
+
+    private void OnLoaded(object? s, RoutedEventArgs e)
+    {
         Activate(); Focus();
         UpdateDim(new Rect());
     }

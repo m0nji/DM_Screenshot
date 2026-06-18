@@ -10,6 +10,23 @@ public static class Renderer
     private static Color ToGdi(uint argb) =>
         Color.FromArgb((int)(argb >> 24), (int)((argb >> 16) & 0xFF), (int)((argb >> 8) & 0xFF), (int)(argb & 0xFF));
 
+    /// <summary>
+    /// Renders the base image at full size with all annotations drawn through the SAME
+    /// GDI path used for export — so the live editor is true WYSIWYG (real mosaic blur,
+    /// real arrowheads). Crop is NOT applied here (the editor shows it as an overlay).
+    /// </summary>
+    public static Bitmap RenderComposite(Bitmap baseImage, IEnumerable<Annotation> annotations)
+    {
+        int w = baseImage.Width, h = baseImage.Height;
+        var outp = new Bitmap(w, h, PixelFormat.Format32bppArgb);
+        using var g = Graphics.FromImage(outp);
+        g.SmoothingMode = SmoothingMode.AntiAlias;
+        g.DrawImage(baseImage, new Rectangle(0, 0, w, h), new Rectangle(0, 0, w, h), GraphicsUnit.Pixel);
+        foreach (var a in annotations)
+            DrawGdi(g, a, 0, 0, baseImage);
+        return outp;
+    }
+
     public static Bitmap Flatten(Bitmap baseImage, EditorModel model)
     {
         var crop = model.Crop;

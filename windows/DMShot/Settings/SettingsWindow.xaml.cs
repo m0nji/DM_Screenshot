@@ -15,6 +15,7 @@ public partial class SettingsWindow : Window
     public SettingsWindow(Settings settings, SettingsStore store)
     {
         InitializeComponent();
+        DMShot.Platform.DarkTitleBar.Apply(this);
         _settings = settings; _store = store;
         ShowGeneral();
     }

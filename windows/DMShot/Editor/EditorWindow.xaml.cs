@@ -17,22 +17,51 @@ public partial class EditorWindow : Window
     public sealed record HistoryVM(string Id, System.Windows.Media.ImageSource Thumb);
     public HistoryStore? Store { get; set; }
 
+    private bool _syncing;
+
     public EditorWindow()
     {
         InitializeComponent();
+        DarkTitleBar.Apply(this);
         StrokeSlider.ValueChanged += (_, _) =>
         {
-            Canvas.ActiveStroke = StrokeSlider.Value;
+            if (_syncing) return;
             StrokeVal.Text = $"{(int)StrokeSlider.Value}px";
+            if (Canvas.Selected is not null) Canvas.ApplyStrokeToSelected(StrokeSlider.Value);
+            else Canvas.ActiveStroke = StrokeSlider.Value;
         };
         BlurSlider.ValueChanged += (_, _) =>
         {
-            Canvas.ActiveBlurStrength = (int)BlurSlider.Value;
+            if (_syncing) return;
             BlurVal.Text = $"{(int)BlurSlider.Value}";
+            if (Canvas.Selected is not null) Canvas.ApplyBlurToSelected((int)BlurSlider.Value);
+            else Canvas.ActiveBlurStrength = (int)BlurSlider.Value;
         };
         Canvas.ContentChanged += UpdateStatus;
+        Canvas.SelectionChanged += SyncFromSelection;
         KeyDown += OnKey;
         Canvas.ActiveTool = ToolKind.Select; // matches the Select tool checked by default
+    }
+
+    private void SyncFromSelection()
+    {
+        var sel = Canvas.Selected;
+        if (sel is null) return;
+        _syncing = true;
+        bool blur = sel.Kind == ToolKind.Blur;
+        SizePanel.Visibility = blur ? Visibility.Collapsed : Visibility.Visible;
+        BlurPanel.Visibility = blur ? Visibility.Visible : Visibility.Collapsed;
+        if (blur) { BlurSlider.Value = sel.BlurStrength; BlurVal.Text = $"{sel.BlurStrength}"; }
+        else { StrokeSlider.Value = sel.StrokeWidth; StrokeVal.Text = $"{(int)sel.StrokeWidth}px"; }
+        ShowSwatch(sel.ColorArgb);
+        _syncing = false;
+    }
+
+    private void ShowSwatch(uint argb)
+    {
+        HexBox.Text = "#" + (argb & 0xFFFFFF).ToString("X6");
+        SwatchFill.Fill = new SolidColorBrush(Color.FromRgb(
+            (byte)((argb >> 16) & 0xFF), (byte)((argb >> 8) & 0xFF), (byte)(argb & 0xFF)));
     }
 
     public void LoadImage(System.Drawing.Bitmap bmp)
@@ -82,9 +111,8 @@ public partial class EditorWindow : Window
     {
         uint argb = ParseHex(hex);
         Canvas.ActiveColor = argb;
-        HexBox.Text = "#" + (argb & 0xFFFFFF).ToString("X6");
-        SwatchFill.Fill = new SolidColorBrush(Color.FromRgb(
-            (byte)((argb >> 16) & 0xFF), (byte)((argb >> 8) & 0xFF), (byte)(argb & 0xFF)));
+        if (Canvas.Selected is not null) Canvas.ApplyColorToSelected(argb);
+        ShowSwatch(argb);
     }
 
     private static uint ParseHex(string hex)
@@ -154,6 +182,7 @@ public partial class EditorWindow : Window
 
     private void OnKey(object sender, KeyEventArgs e)
     {
+        if (e.Key is Key.Delete or Key.Back) { Canvas.DeleteSelected(); return; }
         if (Keyboard.Modifiers != ModifierKeys.Control) return;
         if (e.Key == Key.C) CopyClick(sender, e);
         else if (e.Key == Key.Z) Canvas.Model.Undo();
