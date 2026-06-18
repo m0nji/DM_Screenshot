@@ -172,7 +172,16 @@ public partial class EditorWindow : Window
     private void SaveClick(object s, RoutedEventArgs e)
     {
         if (_baseImage is null) return;
-        var dlg = new Microsoft.Win32.SaveFileDialog { Filter = "PNG image|*.png", FileName = "screenshot.png" };
+        var dir = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+        var baseName = ScreenshotFilename.Base(DateTime.Now);
+        var fileName = ScreenshotFilename.Unique(baseName,
+            name => System.IO.File.Exists(System.IO.Path.Combine(dir, name)));
+        var dlg = new Microsoft.Win32.SaveFileDialog
+        {
+            Filter = "PNG image|*.png",
+            InitialDirectory = dir,
+            FileName = fileName,
+        };
         if (dlg.ShowDialog() != true) return;
         using var flat = Renderer.Flatten(_baseImage, Canvas.Model);
         flat.Save(dlg.FileName, System.Drawing.Imaging.ImageFormat.Png);

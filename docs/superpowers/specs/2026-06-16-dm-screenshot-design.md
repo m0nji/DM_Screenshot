@@ -77,7 +77,9 @@ native pixel density and mapping overlay selection coordinates back to source pi
 - **Quick actions (top bar, Shottr-style):**
   - Copy — flattens current annotations and copies to clipboard (keyboard shortcut,
     e.g. `Cmd+C`; a `Tab`-to-copy affordance like Shottr is a nice-to-have).
-  - Save — exports PNG via a file dialog (no automatic dump to a folder).
+  - Save — exports PNG via a file dialog (no automatic dump to a folder). The dialog is
+    pre-filled with `DM_Screenshot_DDMMYYYY_HH_MM.png` (default folder: Documents); if that
+    name is already taken (several shots in the same minute) it appends `_1`, `_2`, ….
   - Pin (floating always-on-top window) — **deferred to v1.1**.
   - Right side: image dimensions + zoom level display.
 

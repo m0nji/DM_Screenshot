@@ -41,6 +41,7 @@ Definition of done for a behavior change:
 | Rendering / flatten / blur | `Rendering.swift` | `Editor/Renderer.cs` |
 | Selection / move / resize | `CanvasView.swift` | `Editor/CanvasControl.cs`, `SelectionGeometry.cs` |
 | Editor UI | `EditorView.swift` | `Editor/EditorWindow.xaml(.cs)` |
+| Save file naming | `ScreenshotFilename.swift` | `Editor/ScreenshotFilename.cs` |
 | History store + sidebar | `HistoryStore.swift`, `EditorView.swift` | `History/HistoryStore.cs`, `EditorWindow.xaml(.cs)` |
 | Tray / menu bar | `App.swift` | `Platform/NotifyIconTray.cs` |
 | Settings (shortcuts, launch-at-login) | `Settings.swift`, `ShortcutRecorderView.swift` | `Settings/*.cs`, `SettingsWindow.xaml(.cs)` |
