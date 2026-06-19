@@ -88,6 +88,7 @@ final class QuickEditOverlay {
     }
 
     func show() {
+        guard window == nil else { return }   // already showing — don't install a second Esc monitor
         let view = QuickEditOverlayView(
             model: model,
             screenFrameGlobal: screen.frame,
