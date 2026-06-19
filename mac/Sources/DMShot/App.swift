@@ -183,7 +183,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 contentRect: NSRect(x: 0, y: 0, width: 640, height: 420),
                 styleMask: [.titled, .closable], backing: .buffered, defer: false)
             win.title = "Settings"
-            win.contentView = NSHostingView(rootView: SettingsView(store: shortcutStore, appVersion: version))
+            win.contentView = NSHostingView(rootView: SettingsView(store: shortcutStore, appVersion: version, updater: updater))
             win.delegate = self
             win.isReleasedWhenClosed = false
             win.center()
