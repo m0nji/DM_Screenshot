@@ -228,27 +228,34 @@ struct EditorView: View {
         }
     }
 
+    // A `Divider()` only renders vertically inside an HStack; anywhere else
+    // (e.g. a ZStack) it turns horizontal and greedily claims width. So the
+    // visible separator is an explicit 1pt vertical rule overlaid on a 10pt
+    // clear hit area that fills the full height for an easy drag target.
     private var resizeHandle: some View {
-        ZStack {
-            Divider()
-            Rectangle()
-                .fill(Color.clear)
-                .frame(width: 10)
-                .contentShape(Rectangle())
-                .onHover { inside in
-                    if inside { NSCursor.resizeLeftRight.push() } else { NSCursor.pop() }
-                }
-                .gesture(
-                    DragGesture(minimumDistance: 0)
-                        .onChanged { value in
-                            let start = sidebarDragStart ?? sidebarWidth
-                            if sidebarDragStart == nil { sidebarDragStart = start }
-                            let proposed = start + Double(value.translation.width)
-                            sidebarWidth = min(max(proposed, sidebarRange.lowerBound), sidebarRange.upperBound)
-                        }
-                        .onEnded { _ in sidebarDragStart = nil }
-                )
-        }
+        Rectangle()
+            .fill(Color.clear)
+            .frame(width: 10)
+            .frame(maxHeight: .infinity)
+            .overlay(
+                Rectangle()
+                    .fill(Color(nsColor: .separatorColor))
+                    .frame(width: 1)
+            )
+            .contentShape(Rectangle())
+            .onHover { inside in
+                if inside { NSCursor.resizeLeftRight.push() } else { NSCursor.pop() }
+            }
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { value in
+                        let start = sidebarDragStart ?? sidebarWidth
+                        if sidebarDragStart == nil { sidebarDragStart = start }
+                        let proposed = start + Double(value.translation.width)
+                        sidebarWidth = min(max(proposed, sidebarRange.lowerBound), sidebarRange.upperBound)
+                    }
+                    .onEnded { _ in sidebarDragStart = nil }
+            )
     }
 
     // MARK: - Apply edits to current selection

@@ -22,6 +22,12 @@ final class SelectionView: NSView {
 
     override var isFlipped: Bool { true }
     override var acceptsFirstResponder: Bool { true }
+    // The overlay is summoned by a global hotkey while another app is frontmost,
+    // so our click is the activating click. Without this, AppKit swallows that
+    // first mouseDown (and its drag) just to activate us — forcing the user to
+    // click once before they can drag a selection. Returning true delivers the
+    // full down/drag/up to the view on the very first press.
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
     // The overlay is summoned by a global hotkey while another app is frontmost.
     // Plain cursor rects only take effect once our window is key in the active
     // app, which is why the crosshair used to appear only after a first click.

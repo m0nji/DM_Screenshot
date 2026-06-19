@@ -2,7 +2,9 @@
 
 All notable changes to DM_Screenshot. Newest version first. Always written in English.
 
-## Unreleased
+## 0.1.4 – 2026-06-19
+- fix: Area capture (⌘⇧2) now lets you drag a selection on the very first click — previously the first click was swallowed to activate the overlay, so a selection only worked on the second click (macOS)
+- fix: The resizable left-sidebar handle is grabbable again and no longer draws a stray line across the editor canvas (macOS)
 - feat: Windows automatic updates — DM_Screenshot for Windows now checks for new versions on launch and from Settings → Updates, shows a themed "What's new" from the changelog, and installs the update with one click (Velopack, matching the macOS auto-updater)
 
 ## 0.1.3 – 2026-06-19
