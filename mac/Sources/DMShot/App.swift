@@ -25,12 +25,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private var videoFullMenuItem: NSMenuItem?
     private var videoAreaMenuItem: NSMenuItem?
     private var quickEditBar: QuickEditBar?
+    private var lastCaptureScreenFrame: CGRect?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         setupStatusItem()
         setupHotkeys()
         setupPersistence()
-        overlay.onComplete = { [weak self] image in self?.deliver(image) }
+        overlay.onComplete = { [weak self] image, frame in self?.deliver(image, at: frame) }
         showEditor()
         updater.start()
         // Register with ScreenCaptureKit so the app appears in the Screen Recording
@@ -130,7 +131,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         Task { @MainActor in
             do {
                 let cap = try await ScreenCapture.captureActive()
-                deliver(cap.image)
+                deliver(cap.image, at: ScreenCapture.nsScreen(for: cap.displayID)?.frame)
             } catch { NSLog("capture full failed: \(error)") }
         }
     }
@@ -236,11 +237,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     // @MainActor: deliver() does UI work and calls main-actor-isolated showQuickEdit(); all callers already run on the main thread.
-    @MainActor private func deliver(_ image: CGImage) {
+    @MainActor private func deliver(_ image: CGImage, at screenFrame: CGRect?) {
         ImageUtils.copyToClipboard(image)
         let id = "\(Int(Date().timeIntervalSince1970 * 1000))"
         history.addCapture(id: id, original: image, annotations: [])
         model.load(image: image, entryID: id)
+        lastCaptureScreenFrame = screenFrame
         switch appSettings.afterCapture {
         case .mainWindow: showEditor()
         case .quickEdit: showQuickEdit()
