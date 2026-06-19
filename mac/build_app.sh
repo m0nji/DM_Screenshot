@@ -16,7 +16,15 @@ rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/DMShot"
 cp Info.plist "$APP/Contents/Info.plist"
+cp ../CHANGELOG.md "$APP/Contents/Resources/CHANGELOG.md"
 [ -f Resources/AppIcon.icns ] && cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns" || true
+
+# Embed Sparkle.framework so the app can run + auto-update.
+BIN_DIR="$(swift build -c "$CONFIG" --show-bin-path)"
+mkdir -p "$APP/Contents/Frameworks"
+cp -R "$BIN_DIR/Sparkle.framework" "$APP/Contents/Frameworks/"
+# Ensure the executable can find embedded frameworks.
+install_name_tool -add_rpath "@executable_path/../Frameworks" "$APP/Contents/MacOS/DMShot" 2>/dev/null || true
 
 # Prefer a STABLE self-signed identity (keeps macOS Screen Recording permission across
 # rebuilds). Falls back to ad-hoc. Create the identity once with ./make_cert.sh.

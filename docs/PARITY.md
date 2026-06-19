@@ -45,6 +45,7 @@ Definition of done for a behavior change:
 | History store + sidebar | `HistoryStore.swift`, `EditorView.swift` | `History/HistoryStore.cs`, `EditorWindow.xaml(.cs)` |
 | Tray / menu bar | `App.swift` | `Platform/NotifyIconTray.cs` |
 | Settings (shortcuts, launch-at-login) | `Settings.swift`, `ShortcutRecorderView.swift` | `Settings/*.cs`, `SettingsWindow.xaml(.cs)` |
+| Auto-update (Sparkle/Velopack) + changelog | `Updater.swift`, `Changelog.swift`, `CHANGELOG.md`, `Info.plist` (SUFeedURL/SUPublicEDKey) | _Spec 2: Velopack + Windows release pipeline (pending)_ |
 | Theme | `Theme.swift` | `Theme/DmTheme.xaml` |
 | App icon | `Resources/AppIcon.svg` → `.icns` | `Resources/AppIcon.ico` |
 
@@ -58,4 +59,5 @@ Definition of done for a behavior change:
 - [ ] History persists last 10 across restart.
 - [ ] Tray actions + hide-on-close + Quit.
 - [ ] Settings: editable shortcuts (live re-register), launch-at-login toggles, version shown == `VERSION`.
+- [ ] Auto-update: launch check, themed available/progress/restart states, "What's new" from `CHANGELOG.md`, appcast resolves + verifies.
 - [ ] Theme: dark surfaces, orange accent as fill only, no platform-default blue chrome.

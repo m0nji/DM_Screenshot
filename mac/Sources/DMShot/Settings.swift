@@ -19,7 +19,9 @@ enum SettingsSection: String, CaseIterable, Identifiable {
 struct SettingsView: View {
     @ObservedObject var store: ShortcutStore
     let appVersion: String
+    @ObservedObject var updater: Updater
     @State private var section: SettingsSection = .general
+    @State private var showWhatsNew = false
 
     var body: some View {
         HStack(spacing: 0) {
@@ -48,6 +50,9 @@ struct SettingsView: View {
             }
         }
         .frame(width: 640, height: 420)
+        .sheet(isPresented: $showWhatsNew) {
+            WhatsNewSheet(versions: Changelog.bundled()) { showWhatsNew = false }
+        }
     }
 
     private func navButton(_ s: SettingsSection) -> some View {
@@ -83,11 +88,63 @@ struct SettingsView: View {
             Text("More languages will be added later.").font(.caption).foregroundStyle(.secondary)
         case .updates:
             settingRow("Version", "Installed version.") {
-                Text(appVersion).foregroundStyle(.secondary)
+                Button(appVersion) { showWhatsNew = true }
+                    .buttonStyle(.plain).foregroundStyle(.secondary)
             }
-            Button("Check for Updates") {}
+            updateStatusRow
+            Button("Check for Updates") { updater.check() }
                 .buttonStyle(AccentFilledButtonStyle())
-            Text("Automatic update checks will be added later.").font(.caption).foregroundStyle(.secondary)
+                .disabled(updater.state == .checking)
+            if case .disabled = updater.state {
+                Text("Updates are available only in the installed app.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    @ViewBuilder private var updateStatusRow: some View {
+        switch updater.state {
+        case .checking:
+            Label("Checking for updates…", systemImage: "arrow.triangle.2.circlepath")
+                .font(.callout).foregroundStyle(.secondary)
+        case .upToDate:
+            Label("You're up to date.", systemImage: "checkmark.circle")
+                .font(.callout).foregroundStyle(.secondary)
+        case let .available(version, notes):
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Update available — v\(version)")
+                    .font(.callout.weight(.semibold)).foregroundStyle(Color.dmAccent)
+                if let latest = notes.first {
+                    ForEach(Array(latest.entries.prefix(3).enumerated()), id: \.offset) { _, e in
+                        Text("• \(e.text)").font(.caption).foregroundStyle(.secondary)
+                    }
+                    Button("What's new") { showWhatsNew = true }.buttonStyle(.plain)
+                        .font(.caption).foregroundStyle(Color.dmAccent)
+                }
+                Button("Update now") { updater.installNow() }
+                    .buttonStyle(AccentFilledButtonStyle())
+            }
+        case let .downloading(percent):
+            VStack(alignment: .leading, spacing: 4) {
+                ProgressView(value: Double(percent), total: 100)
+                Text("Downloading… \(percent)%").font(.caption).foregroundStyle(.secondary)
+            }
+        case .extracting:
+            Label("Preparing…", systemImage: "shippingbox").font(.callout).foregroundStyle(.secondary)
+        case let .readyToInstall(version):
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Ready to install — v\(version)").font(.callout).foregroundStyle(.secondary)
+                Button("Restart to install") { updater.relaunch() }
+                    .buttonStyle(AccentFilledButtonStyle())
+            }
+        case let .error(message):
+            VStack(alignment: .leading, spacing: 4) {
+                Label("Couldn't check for updates", systemImage: "exclamationmark.triangle")
+                    .font(.callout).foregroundStyle(.secondary)
+                Text(message).font(.caption2).foregroundStyle(.secondary)
+            }
+        case .idle, .disabled:
+            EmptyView()
         }
     }
 
@@ -152,5 +209,43 @@ struct SettingsView: View {
             trailing()
         }
         .padding(.vertical, 6)
+    }
+}
+
+struct WhatsNewSheet: View {
+    let versions: [ChangelogVersion]
+    let onClose: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Text("What's new").font(.title3.weight(.semibold))
+                Spacer()
+                Button("Done", action: onClose).buttonStyle(AccentFilledButtonStyle())
+            }.padding()
+            Divider()
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    if versions.isEmpty {
+                        Text("No changelog available.").foregroundStyle(.secondary)
+                    }
+                    ForEach(Array(versions.enumerated()), id: \.offset) { _, v in
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack(spacing: 8) {
+                                Text("v\(v.version)").font(.headline)
+                                if !v.date.isEmpty {
+                                    Text(v.date).font(.caption).foregroundStyle(.secondary)
+                                }
+                            }
+                            ForEach(Array(v.entries.enumerated()), id: \.offset) { _, e in
+                                Text("• \(e.text)").font(.callout).foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                }.padding().frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        .frame(width: 460, height: 420)
+        .background(Color(nsColor: NSColor(white: 0.13, alpha: 1)))
     }
 }
