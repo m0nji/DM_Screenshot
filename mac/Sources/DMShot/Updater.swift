@@ -69,7 +69,18 @@ final class Updater: NSObject, ObservableObject, SPUUserDriver, SPUUpdaterDelega
     }
     func installNow() { updateReply?(.install); updateReply = nil }
     func relaunch()   { installReply?(.install); installReply = nil }
-    func dismiss()    { updateReply?(.dismiss); updateReply = nil; acknowledgement?(); acknowledgement = nil }
+    func dismiss() {
+        switch state {
+        case .checking, .downloading:
+            // Abort the in-progress Sparkle operation via its cancellation closure.
+            cancellation?()
+            cancellation = nil
+            state = .idle
+        default:
+            updateReply?(.dismiss); updateReply = nil
+            acknowledgement?(); acknowledgement = nil
+        }
+    }
 
     private func notesNewerThanCurrent(_ appcastVersion: String) -> [ChangelogVersion] {
         let all = Changelog.bundled()
@@ -121,13 +132,17 @@ final class Updater: NSObject, ObservableObject, SPUUserDriver, SPUUpdaterDelega
         else { state = .readyToInstall(version: "") }
     }
     func showInstallingUpdate(withApplicationTerminated applicationTerminated: Bool,
-                              retryTerminatingApplication: @escaping () -> Void) {}
+                              retryTerminatingApplication: @escaping () -> Void) {
+        // We rely on the system to terminate the app (applicationTerminated will be true);
+        // retryTerminatingApplication is intentionally unused — no retry machinery needed.
+    }
     func showUpdateInstalledAndRelaunched(_ relaunched: Bool, acknowledgement: @escaping () -> Void) {
         acknowledgement()
     }
     func showUpdateInFocus() {}
     func dismissUpdateInstallation() {
-        if case .downloading = state { state = .idle }
+        if case .checking = state { state = .idle }
+        else if case .downloading = state { state = .idle }
         else if case .extracting = state { state = .idle }
     }
 }
