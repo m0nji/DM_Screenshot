@@ -22,7 +22,7 @@ public partial class QuickEditOverlayWindow : Window
     public event Action? CopyRequested;
     public event Action? SaveRequested;
     public event Action? EditInMainRequested;
-    public new event Action? Closed;
+    public event Action? Dismissed;
 
     public QuickEditOverlayWindow(Bitmap capture, PixelRect screenRectPx, Rectangle displayBoundsPx)
     {
@@ -36,6 +36,8 @@ public partial class QuickEditOverlayWindow : Window
         SourceInitialized += OnSourceInit;
         Loaded += OnLoaded;
         KeyDown += (_, e) => { if (e.Key == Key.Escape) CloseOverlay(); };
+        // Hook base Window.Closed so every close path (Alt+F4, shutdown, CloseOverlay) fires Dismissed.
+        ((System.Windows.Window)this).Closed += (_, _) => { _shown = false; Dismissed?.Invoke(); };
     }
 
     /// <summary>Idempotent (fix Q1): a second call while already shown is a no-op.</summary>
@@ -79,9 +81,5 @@ public partial class QuickEditOverlayWindow : Window
 
     private void PositionToolbar(double l, double t, double w, double h) { }
 
-    public void CloseOverlay()
-    {
-        Closed?.Invoke();
-        Close();
-    }
+    public void CloseOverlay() { Close(); }
 }
