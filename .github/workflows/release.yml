@@ -166,7 +166,8 @@ jobs:
                     else xml.replace('</channel>', item + '</channel>')
           ac.write_text(xml)
           PY
+          python3 -c "import xml.etree.ElementTree as ET; ET.parse('/tmp/appcast/appcast.xml')"
           cd /tmp/appcast
           git add appcast.xml
           git -c user.email=ci@dmscreenshot -c user.name=CI commit -m "chore: appcast ${GITHUB_REF_NAME}" || true
-          git push github HEAD:appcast
+          git push "https://x-access-token:${GH_TOKEN}@github.com/m0nji/DM_Screenshot.git" HEAD:appcast
