@@ -20,6 +20,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     private let recorder = VideoRecorder()
     private var recordingControl: RecordingControlWindow?
+    private var recordingFrame: RecordingRegionFrame?
     private var previewWindow: VideoPreviewWindow?
     private var gifViewer: GIFViewerWindow?
     private var videoFullMenuItem: NSMenuItem?
@@ -183,18 +184,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         recorder.onElapsed = { [weak self] t in self?.recordingControl?.update(elapsed: t) }
         recorder.onAutoStop = { [weak self] in self?.finishRecording() }
         Task {
-            do { try await recorder.start(source: source); control.show(on: screen) }
+            do {
+                try await recorder.start(source: source)
+                control.show(on: screen)
+                // Section recording: keep an accent frame around the captured region
+                // (drawn just outside the SCStream sourceRect, so it isn't recorded).
+                if let crop = source.cropPoints, let screenFrame = screen?.frame {
+                    let region = CaptureGeometry.screenRect(selection: crop, in: screenFrame)
+                    let frame = RecordingRegionFrame()
+                    frame.show(regionGlobal: region)
+                    self.recordingFrame = frame
+                }
+            }
             catch { NSLog("recorder start failed: \(error)"); self.recordingControl = nil }
         }
     }
 
     @MainActor private func cancelRecording() {
         recordingControl?.close(); recordingControl = nil
+        recordingFrame?.close(); recordingFrame = nil
         Task { await recorder.cancel() }
     }
 
     @MainActor private func finishRecording() {
         recordingControl?.close(); recordingControl = nil
+        recordingFrame?.close(); recordingFrame = nil
         Task {
             guard let url = await recorder.stop() else { return }
             await MainActor.run { self.showPreview(movURL: url) }
