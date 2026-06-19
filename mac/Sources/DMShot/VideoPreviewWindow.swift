@@ -46,6 +46,24 @@ private final class PreviewState: ObservableObject {
     }
 }
 
+/// AppKit AVPlayerView wrapper. SwiftUI's `VideoPlayer` (from _AVKit_SwiftUI)
+/// fails generic-metadata instantiation in this SwiftPM-bundled app and aborts,
+/// so we use the AppKit player view via NSViewRepresentable instead (same pattern
+/// as CanvasView).
+private struct PlayerView: NSViewRepresentable {
+    let player: AVPlayer
+    func makeNSView(context: Context) -> AVPlayerView {
+        let view = AVPlayerView()
+        view.player = player
+        view.controlsStyle = .inline
+        view.videoGravity = .resizeAspect
+        return view
+    }
+    func updateNSView(_ nsView: AVPlayerView, context: Context) {
+        if nsView.player !== player { nsView.player = player }
+    }
+}
+
 private struct PreviewView: View {
     let player: AVPlayer
     @ObservedObject var state: PreviewState
@@ -58,7 +76,7 @@ private struct PreviewView: View {
 
     var body: some View {
         VStack(spacing: 12) {
-            VideoPlayer(player: player).frame(minWidth: 480, minHeight: 300)
+            PlayerView(player: player).frame(minWidth: 480, minHeight: 300)
             HStack {
                 Text("Start \(String(format: "%.1f", state.start))s")
                 Slider(value: $state.start, in: 0...state.duration)
