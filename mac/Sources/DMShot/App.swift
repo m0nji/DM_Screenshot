@@ -20,6 +20,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private let recorder = VideoRecorder()
     private var recordingControl: RecordingControlWindow?
     private var previewWindow: VideoPreviewWindow?
+    private var gifViewer: GIFViewerWindow?
     private var videoFullMenuItem: NSMenuItem?
     private var videoAreaMenuItem: NSMenuItem?
 
@@ -212,6 +213,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         try? data.write(to: fileURL)
         ImageUtils.copyGIF(data: data, fileURL: fileURL)
         history.addVideo(id: id, gifData: data, thumbnail: thumbnail)
+        NSLog("DMShot: created GIF %.1f MB (%d bytes)", Double(data.count) / 1_048_576, data.count)
     }
 
     /// Returns true if Screen Recording is granted. If not, shows exactly ONE
@@ -320,6 +322,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 let fileURL = FileManager.default.temporaryDirectory.appendingPathComponent("\(id).gif")
                 try? data.write(to: fileURL)
                 ImageUtils.copyGIF(data: data, fileURL: fileURL)
+                let viewer = GIFViewerWindow()
+                viewer.show(gifData: data, title: "DM_Screenshot — GIF")
+                gifViewer = viewer
             }
             return
         }

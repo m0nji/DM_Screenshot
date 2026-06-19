@@ -26,7 +26,7 @@ final class GIFPlanTests: XCTestCase {
     }
 
     func testEstimatedBytesIsLinear() {
-        XCTAssertEqual(GIFPlan.estimatedBytes(frameCount: 10, width: 100, height: 100), 50_000)
-        XCTAssertEqual(GIFPlan.estimatedBytes(frameCount: 20, width: 100, height: 100), 100_000)
+        XCTAssertEqual(GIFPlan.estimatedBytes(frameCount: 10, width: 100, height: 100), 25_000)
+        XCTAssertEqual(GIFPlan.estimatedBytes(frameCount: 20, width: 100, height: 100), 50_000)
     }
 }

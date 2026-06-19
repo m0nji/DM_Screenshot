@@ -99,6 +99,7 @@ private struct PreviewView: View {
 
 final class VideoPreviewWindow: NSObject, NSWindowDelegate {
     private var window: NSWindow?
+    private var loopObserver: NSObjectProtocol?
     private let movURL: URL
     private let onCreateGIF: (Data, CGImage) -> Void
     private let onDiscard: () -> Void
@@ -114,6 +115,13 @@ final class VideoPreviewWindow: NSObject, NSWindowDelegate {
         let asset = AVURLAsset(url: movURL)
         let player = AVPlayer(url: movURL)
         player.actionAtItemEnd = .none
+        // Auto-play and loop so the user immediately sees the clip (no black still).
+        loopObserver = NotificationCenter.default.addObserver(
+            forName: .AVPlayerItemDidPlayToEndTime, object: player.currentItem, queue: .main) { _ in
+                player.seek(to: .zero)
+                player.play()
+            }
+        player.play()
 
         Task { @MainActor in
             // Load duration and video track size asynchronously (avoids deprecated sync APIs).
@@ -162,11 +170,18 @@ final class VideoPreviewWindow: NSObject, NSWindowDelegate {
     }
 
     func windowWillClose(_ notification: Notification) {
+        removeLoopObserver()
         try? FileManager.default.removeItem(at: movURL)
     }
 
     private func close() {
+        removeLoopObserver()
         window?.orderOut(nil); window = nil
         try? FileManager.default.removeItem(at: movURL)
+    }
+
+    private func removeLoopObserver() {
+        if let loopObserver { NotificationCenter.default.removeObserver(loopObserver) }
+        loopObserver = nil
     }
 }

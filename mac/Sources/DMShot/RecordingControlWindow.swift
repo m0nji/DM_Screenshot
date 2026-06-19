@@ -53,8 +53,12 @@ final class RecordingControlWindow {
         win.hasShadow = true
         let hostView = NSHostingView(rootView: RecordingControlView(elapsed: 0, onStop: onStop, onCancel: onCancel))
         win.contentView = hostView
+        // Size the panel to the capsule's intrinsic content so the "Stop" label
+        // is never truncated to "…".
+        let fit = hostView.fittingSize
+        win.setContentSize(fit)
         if let frame = (screen ?? NSScreen.main)?.frame {
-            win.setFrameOrigin(NSPoint(x: frame.midX - 110, y: frame.minY + 80))
+            win.setFrameOrigin(NSPoint(x: frame.midX - fit.width / 2, y: frame.minY + 80))
         }
         win.orderFrontRegardless()
         window = win
