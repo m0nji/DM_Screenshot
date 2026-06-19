@@ -60,6 +60,7 @@ final class RecordingControlWindow {
         win.backgroundColor = .clear
         win.isOpaque = false
         win.hasShadow = true
+        win.canHide = false   // stay visible when the app is hidden during recording
         let hostView = FirstMouseHostingView(rootView: RecordingControlView(elapsed: 0, onStop: onStop, onCancel: onCancel))
         win.contentView = hostView
         // Size the panel to the capsule's intrinsic content so the "Stop" label

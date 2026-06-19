@@ -55,7 +55,7 @@ final class GIFViewerWindow: NSObject {
         win.center()
         win.isReleasedWhenClosed = false
         win.makeKeyAndOrderFront(nil)
-        NSApp.activate()
+        NSApp.activate(ignoringOtherApps: true)
         window = win
     }
 

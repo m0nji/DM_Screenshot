@@ -29,7 +29,11 @@ install_name_tool -add_rpath "@executable_path/../Frameworks" "$APP/Contents/Mac
 # Prefer a STABLE self-signed identity (keeps macOS Screen Recording permission across
 # rebuilds). Falls back to ad-hoc. Create the identity once with ./make_cert.sh.
 SIGN_ID="${DMSHOT_SIGN_ID:-DMShot Dev}"
-if security find-identity -v -p codesigning 2>/dev/null | grep -q "$SIGN_ID"; then
+# Match ALL code-signing identities, not just -v "valid" ones: a self-signed
+# make_cert.sh identity is reported untrusted (CSSMERR_TP_NOT_TRUSTED) and thus
+# omitted by -v, yet codesign signs with it fine — and a stable signature is all
+# TCC needs to persist the Screen Recording grant across rebuilds.
+if security find-identity -p codesigning 2>/dev/null | grep -q "$SIGN_ID"; then
     echo "==> codesign with stable identity: $SIGN_ID"
     codesign --force --deep --sign "$SIGN_ID" "$APP"
 else

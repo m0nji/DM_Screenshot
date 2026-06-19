@@ -20,6 +20,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     private let recorder = VideoRecorder()
     private var recordingControl: RecordingControlWindow?
+    private var recordingFrame: RecordingRegionFrame?
     private var previewWindow: VideoPreviewWindow?
     private var gifViewer: GIFViewerWindow?
     private var videoFullMenuItem: NSMenuItem?
@@ -183,18 +184,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         recorder.onElapsed = { [weak self] t in self?.recordingControl?.update(elapsed: t) }
         recorder.onAutoStop = { [weak self] in self?.finishRecording() }
         Task {
-            do { try await recorder.start(source: source); control.show(on: screen) }
+            do {
+                try await recorder.start(source: source)
+                control.show(on: screen)
+                // Section recording: keep an accent frame around the captured region
+                // (drawn just outside the SCStream sourceRect, so it isn't recorded).
+                if let crop = source.cropPoints, let screenFrame = screen?.frame {
+                    let region = CaptureGeometry.screenRect(selection: crop, in: screenFrame)
+                    let frame = RecordingRegionFrame()
+                    frame.show(regionGlobal: region)
+                    self.recordingFrame = frame
+                }
+                // Get DM_Screenshot out of the way (and out of the recording): hide
+                // the app so the user's app returns to front. The Stop control and
+                // the region frame stay visible (canHide = false).
+                NSApp.hide(nil)
+            }
             catch { NSLog("recorder start failed: \(error)"); self.recordingControl = nil }
         }
     }
 
     @MainActor private func cancelRecording() {
         recordingControl?.close(); recordingControl = nil
+        recordingFrame?.close(); recordingFrame = nil
         Task { await recorder.cancel() }
     }
 
     @MainActor private func finishRecording() {
         recordingControl?.close(); recordingControl = nil
+        recordingFrame?.close(); recordingFrame = nil
         Task {
             guard let url = await recorder.stop() else { return }
             await MainActor.run { self.showPreview(movURL: url) }
@@ -202,10 +220,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     @MainActor private func showPreview(movURL: URL) {
+        previewWindow?.close()  // tear down any prior preview before replacing (avoids live-dealloc crash)
+        previewWindow = nil
         let preview = VideoPreviewWindow(
             movURL: movURL,
             onCreateGIF: { [weak self] data, thumb in self?.deliverGIF(data: data, thumbnail: thumb) },
-            onDiscard: {})
+            onDiscard: { NSApp.hide(nil) })  // nothing to show — step back to the user's app
         preview.show()
         self.previewWindow = preview
     }
@@ -217,6 +237,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         ImageUtils.copyGIF(data: data, fileURL: fileURL)
         history.addVideo(id: id, gifData: data, thumbnail: thumbnail)
         NSLog("DMShot: created GIF %.1f MB (%d bytes)", Double(data.count) / 1_048_576, data.count)
+        // Play the freshly created GIF right away (Copy / Save in one window),
+        // brought to the front. It's also saved to history.
+        gifViewer?.close()
+        let viewer = GIFViewerWindow()
+        viewer.show(gifData: data, title: "DM_Screenshot — GIF")
+        gifViewer = viewer
     }
 
     /// Returns true if Screen Recording is granted. If not, shows exactly ONE
@@ -404,14 +430,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         alert.messageText = "Screen Recording Required"
         alert.informativeText =
             "Allow DM_Screenshot under System Settings → Privacy & Security → "
-            + "Screen Recording, then relaunch the app."
+            + "Screen Recording. macOS only applies a newly granted permission "
+            + "after a restart — if you have already allowed it, relaunch now."
+        alert.addButton(withTitle: "Relaunch Now")
         alert.addButton(withTitle: "Open System Settings")
         alert.addButton(withTitle: "Cancel")
-        if alert.runModal() == .alertFirstButtonReturn {
+        switch alert.runModal() {
+        case .alertFirstButtonReturn:
+            relaunchApp()
+        case .alertSecondButtonReturn:
             if let url = URL(string:
                 "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {
                 NSWorkspace.shared.open(url)
             }
+        default:
+            break
         }
+    }
+
+    /// Relaunch the app so a freshly granted Screen Recording permission takes
+    /// effect (CGPreflightScreenCaptureAccess only refreshes on a new launch).
+    private func relaunchApp() {
+        let path = Bundle.main.bundlePath
+        let task = Process()
+        task.launchPath = "/usr/bin/open"
+        task.arguments = ["-n", path]
+        try? task.run()
+        NSApp.terminate(nil)
     }
 }
