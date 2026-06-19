@@ -113,6 +113,7 @@ private struct PreviewView: View {
 final class VideoPreviewWindow: NSObject, NSWindowDelegate {
     private var window: NSWindow?
     private var loopObserver: NSObjectProtocol?
+    private var player: AVPlayer?
     private let movURL: URL
     private let onCreateGIF: (Data, CGImage) -> Void
     private let onDiscard: () -> Void
@@ -127,6 +128,7 @@ final class VideoPreviewWindow: NSObject, NSWindowDelegate {
     func show() {
         let asset = AVURLAsset(url: movURL)
         let player = AVPlayer(url: movURL)
+        self.player = player
         player.actionAtItemEnd = .none
         // Auto-play and loop so the user immediately sees the clip (no black still).
         loopObserver = NotificationCenter.default.addObserver(
@@ -183,15 +185,32 @@ final class VideoPreviewWindow: NSObject, NSWindowDelegate {
     }
 
     func windowWillClose(_ notification: Notification) {
-        removeLoopObserver()
+        teardown()
         try? FileManager.default.removeItem(at: movURL)
     }
 
-    private func close() {
-        removeLoopObserver()
-        window?.orderOut(nil); window = nil
+    /// Dismiss the preview and release its AV resources. Safe to call more than
+    /// once and from `AppDelegate` before replacing the current preview.
+    func close() {
+        teardown()
         try? FileManager.default.removeItem(at: movURL)
     }
+
+    /// Deterministically tear down the player + observer + view tree BEFORE the
+    /// object is deallocated. Without this, replacing a still-live preview window
+    /// (player running, end-of-play observer registered) crashed on dealloc with
+    /// EXC_BAD_ACCESS in optimized release builds.
+    private func teardown() {
+        removeLoopObserver()
+        player?.pause()
+        player = nil
+        window?.delegate = nil
+        window?.contentView = nil
+        window?.orderOut(nil)
+        window = nil
+    }
+
+    deinit { teardown() }
 
     private func removeLoopObserver() {
         if let loopObserver { NotificationCenter.default.removeObserver(loopObserver) }

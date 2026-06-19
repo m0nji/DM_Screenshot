@@ -202,6 +202,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     @MainActor private func showPreview(movURL: URL) {
+        previewWindow?.close()  // tear down any prior preview before replacing (avoids live-dealloc crash)
+        previewWindow = nil
         let preview = VideoPreviewWindow(
             movURL: movURL,
             onCreateGIF: { [weak self] data, thumb in self?.deliverGIF(data: data, thumbnail: thumb) },
