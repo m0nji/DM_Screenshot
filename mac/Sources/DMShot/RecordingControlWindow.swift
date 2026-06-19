@@ -26,6 +26,7 @@ private struct RecordingControlView: View {
         }
         .padding(.horizontal, 14).padding(.vertical, 8)
         .background(.ultraThinMaterial, in: Capsule())
+        .onExitCommand { onStop() }   // Esc stops (v1: stop == finish, no recording lost)
     }
 }
 

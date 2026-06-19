@@ -143,6 +143,29 @@ final class OverlayController {
     private var windows: [NSWindow] = []
     var onComplete: ((CGImage) -> Void)?
     var onCancel: (() -> Void)?
+    var onCompleteRect: ((DisplayCapture, CGRect) -> Void)?
+
+    /// Like `begin`, but reports the selected display + pixel rect (for video).
+    func beginRectSelection(captures: [DisplayCapture]) {
+        close()
+        NSApp.activate(ignoringOtherApps: true)
+        for cap in captures {
+            let view = SelectionView(capture: cap)
+            view.onSelect = { [weak self] pixelRect in
+                self?.close()
+                self?.onCompleteRect?(cap, pixelRect)
+            }
+            view.onCancel = { [weak self] in self?.close(); self?.onCancel?() }
+            let win = OverlayWindow(contentRect: cap.frameGlobal, styleMask: .borderless,
+                                    backing: .buffered, defer: false)
+            win.isOpaque = true; win.backgroundColor = .black; win.level = .screenSaver
+            win.contentView = view
+            win.setFrame(cap.frameGlobal, display: true)
+            win.makeKeyAndOrderFront(nil); win.makeFirstResponder(view)
+            NSCursor.crosshair.set()
+            windows.append(win)
+        }
+    }
 
     func begin(captures: [DisplayCapture]) {
         close()

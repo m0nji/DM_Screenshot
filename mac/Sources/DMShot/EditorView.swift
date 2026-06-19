@@ -30,6 +30,8 @@ struct EditorView: View {
     var onSave: () -> Void
     var onCaptureFull: () -> Void
     var onCaptureArea: () -> Void
+    var onVideoFull: () -> Void
+    var onVideoArea: () -> Void
     var onSelectHistory: (String) -> Void
     var onDeleteHistory: (String) -> Void
     var onOpenSettings: () -> Void
@@ -173,6 +175,16 @@ struct EditorView: View {
             }
             .buttonStyle(.bordered)
             .controlSize(.large)
+            Button(action: onVideoFull) {
+                Label("Video Full Screen", systemImage: "video")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(.bordered).controlSize(.large)
+            Button(action: onVideoArea) {
+                Label("Video Section", systemImage: "video.badge.plus")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(.bordered).controlSize(.large)
             Text("HISTORY").font(.caption2).foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
             ScrollView {
