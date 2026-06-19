@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
+using DMShot.Capture;
 using DMShot.History;
 using DMShot.Platform;
 namespace DMShot.Editor;
@@ -70,6 +71,15 @@ public partial class EditorWindow : Window
         _baseImage = (System.Drawing.Bitmap)bmp.Clone();
         Canvas.Load(_baseImage);
         UpdateStatus();
+    }
+
+    public void LoadWithState(System.Drawing.Bitmap image,
+                              IReadOnlyList<Annotation> annotations,
+                              PixelRect? crop)
+    {
+        LoadImage(image);
+        foreach (var a in annotations) Canvas.Model.Add(a.Clone());
+        if (crop is { } c) Canvas.Model.SetCrop(c);
     }
 
     private void UpdateStatus()
