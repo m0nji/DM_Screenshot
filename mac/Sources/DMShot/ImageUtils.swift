@@ -26,4 +26,17 @@ enum ImageUtils {
     static func nsImage(_ image: CGImage) -> NSImage {
         NSImage(cgImage: image, size: NSSize(width: image.width, height: image.height))
     }
+
+    /// Downscale so width ≤ `maxWidth` (preserving aspect). Returns the original if already small enough.
+    static func scaled(_ image: CGImage, toWidth maxWidth: Int) -> CGImage {
+        let target = GIFPlan.scaledSize(width: image.width, height: image.height, maxWidth: maxWidth)
+        if target.width == image.width && target.height == image.height { return image }
+        guard let ctx = CGContext(
+            data: nil, width: target.width, height: target.height, bitsPerComponent: 8,
+            bytesPerRow: 0, space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return image }
+        ctx.interpolationQuality = .high
+        ctx.draw(image, in: CGRect(x: 0, y: 0, width: target.width, height: target.height))
+        return ctx.makeImage() ?? image
+    }
 }
