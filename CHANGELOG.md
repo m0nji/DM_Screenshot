@@ -5,7 +5,7 @@ All notable changes to DM_Screenshot. Newest version first. Always written in En
 ## [Unreleased]
 
 ### Added
-- Quick-Edit bar: optionally edit a screenshot in a compact floating bar (Settings → General → After capture) instead of the main window, with the same tools and one-click escalation to the main window.
+- Quick-Edit bar: optionally mark up a screenshot in place — the capture is shown framed over a dimmed backdrop with a compact floating toolbar (Settings → General → After capture) — with the same tools, color/size flyouts, and one-click escalation to the main window.
 - Video/GIF capture: record full screen or a section (Cmd+Ctrl+1 / Cmd+Ctrl+2), trim, and copy an animated GIF for pasting into chat/email. Max 60s.
 
 ## 0.1.4 – 2026-06-19
