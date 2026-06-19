@@ -24,6 +24,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private var gifViewer: GIFViewerWindow?
     private var videoFullMenuItem: NSMenuItem?
     private var videoAreaMenuItem: NSMenuItem?
+    private var quickEditBar: QuickEditBar?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         setupStatusItem()
@@ -234,12 +235,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         return false
     }
 
-    private func deliver(_ image: CGImage) {
+    @MainActor private func deliver(_ image: CGImage) {
         ImageUtils.copyToClipboard(image)
         let id = "\(Int(Date().timeIntervalSince1970 * 1000))"
         history.addCapture(id: id, original: image, annotations: [])
         model.load(image: image, entryID: id)
-        showEditor()
+        switch appSettings.afterCapture {
+        case .mainWindow: showEditor()
+        case .quickEdit: showQuickEdit()
+        }
+    }
+
+    @MainActor private func showQuickEdit() {
+        quickEditBar?.close()
+        let bar = QuickEditBar(
+            model: model,
+            onCopy: { [weak self] in self?.copyCurrent() },
+            onSave: { [weak self] in self?.saveCurrent() },
+            onEditInMain: { [weak self] in
+                self?.quickEditBar?.close()
+                self?.quickEditBar = nil
+                self?.showEditor()
+            },
+            onClose: { [weak self] in self?.quickEditBar = nil })
+        quickEditBar = bar
+        let screen = NSScreen.screens.first { $0.frame.contains(NSEvent.mouseLocation) } ?? NSScreen.main
+        bar.show(on: screen)
     }
 
     // MARK: - Editor window
