@@ -1,3 +1,4 @@
+using System.Drawing.Imaging;
 using System.IO;
 using System.Windows;
 using DMShot.Capture;
@@ -14,6 +15,7 @@ public partial class App : Application
     private CaptureCoordinator _coordinator = null!;
     private readonly IClipboardService _clipboard = new WpfClipboard();
     private EditorWindow? _editor;
+    private QuickEditOverlayWindow? _quickEdit;
     private HistoryStore _history = null!;
     private ITrayIcon _tray = null!;
     private Settings.Settings _settings = null!;
@@ -93,6 +95,18 @@ public partial class App : Application
     {
         var bmp = result.Image;
         _clipboard.SetImage(bmp);                 // auto-copy the raw capture immediately
+
+        // Capturing stores the raw image immediately; satisfies the "last 10" sidebar for v1.
+        _history.Add(bmp, Array.Empty<Annotation>(), null, DateTime.UtcNow);
+
+        if (_settings.AfterCapture == AfterCaptureMode.QuickEdit)
+            ShowQuickEdit(result);
+        else
+            ShowEditorWithImage(bmp);
+    }
+
+    private void ShowEditorWithImage(System.Drawing.Bitmap bmp)
+    {
         if (_editor is null || !_editor.IsLoaded)
         {
             _editor = new EditorWindow
@@ -106,11 +120,80 @@ public partial class App : Application
         if (!_editor.IsVisible) _editor.Show();
         _editor.Activate();
         _editor.WindowState = WindowState.Normal;
-
-        // Capturing stores the raw image immediately; satisfies the "last 10" sidebar for v1.
-        _history.Add(bmp, Array.Empty<Annotation>(), null, DateTime.UtcNow);
         _editor.Store = _history;
         _editor.RefreshHistory();
+    }
+
+    private void ShowQuickEdit(CaptureResult result)
+    {
+        if (_quickEdit is not null) return;                 // idempotent (Q1)
+        _editor?.Hide();                                    // single key window (Q6)
+
+        var overlay = new QuickEditOverlayWindow(result.Image, result.ScreenRectPx, result.DisplayBoundsPx);
+        _quickEdit = overlay;
+
+        overlay.CopyRequested += () =>
+        {
+            using var flat = Renderer.Flatten(result.Image, overlay.Canvas.Model);
+            _clipboard.SetImage(flat);
+            DismissQuickEdit();                             // return focus so Ctrl+V pastes (Q9)
+        };
+        overlay.SaveRequested += () =>
+        {
+            using var flat = Renderer.Flatten(result.Image, overlay.Canvas.Model);
+            SaveFlattened(flat);
+        };
+        overlay.EditInMainRequested += () =>
+        {
+            var anns = overlay.Canvas.Model.Annotations.ToList();
+            var crop = overlay.Canvas.Model.Crop;
+            DismissQuickEdit();
+            ShowEditorWithState(result.Image, anns, crop);  // carry annotations over (Q8)
+        };
+        overlay.Dismissed += () => { _quickEdit = null; };
+
+        overlay.ShowOverlay();
+    }
+
+    private void ShowEditorWithState(System.Drawing.Bitmap bmp,
+                                     IReadOnlyList<Annotation> anns, PixelRect? crop)
+    {
+        if (_editor is null || !_editor.IsLoaded)
+        {
+            _editor = new EditorWindow
+            {
+                OnRequestFullScreen = () => _coordinator.CaptureFullScreen(),
+                OnRequestArea = () => _coordinator.CaptureArea(),
+                OnRequestSettings = OpenSettings
+            };
+        }
+        _editor.LoadWithState(bmp, anns, crop);
+        _editor.Show(); _editor.WindowState = WindowState.Normal; _editor.Activate();
+        _editor.Store = _history; _editor.RefreshHistory();
+    }
+
+    private void DismissQuickEdit()
+    {
+        var ov = _quickEdit;
+        _quickEdit = null;
+        ov?.CloseOverlay();
+        // Closing the topmost overlay returns focus to the prior app automatically (Q9).
+    }
+
+    private void SaveFlattened(System.Drawing.Bitmap flat)
+    {
+        var dir = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+        var baseName = ScreenshotFilename.Base(DateTime.Now);
+        var fileName = ScreenshotFilename.Unique(baseName,
+            name => File.Exists(Path.Combine(dir, name)));
+        var dlg = new Microsoft.Win32.SaveFileDialog
+        {
+            Filter = "PNG image|*.png",
+            InitialDirectory = dir,
+            FileName = fileName,
+        };
+        if (dlg.ShowDialog() != true) return;
+        flat.Save(dlg.FileName, ImageFormat.Png);
     }
 
     protected override void OnExit(ExitEventArgs e) { _hotkeys?.Dispose(); _tray?.Dispose(); base.OnExit(e); }
