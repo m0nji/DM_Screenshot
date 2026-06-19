@@ -7,6 +7,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private let history = HistoryStore()
     private let overlay = OverlayController()
     private let shortcutStore = ShortcutStore()
+    private let appSettings = AppSettingsStore()
     let updater = Updater()
     private var hotkeys: HotkeyManager?
     private var statusItem: NSStatusItem?
@@ -23,6 +24,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private var gifViewer: GIFViewerWindow?
     private var videoFullMenuItem: NSMenuItem?
     private var videoAreaMenuItem: NSMenuItem?
+    private var quickEditBar: QuickEditBar?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         setupStatusItem()
@@ -233,12 +235,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         return false
     }
 
-    private func deliver(_ image: CGImage) {
+    // @MainActor: deliver() does UI work and calls main-actor-isolated showQuickEdit(); all callers already run on the main thread.
+    @MainActor private func deliver(_ image: CGImage) {
         ImageUtils.copyToClipboard(image)
         let id = "\(Int(Date().timeIntervalSince1970 * 1000))"
         history.addCapture(id: id, original: image, annotations: [])
         model.load(image: image, entryID: id)
-        showEditor()
+        switch appSettings.afterCapture {
+        case .mainWindow: showEditor()
+        case .quickEdit: showQuickEdit()
+        }
+    }
+
+    @MainActor private func showQuickEdit() {
+        editorWindow?.orderOut(nil)  // bar XOR main window: hide editor to prevent split keyboard focus
+        quickEditBar?.close()
+        let bar = QuickEditBar(
+            model: model,
+            onCopy: { [weak self] in self?.copyCurrent() },
+            onSave: { [weak self] in self?.saveCurrent() },
+            onEditInMain: { [weak self] in
+                self?.quickEditBar?.close()
+                self?.quickEditBar = nil
+                self?.showEditor()
+            },
+            onClose: { [weak self] in self?.quickEditBar = nil })
+        quickEditBar = bar
+        let screen = NSScreen.screens.first { $0.frame.contains(NSEvent.mouseLocation) } ?? NSScreen.main
+        bar.show(on: screen)
     }
 
     // MARK: - Editor window
@@ -278,7 +302,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 contentRect: NSRect(x: 0, y: 0, width: 640, height: 420),
                 styleMask: [.titled, .closable], backing: .buffered, defer: false)
             win.title = "Settings"
-            win.contentView = NSHostingView(rootView: SettingsView(store: shortcutStore, appVersion: version, updater: updater))
+            win.contentView = NSHostingView(rootView: SettingsView(
+                store: shortcutStore, settings: appSettings, appVersion: version, updater: updater))
             win.delegate = self
             win.isReleasedWhenClosed = false
             win.center()

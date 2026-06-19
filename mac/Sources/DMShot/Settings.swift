@@ -18,6 +18,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
 
 struct SettingsView: View {
     @ObservedObject var store: ShortcutStore
+    @ObservedObject var settings: AppSettingsStore
     let appVersion: String
     @ObservedObject var updater: Updater
     @State private var section: SettingsSection = .general
@@ -77,7 +78,13 @@ struct SettingsView: View {
                 Text("Coming soon").foregroundStyle(.secondary)
             }
             settingRow("After capture", "What happens right after a screenshot is taken.") {
-                Text("Open editor + copy to clipboard").foregroundStyle(.secondary)
+                Picker("", selection: $settings.afterCapture) {
+                    ForEach(AfterCapture.allCases) { mode in
+                        Text(mode.title).tag(mode)
+                    }
+                }
+                .labelsHidden()
+                .frame(width: 220)
             }
         case .shortcuts:
             shortcutsDetail
