@@ -72,5 +72,25 @@ public class HistoryStoreTests : IDisposable
         Assert.Single(store.Entries);
     }
 
+    [Fact]
+    public void AddVideoPersistsGifAndKind()
+    {
+        var dir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "dmshot-hist-" + System.Guid.NewGuid().ToString("N"));
+        try
+        {
+            var store = new DMShot.History.HistoryStore(dir);
+            using var thumb = new System.Drawing.Bitmap(20, 10);
+            var gif = new byte[] { 0x47, 0x49, 0x46, 0x38, 0x39, 0x61 }; // "GIF89a"
+            var entry = store.AddVideo(thumb, gif, System.DateTime.UtcNow);
+            Assert.Equal(DMShot.History.HistoryKind.Video, entry.Kind);
+            Assert.True(System.IO.File.Exists(entry.GifPath));
+
+            var reloaded = new DMShot.History.HistoryStore(dir);
+            reloaded.Load();
+            Assert.Equal(DMShot.History.HistoryKind.Video, reloaded.Entries[^1].Kind);
+        }
+        finally { if (System.IO.Directory.Exists(dir)) System.IO.Directory.Delete(dir, true); }
+    }
+
     public void Dispose() { if (Directory.Exists(_root)) Directory.Delete(_root, true); }
 }

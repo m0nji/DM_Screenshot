@@ -2,6 +2,8 @@ using DMShot.Capture;
 using DMShot.Editor;
 namespace DMShot.History;
 
+public enum HistoryKind { Image, Video }
+
 public record AnnotationDto(string Kind, double X0, double Y0, double X1, double Y1,
     uint ColorArgb, double StrokeWidth, string Text, int StepNumber, int BlurStrength)
 {
@@ -19,6 +21,8 @@ public sealed class HistoryEntry
     public string Id { get; set; } = "";
     public string OriginalPngPath { get; set; } = "";
     public string ThumbnailPngPath { get; set; } = "";
+    public string GifPath { get; set; } = "";
+    public HistoryKind Kind { get; set; } = HistoryKind.Image;
     public List<AnnotationDto> Annotations { get; set; } = new();
     public PixelRect? Crop { get; set; }
     public DateTime CreatedUtc { get; set; }

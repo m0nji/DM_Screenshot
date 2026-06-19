@@ -45,20 +45,45 @@ public sealed class HistoryStore
         while (_entries.Count > Max)
         {
             var old = _entries[0]; _entries.RemoveAt(0);
-            TryDelete(old.OriginalPngPath); TryDelete(old.ThumbnailPngPath);
+            TryDelete(old.OriginalPngPath); TryDelete(old.ThumbnailPngPath); TryDelete(old.GifPath);
         }
         Persist();
         return entry;
     }
 
-    /// <summary>Removes a single entry (its PNG + thumbnail) from history. No-op if unknown.</summary>
+    public HistoryEntry AddVideo(Bitmap thumbnail, byte[] gifBytes, DateTime nowUtc)
+    {
+        string id = nowUtc.Ticks.ToString() + "_" + _entries.Count;
+        string thumb = Path.Combine(Root, id + "_thumb.png");
+        string gif = Path.Combine(Root, id + ".gif");
+        SaveThumb(thumbnail, thumb);
+        File.WriteAllBytes(gif, gifBytes);
+
+        var entry = new HistoryEntry
+        {
+            Id = id, ThumbnailPngPath = thumb, GifPath = gif, Kind = HistoryKind.Video, CreatedUtc = nowUtc
+        };
+        _entries.Add(entry);
+        while (_entries.Count > Max)
+        {
+            var old = _entries[0]; _entries.RemoveAt(0);
+            TryDelete(old.OriginalPngPath); TryDelete(old.ThumbnailPngPath); TryDelete(old.GifPath);
+        }
+        Persist();
+        return entry;
+    }
+
+    public string? GifPathFor(string id)
+        => _entries.FirstOrDefault(e => e.Id == id && e.Kind == HistoryKind.Video)?.GifPath;
+
+    /// <summary>Removes a single entry (its PNG + thumbnail + GIF) from history. No-op if unknown.</summary>
     public void Delete(string id)
     {
         int i = _entries.FindIndex(e => e.Id == id);
         if (i < 0) return;
         var entry = _entries[i];
         _entries.RemoveAt(i);
-        TryDelete(entry.OriginalPngPath); TryDelete(entry.ThumbnailPngPath);
+        TryDelete(entry.OriginalPngPath); TryDelete(entry.ThumbnailPngPath); TryDelete(entry.GifPath);
         Persist();
     }
 
