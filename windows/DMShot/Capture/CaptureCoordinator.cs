@@ -3,13 +3,15 @@ using System.Runtime.InteropServices;
 using DMShot.Platform;
 namespace DMShot.Capture;
 
+public readonly record struct CaptureResult(Bitmap Image, PixelRect ScreenRectPx, Rectangle DisplayBoundsPx);
+
 public sealed class CaptureCoordinator
 {
     [DllImport("user32.dll")] private static extern bool GetCursorPos(out POINT p);
     private struct POINT { public int X, Y; }
 
     private readonly IScreenCapturer _capturer;
-    public event Action<Bitmap>? ImageCaptured;
+    public event Action<CaptureResult>? CaptureProduced;
     public CaptureCoordinator(IScreenCapturer capturer) => _capturer = capturer;
 
     public void CaptureFullScreen()
@@ -17,7 +19,9 @@ public sealed class CaptureCoordinator
         var displays = _capturer.GetDisplays();
         var target = DisplayUnderCursor(displays);
         var bmp = _capturer.CaptureDisplay(target);
-        ImageCaptured?.Invoke(bmp);
+        CaptureProduced?.Invoke(new CaptureResult(bmp,
+            new PixelRect(target.Bounds.Left, target.Bounds.Top, target.Bounds.Width, target.Bounds.Height),
+            target.Bounds));
     }
 
     public void CaptureArea()
@@ -38,7 +42,8 @@ public sealed class CaptureCoordinator
                 if (committed && win.Result is { } r && r.Width > 0 && r.Height > 0)
                 {
                     var cropped = ImageInterop.Crop(win.Frozen, r);
-                    ImageCaptured?.Invoke(cropped);
+                    var screenRect = CaptureGeometry.ScreenRect(r, d.Bounds);
+                    CaptureProduced?.Invoke(new CaptureResult(cropped, screenRect, d.Bounds));
                 }
             };
             overlays.Add(o);

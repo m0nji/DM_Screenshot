@@ -32,7 +32,7 @@ public partial class App : Application
         _history.Load();
 
         _coordinator = new CaptureCoordinator(new GdiScreenCapturer());
-        _coordinator.ImageCaptured += OnImageCaptured;
+        _coordinator.CaptureProduced += OnCaptureProduced;
 
         _settingsStore = SettingsStore.Default();
         _settings = _settingsStore.Load();
@@ -89,8 +89,9 @@ public partial class App : Application
         _editor.Show(); _editor.WindowState = WindowState.Normal; _editor.Activate();
     }
 
-    private void OnImageCaptured(System.Drawing.Bitmap bmp)
+    private void OnCaptureProduced(CaptureResult result)
     {
+        var bmp = result.Image;
         _clipboard.SetImage(bmp);                 // auto-copy the raw capture immediately
         if (_editor is null || !_editor.IsLoaded)
         {
