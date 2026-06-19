@@ -22,7 +22,7 @@ private struct QuickEditOverlayView: View {
                     .onTapGesture { model.selectedID = nil }  // deselect, never close
 
                 // Framed capture, positioned in place.
-                CanvasView(model: model)
+                CanvasView(model: model, pad: 0)
                     .frame(width: localCapture.width, height: localCapture.height)
                     .clipShape(RoundedRectangle(cornerRadius: 10))
                     .overlay(RoundedRectangle(cornerRadius: 10)
@@ -34,7 +34,7 @@ private struct QuickEditOverlayView: View {
                     model: model, onCopy: onCopy, onSave: onSave,
                     onEditInMain: onEditInMain, onClose: onClose)
                     .fixedSize()
-                    .position(x: localCapture.midX, y: toolbarCenterY)
+                    .position(x: toolbarCenterX, y: toolbarCenterY)
             }
         }
     }
@@ -46,6 +46,13 @@ private struct QuickEditOverlayView: View {
             y: screenFrameGlobal.maxY - captureFrameGlobal.maxY,  // flip into top-left
             width: captureFrameGlobal.width,
             height: captureFrameGlobal.height)
+    }
+
+    /// Toolbar horizontal center, clamped so a ~320pt-wide toolbar stays on-screen.
+    private var toolbarCenterX: CGFloat {
+        let w = screenFrameGlobal.width
+        guard w > 320 else { return w / 2 }
+        return min(max(localCapture.midX, 160), w - 160)
     }
 
     /// Toolbar centerline: below the frame, flipped above if it would run off the
@@ -100,7 +107,7 @@ final class QuickEditOverlay {
             backing: .buffered, defer: false)
         win.isOpaque = false
         win.backgroundColor = .clear
-        win.level = .screenSaver
+        win.level = .floating
         win.contentView = NSHostingView(rootView: view)
         win.setFrame(screen.frame, display: true)
         window = win
