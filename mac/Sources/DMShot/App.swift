@@ -24,13 +24,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private var gifViewer: GIFViewerWindow?
     private var videoFullMenuItem: NSMenuItem?
     private var videoAreaMenuItem: NSMenuItem?
-    private var quickEditBar: QuickEditBar?
+    private var quickEditOverlay: QuickEditOverlay?
+    private var lastCaptureScreenFrame: CGRect?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         setupStatusItem()
         setupHotkeys()
         setupPersistence()
-        overlay.onComplete = { [weak self] image in self?.deliver(image) }
+        overlay.onComplete = { [weak self] image, frame in self?.deliver(image, at: frame) }
         showEditor()
         updater.start()
         // Register with ScreenCaptureKit so the app appears in the Screen Recording
@@ -130,7 +131,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         Task { @MainActor in
             do {
                 let cap = try await ScreenCapture.captureActive()
-                deliver(cap.image)
+                deliver(cap.image, at: ScreenCapture.nsScreen(for: cap.displayID)?.frame)
             } catch { NSLog("capture full failed: \(error)") }
         }
     }
@@ -236,11 +237,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     // @MainActor: deliver() does UI work and calls main-actor-isolated showQuickEdit(); all callers already run on the main thread.
-    @MainActor private func deliver(_ image: CGImage) {
+    @MainActor private func deliver(_ image: CGImage, at screenFrame: CGRect?) {
         ImageUtils.copyToClipboard(image)
         let id = "\(Int(Date().timeIntervalSince1970 * 1000))"
         history.addCapture(id: id, original: image, annotations: [])
         model.load(image: image, entryID: id)
+        lastCaptureScreenFrame = screenFrame
         switch appSettings.afterCapture {
         case .mainWindow: showEditor()
         case .quickEdit: showQuickEdit()
@@ -248,21 +250,46 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     @MainActor private func showQuickEdit() {
-        editorWindow?.orderOut(nil)  // bar XOR main window: hide editor to prevent split keyboard focus
-        quickEditBar?.close()
-        let bar = QuickEditBar(
+        editorWindow?.orderOut(nil)  // bar XOR main window: hide editor to prevent split focus
+        quickEditOverlay?.close()
+        guard let image = model.image else { return }
+        // Where to show the framed capture: its real on-screen rect if known,
+        // else a centred fallback sized to the image points on the active screen.
+        let mouseScreen = NSScreen.screens.first { $0.frame.contains(NSEvent.mouseLocation) }
+        let screen = lastCaptureScreenFrame
+            .flatMap { f in NSScreen.screens.first { $0.frame.intersects(f) } }
+            ?? mouseScreen ?? NSScreen.main ?? NSScreen.screens[0]
+        let captureFrame = lastCaptureScreenFrame ?? centeredFrame(for: image, on: screen)
+        let overlay = QuickEditOverlay(
             model: model,
-            onCopy: { [weak self] in self?.copyCurrent() },
+            captureFrameGlobal: captureFrame,
+            screen: screen,
+            onCopy: { [weak self] in self?.copyCurrent(); self?.dismissQuickEdit() },
             onSave: { [weak self] in self?.saveCurrent() },
-            onEditInMain: { [weak self] in
-                self?.quickEditBar?.close()
-                self?.quickEditBar = nil
-                self?.showEditor()
-            },
-            onClose: { [weak self] in self?.quickEditBar = nil })
-        quickEditBar = bar
-        let screen = NSScreen.screens.first { $0.frame.contains(NSEvent.mouseLocation) } ?? NSScreen.main
-        bar.show(on: screen)
+            onEditInMain: { [weak self] in self?.dismissQuickEdit(); self?.showEditor() },
+            onClose: { [weak self] in self?.quickEditOverlay = nil })
+        quickEditOverlay = overlay
+        overlay.show()
+    }
+
+    @MainActor private func dismissQuickEdit() {
+        quickEditOverlay?.close()
+        quickEditOverlay = nil
+    }
+
+    /// Fallback frame (global, bottom-left) centring the capture on `screen`,
+    /// at its point size (image pixels ÷ screen backing scale), clamped to fit.
+    private func centeredFrame(for image: CGImage, on screen: NSScreen) -> CGRect {
+        let pts = CGFloat(screen.backingScaleFactor == 0 ? 2 : screen.backingScaleFactor)
+        var w = CGFloat(image.width) / pts
+        var h = CGFloat(image.height) / pts
+        let maxW = screen.frame.width * 0.8, maxH = screen.frame.height * 0.8
+        let k = min(1, maxW / w, maxH / h)
+        w *= k; h *= k
+        return CGRect(
+            x: screen.frame.midX - w / 2,
+            y: screen.frame.midY - h / 2,
+            width: w, height: h)
     }
 
     // MARK: - Editor window

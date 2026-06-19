@@ -4,6 +4,56 @@ let editorPalette = [
     "#EF4444", "#F59E0B", "#10B981", "#3B82F6", "#8B5CF6", "#000000", "#FFFFFF",
 ]
 
+/// Reusable swatch grid + custom color, bound to the editor model. Applies the
+/// chosen color to the current selection and calls `onPick` so the host can
+/// dismiss its container (popover in the main editor, inline flyout in the bar).
+struct EditorColorPalette: View {
+    @ObservedObject var model: EditorModel
+    var onPick: () -> Void = {}
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            let columns = Array(repeating: GridItem(.fixed(24), spacing: 8), count: 4)
+            LazyVGrid(columns: columns, spacing: 8) {
+                ForEach(editorPalette, id: \.self) { hex in
+                    Button {
+                        model.colorHex = hex
+                        applyColor(hex)
+                        onPick()
+                    } label: {
+                        Circle().fill(Color(nsColor: NSColor(hex: hex)))
+                            .frame(width: 22, height: 22)
+                            .overlay(Circle().stroke(.white.opacity(0.4)))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            Divider()
+            ColorPicker("Custom", selection: Binding(
+                get: { Color(nsColor: NSColor(hex: model.colorHex)) },
+                set: { newColor in
+                    let hex = Self.hexString(from: newColor)
+                    model.colorHex = hex
+                    applyColor(hex)
+                }))
+        }
+        .padding(12)
+        .frame(width: 170)
+    }
+
+    private func applyColor(_ hex: String) {
+        if let id = model.selectedID { model.update(id) { $0.colorHex = hex } }
+    }
+
+    static func hexString(from color: Color) -> String {
+        let ns = NSColor(color).usingColorSpace(.sRGB) ?? .red
+        let r = Int(round(ns.redComponent * 255))
+        let g = Int(round(ns.greenComponent * 255))
+        let b = Int(round(ns.blueComponent * 255))
+        return String(format: "#%02X%02X%02X", r, g, b)
+    }
+}
+
 /// Color swatch popover bound to the editor model; applies to the current selection.
 struct EditorColorPicker: View {
     @ObservedObject var model: EditorModel
@@ -20,46 +70,8 @@ struct EditorColorPicker: View {
         .buttonStyle(.plain)
         .help("Color")
         .popover(isPresented: $open) {
-            VStack(alignment: .leading, spacing: 10) {
-                let columns = Array(repeating: GridItem(.fixed(24), spacing: 8), count: 4)
-                LazyVGrid(columns: columns, spacing: 8) {
-                    ForEach(editorPalette, id: \.self) { hex in
-                        Button {
-                            model.colorHex = hex
-                            applyColor(hex)
-                            open = false
-                        } label: {
-                            Circle().fill(Color(nsColor: NSColor(hex: hex)))
-                                .frame(width: 22, height: 22)
-                                .overlay(Circle().stroke(.white.opacity(0.4)))
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                Divider()
-                ColorPicker("Custom", selection: Binding(
-                    get: { Color(nsColor: NSColor(hex: model.colorHex)) },
-                    set: { newColor in
-                        let hex = Self.hexString(from: newColor)
-                        model.colorHex = hex
-                        applyColor(hex)
-                    }))
-            }
-            .padding(12)
-            .frame(width: 170)
+            EditorColorPalette(model: model, onPick: { open = false })
         }
-    }
-
-    private func applyColor(_ hex: String) {
-        if let id = model.selectedID { model.update(id) { $0.colorHex = hex } }
-    }
-
-    static func hexString(from color: Color) -> String {
-        let ns = NSColor(color).usingColorSpace(.sRGB) ?? .red
-        let r = Int(round(ns.redComponent * 255))
-        let g = Int(round(ns.greenComponent * 255))
-        let b = Int(round(ns.blueComponent * 255))
-        return String(format: "#%02X%02X%02X", r, g, b)
     }
 }
 

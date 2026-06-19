@@ -50,7 +50,7 @@ Definition of done for a behavior change:
 | Theme | `Theme.swift` | `Theme/DmTheme.xaml` |
 | App icon | `Resources/AppIcon.svg` → `.icns` | `Resources/AppIcon.ico` |
 | Video/GIF capture | `VideoRecorder.swift`, `GIFEncoder.swift`, `GIFPlan.swift`, `RecordingControlWindow.swift`, `VideoPreviewWindow.swift`, `App.swift`, `Shortcuts.swift`, `HistoryStore.swift` | TODO (see pipeline contract below) |
-| Quick-Edit bar | `QuickEditBar.swift`, `EditorControls.swift`, `AppSettings.swift`, `Settings.swift`, `App.swift` | TODO |
+| Quick-Edit bar | `QuickEditOverlay.swift`, `QuickEditToolbar.swift`, `EditorControls.swift`, `CaptureGeometry.swift`, `AppSettings.swift`, `Settings.swift`, `App.swift` | TODO |
 
 ## Parity checklist (run before a release)
 
@@ -67,7 +67,7 @@ Definition of done for a behavior change:
 - [ ] Settings: editable shortcuts (live re-register), launch-at-login toggles, version shown == `VERSION`.
 - [ ] Auto-update: launch check, themed available/progress/restart states, "What's new" from `CHANGELOG.md`. macOS: Sparkle appcast resolves + verifies. Windows: Velopack reads the GitHub releases feed; installed app updates + relaunches.
 - [ ] Theme: dark surfaces, orange accent as fill only, no platform-default blue chrome.
-- [ ] Quick-Edit bar: setting toggles main-window vs bar; reduced tools draw identically; Copy/Save match; "Edit in main window" carries annotations over.
+- [ ] Quick-Edit bar: setting toggles main-window vs in-place overlay; dimmed backdrop + framed capture; reduced tools draw identically; color/size flyouts; Copy/Save match; "Edit in main window" carries annotations over.
 - [ ] Video: full-screen + section recording, 60s auto-stop, trim, GIF pastes (Teams/Outlook) and animates.
 
 ## Video/GIF pipeline contract

@@ -5,6 +5,7 @@ import SwiftUI
 /// AppKit canvas: renders the image + annotations and handles mouse interaction.
 final class CanvasNSView: NSView {
     let model: EditorModel
+    let pad: CGFloat
     private var scale: CGFloat = 1
     private var offset: CGPoint = .zero
 
@@ -12,8 +13,9 @@ final class CanvasNSView: NSView {
     private var moveStart: CGPoint?
     private var movedOriginal: Annotation?
 
-    init(model: EditorModel) {
+    init(model: EditorModel, pad: CGFloat = 24) {
         self.model = model
+        self.pad = pad
         super.init(frame: .zero)
     }
     required init?(coder: NSCoder) { fatalError() }
@@ -36,7 +38,6 @@ final class CanvasNSView: NSView {
     private func recomputeTransform() {
         let vr = model.viewRect
         guard vr.width > 0, vr.height > 0 else { return }
-        let pad: CGFloat = 24
         let s = min((bounds.width - pad) / vr.width, (bounds.height - pad) / vr.height)
         scale = s > 0 ? s : 1
         offset = CGPoint(
@@ -212,11 +213,12 @@ final class CanvasNSView: NSView {
 /// SwiftUI wrapper around the AppKit canvas.
 struct CanvasView: NSViewRepresentable {
     @ObservedObject var model: EditorModel
+    var pad: CGFloat = 24
 
     func makeCoordinator() -> Coordinator { Coordinator() }
 
     func makeNSView(context: Context) -> CanvasNSView {
-        let view = CanvasNSView(model: model)
+        let view = CanvasNSView(model: model, pad: pad)
         // Redraw on ANY model change (covers undo/redo, tool/color edits).
         context.coordinator.cancellable = model.objectWillChange.sink { [weak view] _ in
             DispatchQueue.main.async { view?.refresh() }

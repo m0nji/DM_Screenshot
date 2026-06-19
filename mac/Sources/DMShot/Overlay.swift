@@ -141,7 +141,7 @@ final class SelectionView: NSView {
 /// Manages one selection overlay per display.
 final class OverlayController {
     private var windows: [NSWindow] = []
-    var onComplete: ((CGImage) -> Void)?
+    var onComplete: ((CGImage, CGRect) -> Void)?
     var onCancel: (() -> Void)?
     var onCompleteRect: ((DisplayCapture, CGRect) -> Void)?
 
@@ -176,9 +176,15 @@ final class OverlayController {
         for cap in captures {
             let view = SelectionView(capture: cap)
             view.onSelect = { [weak self] pixelRect in
+                let s = cap.scale
+                let pointsRect = CGRect(
+                    x: pixelRect.minX / s, y: pixelRect.minY / s,
+                    width: pixelRect.width / s, height: pixelRect.height / s)
+                let screenRect = CaptureGeometry.screenRect(
+                    selection: pointsRect, in: cap.frameGlobal)
                 let cropped = ImageUtils.crop(cap.image, to: pixelRect)
                 self?.close()
-                if let cropped { self?.onComplete?(cropped) }
+                if let cropped { self?.onComplete?(cropped, screenRect) }
             }
             view.onCancel = { [weak self] in
                 self?.close()
