@@ -60,23 +60,27 @@ public static class GifEncoder
         if (a.Width != b.Width || a.Height != b.Height) return 1.0;
         int w = a.Width, h = a.Height;
         var ra = a.LockBits(new Drawing.Rectangle(0, 0, w, h), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
-        var rb = b.LockBits(new Drawing.Rectangle(0, 0, w, h), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
         try
         {
-            int stride = ra.Stride, total = w * h, diff = 0;
-            unsafe
+            var rb = b.LockBits(new Drawing.Rectangle(0, 0, w, h), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+            try
             {
-                byte* pa = (byte*)ra.Scan0, pb = (byte*)rb.Scan0;
-                for (int y = 0; y < h; y++)
-                    for (int x = 0; x < w; x++)
-                    {
-                        int o = y * stride + x * 4; // BGRA in memory; compare B,G,R only (skip alpha)
-                        if (pa[o] != pb[o] || pa[o + 1] != pb[o + 1] || pa[o + 2] != pb[o + 2]) diff++;
-                    }
+                int stride = ra.Stride, total = w * h, diff = 0;
+                unsafe
+                {
+                    byte* pa = (byte*)ra.Scan0, pb = (byte*)rb.Scan0;
+                    for (int y = 0; y < h; y++)
+                        for (int x = 0; x < w; x++)
+                        {
+                            int o = y * stride + x * 4; // BGRA in memory; compare B,G,R only (skip alpha)
+                            if (pa[o] != pb[o] || pa[o + 1] != pb[o + 1] || pa[o + 2] != pb[o + 2]) diff++;
+                        }
+                }
+                return total == 0 ? 0.0 : (double)diff / total;
             }
-            return total == 0 ? 0.0 : (double)diff / total;
+            finally { b.UnlockBits(rb); }
         }
-        finally { a.UnlockBits(ra); b.UnlockBits(rb); }
+        finally { a.UnlockBits(ra); }
     }
 
     private static int Centi(double delaySec) => Math.Max(1, (int)Math.Round(delaySec * 100.0));
