@@ -3,6 +3,8 @@ import ScreenCaptureKit
 
 /// A single display captured at the instant of a hotkey ("frozen").
 struct DisplayCapture {
+    /// Core Graphics display identifier.
+    let displayID: CGDirectDisplayID
     /// NSScreen frame in global points (Cocoa, bottom-left origin).
     let frameGlobal: CGRect
     /// Backing scale factor (2.0 on Retina).
@@ -64,7 +66,7 @@ enum ScreenCapture {
         let filter = SCContentFilter(display: display, excludingWindows: [])
         let image = try await SCScreenshotManager.captureImage(
             contentFilter: filter, configuration: config)
-        return DisplayCapture(frameGlobal: screen.frame, scale: scale, image: image)
+        return DisplayCapture(displayID: display.displayID, frameGlobal: screen.frame, scale: scale, image: image)
     }
 
     static func nsScreen(for id: CGDirectDisplayID) -> NSScreen? {

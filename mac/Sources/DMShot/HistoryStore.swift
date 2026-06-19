@@ -1,8 +1,23 @@
 import AppKit
 
 struct HistoryItemMeta: Codable, Identifiable {
+    enum ItemKind: String, Codable { case image, video }
     let id: String
     let createdAt: Double
+    let kind: ItemKind
+
+    init(id: String, createdAt: Double, kind: ItemKind = .image) {
+        self.id = id
+        self.createdAt = createdAt
+        self.kind = kind
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        createdAt = try c.decode(Double.self, forKey: .createdAt)
+        kind = (try? c.decode(ItemKind.self, forKey: .kind)) ?? .image
+    }
 }
 
 /// Persists the last 10 captures (original PNG + annotations JSON + thumbnail) under
@@ -25,6 +40,7 @@ final class HistoryStore: ObservableObject {
     private func pngURL(_ id: String) -> URL { dir.appendingPathComponent("\(id).png") }
     private func thumbURL(_ id: String) -> URL { dir.appendingPathComponent("\(id).thumb.png") }
     private func jsonURL(_ id: String) -> URL { dir.appendingPathComponent("\(id).json") }
+    private func gifURL(_ id: String) -> URL { dir.appendingPathComponent("\(id).gif") }
 
     private func load() {
         if let data = try? Data(contentsOf: indexURL),
@@ -52,6 +68,16 @@ final class HistoryStore: ObservableObject {
         objectWillChange.send()
     }
 
+    func addVideo(id: String, gifData: Data, thumbnail: CGImage) {
+        try? gifData.write(to: gifURL(id))
+        writeThumb(id: id, image: thumbnail)
+        items.insert(HistoryItemMeta(id: id, createdAt: Date().timeIntervalSince1970, kind: .video), at: 0)
+        evict()
+        saveIndex()
+    }
+
+    func loadGIF(_ id: String) -> Data? { try? Data(contentsOf: gifURL(id)) }
+
     private func writeThumb(id: String, image: CGImage) {
         let maxW: CGFloat = 320
         let scale = min(1, maxW / CGFloat(image.width))
@@ -76,13 +102,14 @@ final class HistoryStore: ObservableObject {
         }
     }
 
-    /// Removes a single entry (its PNG, thumbnail and annotations) from history.
+    /// Removes a single entry (its PNG, thumbnail, annotations, and GIF if present) from history.
     func delete(_ id: String) {
         guard items.contains(where: { $0.id == id }) else { return }
         items.removeAll { $0.id == id }
         try? FileManager.default.removeItem(at: pngURL(id))
         try? FileManager.default.removeItem(at: thumbURL(id))
         try? FileManager.default.removeItem(at: jsonURL(id))
+        try? FileManager.default.removeItem(at: gifURL(id))
         saveIndex()
     }
 
@@ -92,6 +119,7 @@ final class HistoryStore: ObservableObject {
             try? FileManager.default.removeItem(at: pngURL(old.id))
             try? FileManager.default.removeItem(at: thumbURL(old.id))
             try? FileManager.default.removeItem(at: jsonURL(old.id))
+            try? FileManager.default.removeItem(at: gifURL(old.id))
         }
     }
 

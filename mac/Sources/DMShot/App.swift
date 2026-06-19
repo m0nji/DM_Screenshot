@@ -17,6 +17,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private var fullMenuItem: NSMenuItem?
     private var areaMenuItem: NSMenuItem?
 
+    private let recorder = VideoRecorder()
+    private var recordingControl: RecordingControlWindow?
+    private var previewWindow: VideoPreviewWindow?
+    private var videoFullMenuItem: NSMenuItem?
+    private var videoAreaMenuItem: NSMenuItem?
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         setupStatusItem()
         setupHotkeys()
@@ -46,6 +52,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         menu.addItem(areaItem)
         fullMenuItem = fullItem
         areaMenuItem = areaItem
+        let videoFullItem = NSMenuItem(title: "New Video (Full Screen)", action: #selector(captureVideoFull), keyEquivalent: "")
+        let videoAreaItem = NSMenuItem(title: "New Video (Selection)", action: #selector(captureVideoArea), keyEquivalent: "")
+        menu.addItem(videoFullItem)
+        menu.addItem(videoAreaItem)
+        videoFullMenuItem = videoFullItem
+        videoAreaMenuItem = videoAreaItem
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: "Open Window", action: #selector(showEditor), keyEquivalent: ""))
         menu.addItem(NSMenuItem(title: "Settings…", action: #selector(openSettings), keyEquivalent: ""))
@@ -80,6 +92,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         switch action {
         case .fullScreen: captureFull()
         case .areaSelection: captureArea()
+        case .videoFullScreen: captureVideoFull()
+        case .videoAreaSelection: captureVideoArea()
         }
     }
 
@@ -88,6 +102,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         let area = shortcutStore.shortcuts[.areaSelection] ?? ShortcutAction.areaSelection.defaultShortcut
         fullMenuItem?.title = "New Full Screen  (\(full.display))"
         areaMenuItem?.title = "New Selection  (\(area.display))"
+        let vFull = shortcutStore.shortcuts[.videoFullScreen] ?? ShortcutAction.videoFullScreen.defaultShortcut
+        let vArea = shortcutStore.shortcuts[.videoAreaSelection] ?? ShortcutAction.videoAreaSelection.defaultShortcut
+        videoFullMenuItem?.title = "New Video (Full Screen)  (\(vFull.display))"
+        videoAreaMenuItem?.title = "New Video (Selection)  (\(vArea.display))"
     }
 
     private func setupPersistence() {
@@ -122,6 +140,78 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 overlay.begin(captures: caps)
             } catch { NSLog("capture area failed: \(error)") }
         }
+    }
+
+    @objc private func captureVideoFull() {
+        Task { @MainActor in
+            if self.recordingControl != nil { self.finishRecording(); return }
+            guard self.ensurePermission() else { return }
+            do {
+                let cap = try await ScreenCapture.captureActive()
+                self.startRecording(source: VideoSource(displayID: cap.displayID, cropPoints: nil),
+                                    on: ScreenCapture.nsScreen(for: cap.displayID))
+            } catch { NSLog("video full failed: \(error)") }
+        }
+    }
+
+    @objc private func captureVideoArea() {
+        Task { @MainActor in
+            if self.recordingControl != nil { self.finishRecording(); return }
+            guard self.ensurePermission() else { return }
+            do {
+                let caps = try await ScreenCapture.captureAll()
+                self.overlay.onCompleteRect = { [weak self] cap, pixelRect in
+                    let pts = CGRect(x: pixelRect.minX / cap.scale, y: pixelRect.minY / cap.scale,
+                                     width: pixelRect.width / cap.scale, height: pixelRect.height / cap.scale)
+                    self?.startRecording(source: VideoSource(displayID: cap.displayID, cropPoints: pts),
+                                         on: ScreenCapture.nsScreen(for: cap.displayID))
+                }
+                self.overlay.beginRectSelection(captures: caps)
+            } catch { NSLog("video area failed: \(error)") }
+        }
+    }
+
+    @MainActor private func startRecording(source: VideoSource, on screen: NSScreen?) {
+        let control = RecordingControlWindow(
+            onStop: { [weak self] in self?.finishRecording() },
+            onCancel: { [weak self] in self?.cancelRecording() })
+        recordingControl = control
+        recorder.onElapsed = { [weak self] t in self?.recordingControl?.update(elapsed: t) }
+        recorder.onAutoStop = { [weak self] in self?.finishRecording() }
+        Task {
+            do { try await recorder.start(source: source); control.show(on: screen) }
+            catch { NSLog("recorder start failed: \(error)"); self.recordingControl = nil }
+        }
+    }
+
+    @MainActor private func cancelRecording() {
+        recordingControl?.close(); recordingControl = nil
+        Task { await recorder.cancel() }
+    }
+
+    @MainActor private func finishRecording() {
+        recordingControl?.close(); recordingControl = nil
+        Task {
+            guard let url = await recorder.stop() else { return }
+            await MainActor.run { self.showPreview(movURL: url) }
+        }
+    }
+
+    @MainActor private func showPreview(movURL: URL) {
+        let preview = VideoPreviewWindow(
+            movURL: movURL,
+            onCreateGIF: { [weak self] data, thumb in self?.deliverGIF(data: data, thumbnail: thumb) },
+            onDiscard: {})
+        preview.show()
+        self.previewWindow = preview
+    }
+
+    @MainActor private func deliverGIF(data: Data, thumbnail: CGImage) {
+        let id = "\(Int(Date().timeIntervalSince1970 * 1000))"
+        let fileURL = FileManager.default.temporaryDirectory.appendingPathComponent("\(id).gif")
+        try? data.write(to: fileURL)
+        ImageUtils.copyGIF(data: data, fileURL: fileURL)
+        history.addVideo(id: id, gifData: data, thumbnail: thumbnail)
     }
 
     /// Returns true if Screen Recording is granted. If not, shows exactly ONE
@@ -159,6 +249,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 onSave: { [weak self] in self?.saveCurrent() },
                 onCaptureFull: { [weak self] in self?.captureFull() },
                 onCaptureArea: { [weak self] in self?.captureArea() },
+                onVideoFull: { [weak self] in self?.captureVideoFull() },
+                onVideoArea: { [weak self] in self?.captureVideoArea() },
                 onSelectHistory: { [weak self] id in self?.loadHistory(id) },
                 onDeleteHistory: { [weak self] id in self?.deleteHistory(id) },
                 onOpenSettings: { [weak self] in self?.openSettings() })
@@ -223,6 +315,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     private func loadHistory(_ id: String) {
+        if history.items.first(where: { $0.id == id })?.kind == .video {
+            if let data = history.loadGIF(id) {
+                let fileURL = FileManager.default.temporaryDirectory.appendingPathComponent("\(id).gif")
+                try? data.write(to: fileURL)
+                ImageUtils.copyGIF(data: data, fileURL: fileURL)
+            }
+            return
+        }
         guard let img = history.loadOriginal(id) else { return }
         model.load(image: img, entryID: id, annotations: history.loadAnnotations(id))
     }

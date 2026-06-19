@@ -13,6 +13,8 @@ enum CarbonMod {
 enum ShortcutAction: String, CaseIterable, Identifiable {
     case fullScreen
     case areaSelection
+    case videoFullScreen
+    case videoAreaSelection
 
     var id: String { rawValue }
 
@@ -20,6 +22,8 @@ enum ShortcutAction: String, CaseIterable, Identifiable {
         switch self {
         case .fullScreen: return "Full screen"
         case .areaSelection: return "Area selection"
+        case .videoFullScreen: return "Video full screen"
+        case .videoAreaSelection: return "Video section"
         }
     }
 
@@ -27,6 +31,8 @@ enum ShortcutAction: String, CaseIterable, Identifiable {
         switch self {
         case .fullScreen: return "Capture the whole screen."
         case .areaSelection: return "Capture a selected area (frozen)."
+        case .videoFullScreen: return "Record the whole screen as a GIF (max 60s)."
+        case .videoAreaSelection: return "Record a selected area as a GIF (max 60s)."
         }
     }
 
@@ -36,6 +42,10 @@ enum ShortcutAction: String, CaseIterable, Identifiable {
             return Shortcut(keyCode: 0x12, carbonModifiers: CarbonMod.cmd | CarbonMod.shift)
         case .areaSelection:
             return Shortcut(keyCode: 0x13, carbonModifiers: CarbonMod.cmd | CarbonMod.shift)
+        case .videoFullScreen:
+            return Shortcut(keyCode: 0x12, carbonModifiers: CarbonMod.cmd | CarbonMod.control)
+        case .videoAreaSelection:
+            return Shortcut(keyCode: 0x13, carbonModifiers: CarbonMod.cmd | CarbonMod.control)
         }
     }
 

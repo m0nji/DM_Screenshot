@@ -24,7 +24,7 @@ Definition of done for a behavior change:
 | Version | `VERSION` file (repo root) | `mac/Info.plist` (build copies it); `App.swift` fallback | `windows/DMShot/DMShot.csproj` reads `VERSION` at build |
 | Accent (brand orange) | `#c97b4a` | `Theme.swift` `accentHex` | `Theme/DmTheme.xaml` `DmAccent` |
 | On-accent label | `#1a1a1a` | `Theme.swift` `onAccentHex` | `DmTheme.xaml` `DmOnAccent` |
-| Default hotkeys | `Ctrl/Cmd+Shift+1` full, `+2` area | `Shortcuts`/`Settings` | `Settings/Settings.cs` |
+| Default hotkeys | `Ctrl/Cmd+Shift+1` full, `+2` area; `Cmd+Ctrl+1` video full, `Cmd+Ctrl+2` video area | `Shortcuts`/`Settings` | `Settings/Settings.cs` |
 | History limit | 10 | `HistoryStore.swift` | `History/HistoryStore.cs` |
 | Color palette | red/amber/green/blue/purple/black/white (+orange) | `EditorView.swift` `palette` | `Editor/EditorWindow.xaml` palette |
 
@@ -48,6 +48,7 @@ Definition of done for a behavior change:
 | Auto-update (Sparkle/Velopack) + changelog | `Updater.swift`, `Changelog.swift`, `CHANGELOG.md`, `Info.plist` (SUFeedURL/SUPublicEDKey) | `Update/UpdaterService.cs`, `Update/UpdateState.cs`, `Update/Changelog.cs`, `Program.cs` (Velopack bootstrap), `SettingsWindow.xaml.cs` (Updates pane); CI: `release.yml` `windows` job (`vpk pack`/`upload github`) |
 | Theme | `Theme.swift` | `Theme/DmTheme.xaml` |
 | App icon | `Resources/AppIcon.svg` → `.icns` | `Resources/AppIcon.ico` |
+| Video/GIF capture | `VideoRecorder.swift`, `GIFEncoder.swift`, `GIFPlan.swift`, `RecordingControlWindow.swift`, `VideoPreviewWindow.swift`, `App.swift`, `Shortcuts.swift`, `HistoryStore.swift` | TODO (see pipeline contract below) |
 
 ## Parity checklist (run before a release)
 
@@ -64,3 +65,19 @@ Definition of done for a behavior change:
 - [ ] Settings: editable shortcuts (live re-register), launch-at-login toggles, version shown == `VERSION`.
 - [ ] Auto-update: launch check, themed available/progress/restart states, "What's new" from `CHANGELOG.md`. macOS: Sparkle appcast resolves + verifies. Windows: Velopack reads the GitHub releases feed; installed app updates + relaunches.
 - [ ] Theme: dark surfaces, orange accent as fill only, no platform-default blue chrome.
+- [ ] Video: full-screen + section recording, 60s auto-stop, trim, GIF pastes (Teams/Outlook) and animates.
+
+## Video/GIF pipeline contract
+
+Steps 1, 4, 5, 6, 7, 8 are **binding** (identical behavior on both platforms). Steps 2 and 3 are **platform-specific** (macOS: `.mov` via AVAssetWriter; Windows: `.mp4` via Media Foundation).
+
+| Step | Description | macOS | Windows |
+|---|---|---|---|
+| 1 | User triggers video capture (full screen or section selection) | `Cmd+Ctrl+1` / `Cmd+Ctrl+2` hotkey or sidebar button | TODO |
+| 2 | Screen content is captured to an intermediate video file | `.mov` via AVAssetWriter / ScreenCaptureKit | `.mp4` via Media Foundation (TODO) |
+| 3 | Recording stops (user action, Esc, or 60s auto-stop) | RecordingControlWindow stop / `recorder.onAutoStop` | TODO |
+| 4 | Preview window opens with the recorded clip | VideoPreviewWindow (trim handles, estimated GIF size) | TODO |
+| 5 | User sets trim in/out points (optional) | Scrubber + trim handles in VideoPreviewWindow | TODO |
+| 6 | GIF is encoded at ≤1000px wide, 10fps, infinite loop, inter-frame delta optimization | GIFEncoder + GIFPlan | TODO |
+| 7 | GIF is written to clipboard (as GIF data + file URL) and added to history with `.video` kind | `ImageUtils.copyGIF` + `HistoryStore.addVideo` | TODO |
+| 8 | Clicking a video history item re-copies the GIF to clipboard | `loadHistory` branches on `.video` kind | TODO |
