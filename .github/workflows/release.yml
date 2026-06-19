@@ -138,9 +138,12 @@ jobs:
           DMG="mac/build/DM_Screenshot-${GITHUB_REF_NAME}.dmg"
           DL_URL="https://github.com/m0nji/DM_Screenshot/releases/download/${GITHUB_REF_NAME}/$(basename "$DMG")"
           VERSION="${GITHUB_REF_NAME#v}"
-          # sign_update -s <key> outputs the complete enclosure attributes:
-          #   sparkle:edSignature="..." length="12345"
-          ATTRS="$("$SIGN_UPDATE" "$DMG" -s "$SPARKLE_ED_PRIVATE_KEY")"
+          # sign_update reads the EdDSA private key from a file (the `-s` arg form was
+          # removed in Sparkle 2.x). The secret holds the key in `generate_keys -x` format.
+          # It prints the complete enclosure attributes: sparkle:edSignature="..." length="12345"
+          KEYFILE="$(mktemp)"; printf '%s' "$SPARKLE_ED_PRIVATE_KEY" > "$KEYFILE"
+          ATTRS="$("$SIGN_UPDATE" "$DMG" --ed-key-file "$KEYFILE")"
+          rm -f "$KEYFILE"
           # Build the release-notes HTML from the matching CHANGELOG entry.
           NOTES="$(awk -v v="$VERSION" 'BEGIN{p=0} /^## /{if(p)exit; if(index($0,v)){p=1; next}} p&&/^- /{sub(/^- /,""); print "<li>"$0"</li>"}' CHANGELOG.md)"
           # Fetch existing appcast branch and build the new <item>.
