@@ -18,7 +18,7 @@ namespace DMShot.Platform;
 ///
 /// Lifecycle behavior maps 1:1 onto the macOS recorder fixes:
 ///  - V1  60s hard cap: the timer drives <see cref="ElapsedSec"/>; at 60s it is disposed *first*,
-///        then <see cref="AutoStopped"/> is raised exactly once (guarded by <c>_autoStopRaised</c>).
+///        then <see cref="AutoStopped"/> is raised exactly once (guarded atomically by <c>_autoStopRaisedFlag</c>).
 ///  - V5  append only valid frames: <c>FrameArrived</c> skips null frames and null bitmaps so a
 ///        static (no-change) region still records successfully.
 ///  - V3  <see cref="Stop"/> stops the session/pool first, then drains any in-flight callback under
@@ -47,7 +47,7 @@ public sealed class WgcScreenRecorder : IScreenRecorder
     private readonly Stopwatch _clock = new();
     private System.Threading.Timer? _timer;
     private PixelRect? _crop;
-    private bool _autoStopRaised;
+    private int _autoStopRaisedFlag;            // 0/1; atomic exactly-once guard via Interlocked
     private bool _disposed;
 
     public event Action? AutoStopped;
@@ -127,10 +127,11 @@ public sealed class WgcScreenRecorder : IScreenRecorder
 
     private void OnTick(object? _)
     {
-        if (ElapsedSec < MaxDurationSec || _autoStopRaised) return;
-        _autoStopRaised = true;
+        if (ElapsedSec < MaxDurationSec) return;                                      // only arm at the cap
+        if (System.Threading.Interlocked.Exchange(ref _autoStopRaisedFlag, 1) != 0)   // exactly-once across overlapping ticks
+            return;
         _timer?.Dispose(); _timer = null;   // V1: stop the timer BEFORE raising
-        AutoStopped?.Invoke();              // exactly once (guarded by _autoStopRaised)
+        AutoStopped?.Invoke();              // exactly once (atomic guard)
     }
 
     public IReadOnlyList<RecordedFrame> Stop()
@@ -195,6 +196,15 @@ public sealed class WgcScreenRecorder : IScreenRecorder
     private System.Drawing.Bitmap? CopyToBitmap(Direct3D11CaptureFrame frame, PixelRect? crop)
     {
         nint srcTex = 0, staging = 0;
+        // RCWs created via GetObjectForIUnknown — each AddRefs; release deterministically in finally
+        // so we do not leak a native ref per frame (RCW finalization is non-deterministic).
+        ID3D11DeviceContext? ctx = null;
+        ID3D11Device? dev = null;
+        ID3D11Resource? srcRes = null;
+        ID3D11Texture2D? srcTexture = null;
+        ID3D11Resource? stagingRes = null;
+        D3D11_MAPPED_SUBRESOURCE mapped = default;
+        bool mappedOk = false;
         try
         {
             // 1. Get the ID3D11Texture2D backing the captured surface.
@@ -203,47 +213,34 @@ public sealed class WgcScreenRecorder : IScreenRecorder
             if (hr < 0 || srcTex == 0) return null;
 
             // 2. Read its description so we can mint a matching CPU-readable staging texture.
-            var ctx = (ID3D11DeviceContext)Marshal.GetObjectForIUnknown(_d3dContextPtr);
-            var dev = (ID3D11Device)Marshal.GetObjectForIUnknown(_d3dDevicePtr);
-            try
-            {
-                var srcRes = (ID3D11Resource)Marshal.GetObjectForIUnknown(srcTex);
-                var srcTexture = (ID3D11Texture2D)srcRes;
-                srcTexture.GetDesc(out D3D11_TEXTURE2D_DESC desc);
+            ctx = (ID3D11DeviceContext)Marshal.GetObjectForIUnknown(_d3dContextPtr);
+            dev = (ID3D11Device)Marshal.GetObjectForIUnknown(_d3dDevicePtr);
 
-                int fullW = (int)desc.Width;
-                int fullH = (int)desc.Height;
-                if (fullW <= 0 || fullH <= 0) return null;
+            srcRes = (ID3D11Resource)Marshal.GetObjectForIUnknown(srcTex);
+            srcTexture = (ID3D11Texture2D)srcRes;
+            srcTexture.GetDesc(out D3D11_TEXTURE2D_DESC desc);
 
-                var stagingDesc = desc;
-                stagingDesc.Usage = D3D11_USAGE_STAGING;
-                stagingDesc.BindFlags = 0;
-                stagingDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-                stagingDesc.MiscFlags = 0;
+            int fullW = (int)desc.Width;
+            int fullH = (int)desc.Height;
+            if (fullW <= 0 || fullH <= 0) return null;
 
-                hr = dev.CreateTexture2D(ref stagingDesc, IntPtr.Zero, out staging);
-                if (hr < 0 || staging == 0) return null;
+            var stagingDesc = desc;
+            stagingDesc.Usage = D3D11_USAGE_STAGING;
+            stagingDesc.BindFlags = 0;
+            stagingDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+            stagingDesc.MiscFlags = 0;
 
-                var stagingRes = (ID3D11Resource)Marshal.GetObjectForIUnknown(staging);
-                ctx.CopyResource(stagingRes, srcRes);
+            hr = dev.CreateTexture2D(ref stagingDesc, IntPtr.Zero, out staging);
+            if (hr < 0 || staging == 0) return null;
 
-                hr = ctx.Map(stagingRes, 0, D3D11_MAP_READ, 0, out D3D11_MAPPED_SUBRESOURCE mapped);
-                if (hr < 0 || mapped.pData == 0) return null;
+            stagingRes = (ID3D11Resource)Marshal.GetObjectForIUnknown(staging);
+            ctx.CopyResource(stagingRes, srcRes);
 
-                try
-                {
-                    return BuildBitmap(mapped.pData, (int)mapped.RowPitch, fullW, fullH, crop);
-                }
-                finally
-                {
-                    ctx.Unmap(stagingRes, 0);
-                }
-            }
-            finally
-            {
-                Marshal.ReleaseComObject(ctx);
-                Marshal.ReleaseComObject(dev);
-            }
+            hr = ctx.Map(stagingRes, 0, D3D11_MAP_READ, 0, out mapped);
+            if (hr < 0 || mapped.pData == 0) return null;
+            mappedOk = true;
+
+            return BuildBitmap(mapped.pData, (int)mapped.RowPitch, fullW, fullH, crop);
         }
         catch (Exception ex)
         {
@@ -252,8 +249,21 @@ public sealed class WgcScreenRecorder : IScreenRecorder
         }
         finally
         {
+            // Unmap first (must happen before releasing the staging RCW / raw ptr).
+            if (mappedOk && ctx != null && stagingRes != null) ctx.Unmap(stagingRes, 0);
+
+            // Raw-pointer refs from GetInterface / CreateTexture2D.
             if (staging != 0) Marshal.Release(staging);
             if (srcTex != 0) Marshal.Release(srcTex);
+
+            // RCWs we obtained via GetObjectForIUnknown — release every one deterministically.
+            if (stagingRes != null) Marshal.ReleaseComObject(stagingRes);
+            if (srcTexture != null) Marshal.ReleaseComObject(srcTexture);
+            // srcTexture is the same underlying RCW as srcRes (cast, not a new wrapper); only
+            // release srcRes separately if it is a distinct object to avoid an over-release.
+            if (srcRes != null && !ReferenceEquals(srcRes, srcTexture)) Marshal.ReleaseComObject(srcRes);
+            if (dev != null) Marshal.ReleaseComObject(dev);
+            if (ctx != null) Marshal.ReleaseComObject(ctx);
         }
     }
 
