@@ -31,5 +31,14 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.1.4/DM_Screenshot-v0.1.4.dmg" type="application/octet-stream" sparkle:edSignature="jtTf75C3fIovT4a7Px1hdaQdwJDB4HIz853TM9M6evV6YgGizGpNQkdjjZPIhdJ/tymiWo66FwvjGTLnSTfOCQ==" length="2057877" />
 </item>
 
+<item>
+  <title>Version 0.2.0</title>
+  <description><![CDATA[<ul><li>feat: Video/GIF capture — record the full screen or a section (Cmd+Ctrl+1 / Cmd+Ctrl+2), trim the clip, and copy an animated GIF for pasting into chat/email (max 60s)</li>
+<li>feat: Quick-Edit bar — optionally mark up a screenshot in place: the capture appears framed over a dimmed backdrop with a compact floating toolbar (Settings → General → After capture), offering the same tools, color/size flyouts, undo, and one-click escalation to the main window</li></ul>]]></description>
+  <sparkle:version>0.2.0</sparkle:version>
+  <sparkle:shortVersionString>0.2.0</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.2.0/DM_Screenshot-v0.2.0.dmg" type="application/octet-stream" sparkle:edSignature="73l9v1IuHUC3hqJjXWbBvRjd7p5eE3Xp+FaxclWs7EOFwTw23Nt7Th1V9Y9PZHRByCpg0qJb/t+iA4fbKiWXCg==" length="2205092" />
+</item>
+
 </channel>
 </rss>
