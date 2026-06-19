@@ -71,6 +71,9 @@ final class GIFEncoderTests: XCTestCase {
         XCTAssertNotNil(masked)
         let out = Self.rgba(masked!)
         XCTAssertEqual(out[3], 255)            // changed pixel stays opaque
+        XCTAssertEqual(out[0], 0)      // changed pixel red
+        XCTAssertEqual(out[1], 0)      // changed pixel green
+        XCTAssertEqual(out[2], 255)    // changed pixel blue
         XCTAssertEqual(out[4*1 + 3], 0)        // unchanged pixel 1 -> transparent
         XCTAssertEqual(out[4*2 + 3], 0)        // unchanged pixel 2 -> transparent
         XCTAssertEqual(out[4*3 + 3], 0)        // unchanged pixel 3 -> transparent
