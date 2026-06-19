@@ -420,14 +420,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         alert.messageText = "Screen Recording Required"
         alert.informativeText =
             "Allow DM_Screenshot under System Settings → Privacy & Security → "
-            + "Screen Recording, then relaunch the app."
+            + "Screen Recording. macOS only applies a newly granted permission "
+            + "after a restart — if you have already allowed it, relaunch now."
+        alert.addButton(withTitle: "Relaunch Now")
         alert.addButton(withTitle: "Open System Settings")
         alert.addButton(withTitle: "Cancel")
-        if alert.runModal() == .alertFirstButtonReturn {
+        switch alert.runModal() {
+        case .alertFirstButtonReturn:
+            relaunchApp()
+        case .alertSecondButtonReturn:
             if let url = URL(string:
                 "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {
                 NSWorkspace.shared.open(url)
             }
+        default:
+            break
         }
+    }
+
+    /// Relaunch the app so a freshly granted Screen Recording permission takes
+    /// effect (CGPreflightScreenCaptureAccess only refreshes on a new launch).
+    private func relaunchApp() {
+        let path = Bundle.main.bundlePath
+        let task = Process()
+        task.launchPath = "/usr/bin/open"
+        task.arguments = ["-n", path]
+        try? task.run()
+        NSApp.terminate(nil)
     }
 }
