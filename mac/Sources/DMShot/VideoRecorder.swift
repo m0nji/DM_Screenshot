@@ -77,7 +77,11 @@ final class VideoRecorder: NSObject, SCStreamOutput {
                 guard let self, let start = self.startDate else { return }
                 let elapsed = Date().timeIntervalSince(start)
                 self.onElapsed?(elapsed)
-                if elapsed >= Self.maxDuration { self.onAutoStop?() }
+                if elapsed >= Self.maxDuration {
+                    // Fix 2: invalidate before firing so auto-stop fires exactly once
+                    self.timer?.invalidate(); self.timer = nil
+                    self.onAutoStop?()
+                }
             }
         }
     }
@@ -88,7 +92,11 @@ final class VideoRecorder: NSObject, SCStreamOutput {
               let writer, let input else { return }
         if !sessionStarted {
             let pts = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
-            writer.startWriting()
+            // Fix 1: check startWriting() return value; bail on failure
+            guard writer.startWriting() else {
+                NSLog("[VideoRecorder] startWriting() failed: %@", writer.error?.localizedDescription ?? "unknown error")
+                return
+            }
             writer.startSession(atSourceTime: pts)
             sessionStarted = true
         }
@@ -101,6 +109,10 @@ final class VideoRecorder: NSObject, SCStreamOutput {
     func stop() async -> URL? {
         await MainActor.run { self.timer?.invalidate(); self.timer = nil }
         try? await stream?.stopCapture()
+        // Fix 3: drain in-flight delegate callbacks before markAsFinished
+        await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
+            queue.async(flags: .barrier) { cont.resume() }
+        }
         input?.markAsFinished()
         await writer?.finishWriting()
         let url = (writer?.status == .completed) ? outputURL : nil
@@ -110,11 +122,22 @@ final class VideoRecorder: NSObject, SCStreamOutput {
 
     /// Stop and discard the temp file.
     func cancel() async {
-        let url = await stop()
+        // Fix 4: fast cancel — invalidate timer, stop stream, drain barrier, cancelWriting
+        await MainActor.run { self.timer?.invalidate(); self.timer = nil }
+        try? await stream?.stopCapture()
+        await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
+            queue.async(flags: .barrier) { cont.resume() }
+        }
+        // markAsFinished not needed before cancelWriting
+        writer?.cancelWriting()
+        let url = outputURL
+        reset()
         if let url { try? FileManager.default.removeItem(at: url) }
     }
 
     private func reset() {
+        // Fix 4 (minor): also invalidate timer in reset so it's always stopped
+        timer?.invalidate(); timer = nil
         stream = nil; writer = nil; input = nil; sessionStarted = false
         outputURL = nil; startDate = nil
     }
