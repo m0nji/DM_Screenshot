@@ -8,6 +8,23 @@ final class ShortcutModelTests: XCTestCase {
         XCTAssertEqual(ShortcutAction.areaSelection.defaultShortcut.display, "⌘⇧2")
     }
 
+    func testVideoDefaultDisplayStrings() {
+        XCTAssertEqual(ShortcutAction.videoFullScreen.defaultShortcut.display, "⌘⌃1")
+        XCTAssertEqual(ShortcutAction.videoAreaSelection.defaultShortcut.display, "⌘⌃2")
+    }
+
+    func testVideoActionsAreRegistered() {
+        XCTAssertTrue(ShortcutAction.allCases.contains(.videoFullScreen))
+        XCTAssertTrue(ShortcutAction.allCases.contains(.videoAreaSelection))
+    }
+
+    func testVideoDefaultsDoNotConflictWithScreenshot() {
+        XCTAssertNotEqual(ShortcutAction.videoFullScreen.defaultShortcut,
+                          ShortcutAction.fullScreen.defaultShortcut)
+        XCTAssertNotEqual(ShortcutAction.videoAreaSelection.defaultShortcut,
+                          ShortcutAction.areaSelection.defaultShortcut)
+    }
+
     func testKeyCapsOrderAndContent() {
         let s = ShortcutAction.fullScreen.defaultShortcut
         XCTAssertEqual(s.keyCaps, ["⌘", "⇧", "1"])

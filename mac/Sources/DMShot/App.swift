@@ -80,6 +80,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         switch action {
         case .fullScreen: captureFull()
         case .areaSelection: captureArea()
+        case .videoFullScreen: captureVideoFull()
+        case .videoAreaSelection: captureVideoArea()
         }
     }
 
@@ -123,6 +125,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             } catch { NSLog("capture area failed: \(error)") }
         }
     }
+
+    @objc private func captureVideoFull() { NSLog("captureVideoFull (stub)") }
+
+    @objc private func captureVideoArea() { NSLog("captureVideoArea (stub)") }
 
     /// Returns true if Screen Recording is granted. If not, shows exactly ONE
     /// prompt and aborts the capture: the native system prompt the first time
