@@ -32,17 +32,17 @@ private final class PreviewState: ObservableObject {
     @Published var end: Double
     @Published var rendering = false
     let duration: Double
-    let pixelArea: Int
-    init(duration: Double, pixelArea: Int) {
+    let width: Int
+    let height: Int
+    init(duration: Double, width: Int, height: Int) {
         self.duration = duration
         self.end = duration
-        self.pixelArea = pixelArea
+        self.width = width
+        self.height = height
     }
     var estimatedBytes: Int {
         let frames = GIFPlan.frameTimes(duration: max(0, end - start)).count
-        // pixelArea already reflects the (downscaled) output dimensions.
-        // mirrors GIFPlan.bytesPerPixelPerFrame (0.5)
-        return frames * pixelArea / 2
+        return GIFPlan.estimatedBytes(frameCount: frames, width: width, height: height)
     }
 }
 
@@ -79,7 +79,7 @@ private struct PreviewView: View {
     }
 }
 
-final class VideoPreviewWindow {
+final class VideoPreviewWindow: NSObject, NSWindowDelegate {
     private var window: NSWindow?
     private let movURL: URL
     private let onCreateGIF: (Data, CGImage) -> Void
@@ -111,7 +111,7 @@ final class VideoPreviewWindow {
             }
             let scaled = GIFPlan.scaledSize(width: Int(raw.width), height: Int(raw.height))
             let state = PreviewState(duration: duration.isFinite ? duration : 0,
-                                     pixelArea: scaled.width * scaled.height)
+                                     width: scaled.width, height: scaled.height)
 
             let view = PreviewView(
                 player: player, state: state,
@@ -135,11 +135,16 @@ final class VideoPreviewWindow {
                                styleMask: [.titled, .closable], backing: .buffered, defer: false)
             win.title = "Preview & Trim"
             win.contentView = NSHostingView(rootView: view)
+            win.delegate = self
             win.center()
             win.makeKeyAndOrderFront(nil)
             NSApp.activate()
             self.window = win
         }
+    }
+
+    func windowWillClose(_ notification: Notification) {
+        try? FileManager.default.removeItem(at: movURL)
     }
 
     private func close() {

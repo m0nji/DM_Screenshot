@@ -4,6 +4,7 @@ import SwiftUI
 private struct RecordingControlView: View {
     let elapsed: TimeInterval
     let onStop: () -> Void
+    let onCancel: () -> Void
 
     private var remaining: TimeInterval { max(0, VideoRecorder.maxDuration - elapsed) }
     private var label: String {
@@ -26,16 +27,20 @@ private struct RecordingControlView: View {
         }
         .padding(.horizontal, 14).padding(.vertical, 8)
         .background(.ultraThinMaterial, in: Capsule())
-        .onExitCommand { onStop() }   // Esc stops (v1: stop == finish, no recording lost)
+        .onExitCommand { onCancel() }   // Esc discards the recording
     }
 }
 
 final class RecordingControlWindow {
     private var window: NSWindow?
     private let onStop: () -> Void
+    private let onCancel: () -> Void
     private var elapsed: TimeInterval = 0
 
-    init(onStop: @escaping () -> Void) { self.onStop = onStop }
+    init(onStop: @escaping () -> Void, onCancel: @escaping () -> Void) {
+        self.onStop = onStop
+        self.onCancel = onCancel
+    }
 
     func show(on screen: NSScreen?) {
         let win = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 220, height: 48),
@@ -46,7 +51,7 @@ final class RecordingControlWindow {
         win.backgroundColor = .clear
         win.isOpaque = false
         win.hasShadow = true
-        let hostView = NSHostingView(rootView: RecordingControlView(elapsed: 0, onStop: onStop))
+        let hostView = NSHostingView(rootView: RecordingControlView(elapsed: 0, onStop: onStop, onCancel: onCancel))
         win.contentView = hostView
         if let frame = (screen ?? NSScreen.main)?.frame {
             win.setFrameOrigin(NSPoint(x: frame.midX - 110, y: frame.minY + 80))
@@ -58,7 +63,7 @@ final class RecordingControlWindow {
     func update(elapsed: TimeInterval) {
         self.elapsed = elapsed
         guard let hostView = window?.contentView as? NSHostingView<RecordingControlView> else { return }
-        hostView.rootView = RecordingControlView(elapsed: elapsed, onStop: onStop)
+        hostView.rootView = RecordingControlView(elapsed: elapsed, onStop: onStop, onCancel: onCancel)
     }
 
     func close() { window?.orderOut(nil); window = nil }

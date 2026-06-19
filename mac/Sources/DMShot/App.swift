@@ -143,34 +143,38 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     @objc private func captureVideoFull() {
-        guard ensurePermission() else { return }
         Task { @MainActor in
+            if self.recordingControl != nil { self.finishRecording(); return }
+            guard self.ensurePermission() else { return }
             do {
                 let cap = try await ScreenCapture.captureActive()
-                startRecording(source: VideoSource(displayID: cap.displayID, cropPoints: nil),
-                               on: ScreenCapture.nsScreen(for: cap.displayID))
+                self.startRecording(source: VideoSource(displayID: cap.displayID, cropPoints: nil),
+                                    on: ScreenCapture.nsScreen(for: cap.displayID))
             } catch { NSLog("video full failed: \(error)") }
         }
     }
 
     @objc private func captureVideoArea() {
-        guard ensurePermission() else { return }
         Task { @MainActor in
+            if self.recordingControl != nil { self.finishRecording(); return }
+            guard self.ensurePermission() else { return }
             do {
                 let caps = try await ScreenCapture.captureAll()
-                overlay.onCompleteRect = { [weak self] cap, pixelRect in
+                self.overlay.onCompleteRect = { [weak self] cap, pixelRect in
                     let pts = CGRect(x: pixelRect.minX / cap.scale, y: pixelRect.minY / cap.scale,
                                      width: pixelRect.width / cap.scale, height: pixelRect.height / cap.scale)
                     self?.startRecording(source: VideoSource(displayID: cap.displayID, cropPoints: pts),
                                          on: ScreenCapture.nsScreen(for: cap.displayID))
                 }
-                overlay.beginRectSelection(captures: caps)
+                self.overlay.beginRectSelection(captures: caps)
             } catch { NSLog("video area failed: \(error)") }
         }
     }
 
     @MainActor private func startRecording(source: VideoSource, on screen: NSScreen?) {
-        let control = RecordingControlWindow(onStop: { [weak self] in self?.finishRecording() })
+        let control = RecordingControlWindow(
+            onStop: { [weak self] in self?.finishRecording() },
+            onCancel: { [weak self] in self?.cancelRecording() })
         recordingControl = control
         recorder.onElapsed = { [weak self] t in self?.recordingControl?.update(elapsed: t) }
         recorder.onAutoStop = { [weak self] in self?.finishRecording() }
@@ -178,6 +182,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             do { try await recorder.start(source: source); control.show(on: screen) }
             catch { NSLog("recorder start failed: \(error)"); self.recordingControl = nil }
         }
+    }
+
+    @MainActor private func cancelRecording() {
+        recordingControl?.close(); recordingControl = nil
+        Task { await recorder.cancel() }
     }
 
     @MainActor private func finishRecording() {
