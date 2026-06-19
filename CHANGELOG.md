@@ -4,9 +4,9 @@ All notable changes to DM_Screenshot. Newest version first. Always written in En
 
 ## [Unreleased]
 
-### Added
-- Quick-Edit bar: optionally mark up a screenshot in place — the capture is shown framed over a dimmed backdrop with a compact floating toolbar (Settings → General → After capture) — with the same tools, color/size flyouts, and one-click escalation to the main window.
-- Video/GIF capture: record full screen or a section (Cmd+Ctrl+1 / Cmd+Ctrl+2), trim, and copy an animated GIF for pasting into chat/email. Max 60s.
+## 0.2.0 – 2026-06-19
+- feat: Video/GIF capture — record the full screen or a section (Cmd+Ctrl+1 / Cmd+Ctrl+2), trim the clip, and copy an animated GIF for pasting into chat/email (max 60s)
+- feat: Quick-Edit bar — optionally mark up a screenshot in place: the capture appears framed over a dimmed backdrop with a compact floating toolbar (Settings → General → After capture), offering the same tools, color/size flyouts, undo, and one-click escalation to the main window
 
 ## 0.1.4 – 2026-06-19
 - fix: Area capture (⌘⇧2) now lets you drag a selection on the very first click — previously the first click was swallowed to activate the overlay, so a selection only worked on the second click (macOS)
