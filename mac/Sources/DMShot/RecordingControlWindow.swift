@@ -27,8 +27,17 @@ private struct RecordingControlView: View {
         }
         .padding(.horizontal, 14).padding(.vertical, 8)
         .background(.ultraThinMaterial, in: Capsule())
+        .fixedSize()   // take intrinsic width so "Stop" is never truncated to "…"
         .onExitCommand { onCancel() }   // Esc discards the recording
     }
+}
+
+/// Hosting view that accepts the first click even when its panel isn't key, so the
+/// Stop button works on the first press (the control floats over another app).
+private final class FirstMouseHostingView<Content: View>: NSHostingView<Content> {
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+    required init(rootView: Content) { super.init(rootView: rootView) }
+    @available(*, unavailable) required init?(coder: NSCoder) { fatalError() }
 }
 
 final class RecordingControlWindow {
@@ -51,7 +60,7 @@ final class RecordingControlWindow {
         win.backgroundColor = .clear
         win.isOpaque = false
         win.hasShadow = true
-        let hostView = NSHostingView(rootView: RecordingControlView(elapsed: 0, onStop: onStop, onCancel: onCancel))
+        let hostView = FirstMouseHostingView(rootView: RecordingControlView(elapsed: 0, onStop: onStop, onCancel: onCancel))
         win.contentView = hostView
         // Size the panel to the capsule's intrinsic content so the "Stop" label
         // is never truncated to "…".
@@ -66,7 +75,7 @@ final class RecordingControlWindow {
 
     func update(elapsed: TimeInterval) {
         self.elapsed = elapsed
-        guard let hostView = window?.contentView as? NSHostingView<RecordingControlView> else { return }
+        guard let hostView = window?.contentView as? FirstMouseHostingView<RecordingControlView> else { return }
         hostView.rootView = RecordingControlView(elapsed: elapsed, onStop: onStop, onCancel: onCancel)
     }
 

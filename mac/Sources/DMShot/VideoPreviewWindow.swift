@@ -12,16 +12,29 @@ enum GIFRenderer {
         gen.requestedTimeToleranceBefore = .zero
         gen.requestedTimeToleranceAfter = .zero
 
-        var frames: [CGImage] = []
+        // Sample at the target fps, but merge consecutive near-identical frames:
+        // a static run becomes a single full frame held for the summed duration.
+        // This keeps the GIF correct (full opaque frames) yet small for screen
+        // recordings, which are mostly static. (Transparent inter-frame diffs were
+        // dropped — ImageIO can't set GIF disposal, so they render as noise.)
+        let base = 1.0 / GIFPlan.defaultFPS
+        let dupTolerance = 0.002   // ≤0.2% of pixels changed → treat as held frame
+        var keptFrames: [CGImage] = []
+        var delays: [Double] = []
         for t in GIFPlan.frameTimes(duration: duration) {
             let time = CMTime(seconds: start + t, preferredTimescale: 600)
-            if let result = try? await gen.image(at: time) {
-                frames.append(ImageUtils.scaled(result.image, toWidth: GIFPlan.defaultMaxWidth))
+            guard let result = try? await gen.image(at: time) else { continue }
+            let frame = ImageUtils.scaled(result.image, toWidth: GIFPlan.defaultMaxWidth)
+            if let last = keptFrames.last,
+               GIFEncoder.fractionDiffering(last, frame) <= dupTolerance {
+                delays[delays.count - 1] += base
+            } else {
+                keptFrames.append(frame)
+                delays.append(base)
             }
         }
-        guard let first = frames.first,
-              let data = GIFEncoder.encodeOptimized(frames: frames,
-                                                    frameDelay: 1.0 / GIFPlan.defaultFPS)
+        guard let first = keptFrames.first,
+              let data = GIFEncoder.encode(frames: keptFrames, delays: delays)
         else { return nil }
         return (data, first)
     }

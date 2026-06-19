@@ -56,44 +56,50 @@ final class GIFEncoderTests: XCTestCase {
         XCTAssertEqual(gif?[kCGImagePropertyGIFLoopCount] as? Int, 0)
     }
 
-    func testMaskingMakesUnchangedPixelsTransparent() {
-        let prev = Self.solid(2, 2, r: 255, g: 0, b: 0)
-        // current: identical except top-left pixel is blue.
+    func testFractionDifferingZeroForIdentical() {
+        let a = Self.solid(4, 4, r: 10, g: 20, b: 30)
+        let b = Self.solid(4, 4, r: 10, g: 20, b: 30)
+        XCTAssertEqual(GIFEncoder.fractionDiffering(a, b), 0, accuracy: 1e-9)
+    }
+
+    func testFractionDifferingCountsChangedPixels() {
+        let prev = Self.solid(2, 2, r: 0, g: 0, b: 0)
         var bytes = Self.rgba(prev)
-        bytes[0] = 0; bytes[1] = 0; bytes[2] = 255; bytes[3] = 255   // pixel 0 -> blue
+        bytes[0] = 255   // change one of four pixels' red channel
         let provider = CGDataProvider(data: Data(bytes) as CFData)!
-        let current = CGImage(width: 2, height: 2, bitsPerComponent: 8, bitsPerPixel: 32,
+        let cur = CGImage(width: 2, height: 2, bitsPerComponent: 8, bitsPerPixel: 32,
             bytesPerRow: 8, space: CGColorSpaceCreateDeviceRGB(),
             bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.premultipliedLast.rawValue),
             provider: provider, decode: nil, shouldInterpolate: false, intent: .defaultIntent)!
-
-        let masked = GIFEncoder.maskingUnchanged(previous: prev, current: current)
-        XCTAssertNotNil(masked)
-        let out = Self.rgba(masked!)
-        XCTAssertEqual(out[3], 255)            // changed pixel stays opaque
-        XCTAssertEqual(out[0], 0)      // changed pixel red
-        XCTAssertEqual(out[1], 0)      // changed pixel green
-        XCTAssertEqual(out[2], 255)    // changed pixel blue
-        XCTAssertEqual(out[4*1 + 3], 0)        // unchanged pixel 1 -> transparent
-        XCTAssertEqual(out[4*2 + 3], 0)        // unchanged pixel 2 -> transparent
-        XCTAssertEqual(out[4*3 + 3], 0)        // unchanged pixel 3 -> transparent
+        XCTAssertEqual(GIFEncoder.fractionDiffering(prev, cur), 0.25, accuracy: 1e-9)
     }
 
-    func testMaskingRejectsMismatchedSizes() {
+    func testFractionDifferingMismatchedSizesIsOne() {
         let a = Self.solid(2, 2, r: 0, g: 0, b: 0)
         let b = Self.solid(3, 3, r: 0, g: 0, b: 0)
-        XCTAssertNil(GIFEncoder.maskingUnchanged(previous: a, current: b))
+        XCTAssertEqual(GIFEncoder.fractionDiffering(a, b), 1, accuracy: 1e-9)
     }
 
-    func testEncodeOptimizedPreservesFrameCount() {
+    func testEncodeWithPerFrameDelays() {
         let frames = [
-            Self.solid(8, 8, r: 10, g: 10, b: 10),
-            Self.solid(8, 8, r: 10, g: 10, b: 10),   // identical -> heavily masked
-            Self.solid(8, 8, r: 200, g: 0, b: 0),
+            Self.solid(8, 8, r: 255, g: 0, b: 0),
+            Self.solid(8, 8, r: 0, g: 255, b: 0),
         ]
-        let data = GIFEncoder.encodeOptimized(frames: frames, frameDelay: 0.1)
+        let data = GIFEncoder.encode(frames: frames, delays: [0.5, 0.2])
         XCTAssertNotNil(data)
         let src = CGImageSourceCreateWithData(data! as CFData, nil)!
-        XCTAssertEqual(CGImageSourceGetCount(src), 3)
+        XCTAssertEqual(CGImageSourceGetCount(src), 2)
+        func delay(_ i: Int) -> Double? {
+            let p = CGImageSourceCopyPropertiesAtIndex(src, i, nil) as? [CFString: Any]
+            let gif = p?[kCGImagePropertyGIFDictionary] as? [CFString: Any]
+            return gif?[kCGImagePropertyGIFUnclampedDelayTime] as? Double
+        }
+        XCTAssertEqual(delay(0) ?? 0, 0.5, accuracy: 1e-6)
+        XCTAssertEqual(delay(1) ?? 0, 0.2, accuracy: 1e-6)
+    }
+
+    func testEncodeRejectsMismatchedDelayCount() {
+        let frames = [Self.solid(4, 4, r: 1, g: 2, b: 3)]
+        XCTAssertNil(GIFEncoder.encode(frames: frames, delays: [0.1, 0.2]))
     }
 }
