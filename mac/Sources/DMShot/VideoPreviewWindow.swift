@@ -179,7 +179,7 @@ final class VideoPreviewWindow: NSObject, NSWindowDelegate {
             win.delegate = self
             win.center()
             win.makeKeyAndOrderFront(nil)
-            NSApp.activate()
+            NSApp.activate(ignoringOtherApps: true)  // pull the preview to the front after recording
             self.window = win
         }
     }

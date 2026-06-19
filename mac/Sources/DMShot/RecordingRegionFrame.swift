@@ -19,6 +19,7 @@ final class RecordingRegionFrame {
         win.ignoresMouseEvents = true            // never block the recorded content
         win.level = .screenSaver
         win.hasShadow = false
+        win.canHide = false                      // stay visible when the app is hidden during recording
         win.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle]
         let view = RegionBorderView(frame: NSRect(origin: .zero, size: frame.size))
         win.contentView = view

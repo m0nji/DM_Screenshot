@@ -195,6 +195,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                     frame.show(regionGlobal: region)
                     self.recordingFrame = frame
                 }
+                // Get DM_Screenshot out of the way (and out of the recording): hide
+                // the app so the user's app returns to front. The Stop control and
+                // the region frame stay visible (canHide = false).
+                NSApp.hide(nil)
             }
             catch { NSLog("recorder start failed: \(error)"); self.recordingControl = nil }
         }
@@ -221,7 +225,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         let preview = VideoPreviewWindow(
             movURL: movURL,
             onCreateGIF: { [weak self] data, thumb in self?.deliverGIF(data: data, thumbnail: thumb) },
-            onDiscard: {})
+            onDiscard: { NSApp.hide(nil) })  // nothing to show — step back to the user's app
         preview.show()
         self.previewWindow = preview
     }
@@ -233,6 +237,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         ImageUtils.copyGIF(data: data, fileURL: fileURL)
         history.addVideo(id: id, gifData: data, thumbnail: thumbnail)
         NSLog("DMShot: created GIF %.1f MB (%d bytes)", Double(data.count) / 1_048_576, data.count)
+        // Play the freshly created GIF right away (Copy / Save in one window),
+        // brought to the front. It's also saved to history.
+        gifViewer?.close()
+        let viewer = GIFViewerWindow()
+        viewer.show(gifData: data, title: "DM_Screenshot — GIF")
+        gifViewer = viewer
     }
 
     /// Returns true if Screen Recording is granted. If not, shows exactly ONE
