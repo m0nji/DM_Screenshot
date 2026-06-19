@@ -97,7 +97,7 @@ private struct PreviewView: View {
                 Slider(value: $state.end, in: 0...state.duration)
             }.font(.caption)
             HStack {
-                Text("≈ \(sizeLabel(state.estimatedBytes)) · \(String(format: "%.1f", max(0, state.end - state.start)))s")
+                Text("\(String(format: "%.1f", max(0, state.end - state.start)))s")
                     .font(.caption).foregroundStyle(.secondary)
                 Spacer()
                 Button("Discard", action: onDiscard)
