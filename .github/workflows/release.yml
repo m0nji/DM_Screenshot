@@ -1,0 +1,173 @@
+name: Release
+
+# Build, Developer-ID sign, notarize and staple the macOS app, then publish it
+# to a GitHub Release. Source of truth stays on GitLab; this GitHub repo exists
+# for CI notarization + public releases (same pattern as DM_Workspace/DM_Voice).
+#
+# Trigger by pushing a tag like `v0.1.0`, or run manually (Actions → Release → Run).
+#
+# Required repository secrets (same values as DM_Workspace):
+#   APPLE_CERTIFICATE          base64 of the "Developer ID Application" .p12 (cert + private key)
+#   APPLE_CERTIFICATE_PASSWORD password used when exporting that .p12
+#   APPLE_API_KEY              base64 of the App Store Connect API key .p8 (notarization)
+#   APPLE_API_KEY_ID           the API key ID (e.g. ABC123XYZ)
+#   APPLE_API_ISSUER           the App Store Connect issuer UUID
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write # allow GITHUB_TOKEN to create/upload the release
+
+jobs:
+  macos:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Select latest Xcode (Swift 6 toolchain for swift-tools-version 6.0)
+        run: |
+          XC="$(ls -d /Applications/Xcode_16*.app 2>/dev/null | sort -V | tail -1)"
+          if [ -n "$XC" ]; then sudo xcode-select -s "$XC"; fi
+          swift --version
+
+      - name: Import Developer ID signing certificate
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          CERT="$RUNNER_TEMP/cert.p12"
+          KEYCHAIN="$RUNNER_TEMP/build.keychain-db"
+          KP="$(uuidgen)"
+          echo "$APPLE_CERTIFICATE" | base64 --decode > "$CERT"
+          if ! file -b "$CERT" | grep -qiE 'data|DER|PKCS'; then
+            echo "::error::APPLE_CERTIFICATE is not a binary .p12. Export the 'Developer ID Application' certificate WITH its private key from Keychain Access as .p12 and store its base64 in APPLE_CERTIFICATE."
+            exit 1
+          fi
+          security create-keychain -p "$KP" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KP" "$KEYCHAIN"
+          security import "$CERT" -k "$KEYCHAIN" -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KP" "$KEYCHAIN" >/dev/null
+          # Put our keychain first in the search list so codesign finds the identity.
+          security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | sed s/\"//g)
+          IDENTITY="$(security find-identity -v -p codesigning "$KEYCHAIN" | grep 'Developer ID Application' | head -1 | sed -E 's/.*"(.*)"/\1/')"
+          if [ -z "$IDENTITY" ]; then echo "::error::No 'Developer ID Application' identity found in the imported certificate."; exit 1; fi
+          echo "SIGN_ID=$IDENTITY" >> "$GITHUB_ENV"
+          echo "Signing identity: $IDENTITY"
+
+      - name: Build & sign (hardened runtime)
+        run: |
+          set -euo pipefail
+          cd mac
+          DMSHOT_SIGN_ID="$SIGN_ID" ./build_app.sh release
+          APP=build/DM_Screenshot.app
+          FW="$APP/Contents/Frameworks/Sparkle.framework"
+          # Sign Sparkle's nested helpers first (deepest → out), hardened runtime + timestamp.
+          for N in \
+            "$FW/Versions/B/XPCServices/Downloader.xpc" \
+            "$FW/Versions/B/XPCServices/Installer.xpc" \
+            "$FW/Versions/B/Autoupdate" \
+            "$FW/Versions/B/Updater.app" \
+            "$FW"; do
+            [ -e "$N" ] && codesign --force --options runtime --timestamp --sign "$SIGN_ID" "$N"
+          done
+          # Re-sign the app with hardened runtime + secure timestamp.
+          codesign --force --options runtime --timestamp --sign "$SIGN_ID" "$APP"
+          codesign --verify --strict --deep --verbose=2 "$APP"
+
+      - name: Notarize app, build & notarize DMG, staple
+        env:
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+        run: |
+          set -euo pipefail
+          cd mac
+          mkdir -p "$RUNNER_TEMP/keys"
+          KEY="$RUNNER_TEMP/keys/AuthKey.p8"
+          echo "$APPLE_API_KEY" | base64 --decode > "$KEY"
+          notarize() { xcrun notarytool submit "$1" --key "$KEY" --key-id "$APPLE_API_KEY_ID" --issuer "$APPLE_API_ISSUER" --wait; }
+
+          # 1) Notarize + staple the .app itself.
+          ditto -c -k --keepParent build/DM_Screenshot.app "$RUNNER_TEMP/app.zip"
+          notarize "$RUNNER_TEMP/app.zip"
+          xcrun stapler staple build/DM_Screenshot.app
+
+          # 2) Build a drag-to-install DMG (app + /Applications symlink).
+          STAGE="$RUNNER_TEMP/dmg"
+          mkdir -p "$STAGE"
+          cp -R build/DM_Screenshot.app "$STAGE/"
+          ln -s /Applications "$STAGE/Applications"
+          DMG="build/DM_Screenshot-${GITHUB_REF_NAME}.dmg"
+          hdiutil create -volname "DM_Screenshot" -srcfolder "$STAGE" -ov -format UDZO "$DMG"
+
+          # 3) Sign + notarize + staple the DMG so the download itself passes Gatekeeper.
+          codesign --force --sign "$SIGN_ID" --timestamp "$DMG"
+          notarize "$DMG"
+          xcrun stapler staple "$DMG"
+          xcrun stapler validate "$DMG"
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          ASSET="mac/build/DM_Screenshot-${GITHUB_REF_NAME}.dmg"
+          NOTES="DM_Screenshot ${GITHUB_REF_NAME} — signed & notarized macOS build. Download the .dmg, open it, and drag DM_Screenshot into the Applications folder."
+          if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
+            gh release upload "${GITHUB_REF_NAME}" "$ASSET" --clobber
+          else
+            gh release create "${GITHUB_REF_NAME}" "$ASSET" --title "${GITHUB_REF_NAME}" --notes "$NOTES"
+          fi
+
+      - name: Generate & publish appcast
+        env:
+          SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          # Locate Sparkle's sign_update binary from the SPM artifact built in "Build & sign".
+          SIGN_UPDATE="$(find mac/.build/artifacts -name sign_update -path '*bin*' ! -path '*old_dsa*' 2>/dev/null | head -1)"
+          if [ -z "$SIGN_UPDATE" ]; then
+            echo "::error::sign_update not found under mac/.build/artifacts" ; exit 1
+          fi
+          DMG="mac/build/DM_Screenshot-${GITHUB_REF_NAME}.dmg"
+          DL_URL="https://github.com/m0nji/DM_Screenshot/releases/download/${GITHUB_REF_NAME}/$(basename "$DMG")"
+          VERSION="${GITHUB_REF_NAME#v}"
+          # sign_update -s <key> outputs the complete enclosure attributes:
+          #   sparkle:edSignature="..." length="12345"
+          ATTRS="$("$SIGN_UPDATE" "$DMG" -s "$SPARKLE_ED_PRIVATE_KEY")"
+          # Build the release-notes HTML from the matching CHANGELOG entry.
+          NOTES="$(awk -v v="$VERSION" 'BEGIN{p=0} /^## /{if(p)exit; if(index($0,v)){p=1; next}} p&&/^- /{sub(/^- /,""); print "<li>"$0"</li>"}' CHANGELOG.md)"
+          # Fetch existing appcast branch and build the new <item>.
+          git fetch origin appcast
+          git worktree add /tmp/appcast origin/appcast
+          cat > /tmp/new_item.xml <<EOF
+          <item>
+            <title>Version ${VERSION}</title>
+            <description><![CDATA[<ul>${NOTES}</ul>]]></description>
+            <sparkle:version>${VERSION}</sparkle:version>
+            <sparkle:shortVersionString>${VERSION}</sparkle:shortVersionString>
+            <enclosure url="${DL_URL}" type="application/octet-stream" ${ATTRS} />
+          </item>
+          EOF
+          # Prepend the new <item> into </channel> (idempotent on version).
+          python3 - "$VERSION" <<'PY'
+          import sys, re, pathlib
+          item = pathlib.Path('/tmp/new_item.xml').read_text()
+          ac = pathlib.Path('/tmp/appcast/appcast.xml')
+          xml = ac.read_text()
+          if f'<sparkle:version>{sys.argv[1]}</sparkle:version>' not in xml:
+              xml = re.sub(r'(</channel>)', item + r'\n\1', xml, count=1) if '</channel>' in xml \
+                    else xml.replace('</channel>', item + '</channel>')
+          ac.write_text(xml)
+          PY
+          python3 -c "import xml.etree.ElementTree as ET; ET.parse('/tmp/appcast/appcast.xml')"
+          cd /tmp/appcast
+          git add appcast.xml
+          git -c user.email=ci@dmscreenshot -c user.name=CI commit -m "chore: appcast ${GITHUB_REF_NAME}" || true
+          git push "https://x-access-token:${GH_TOKEN}@github.com/m0nji/DM_Screenshot.git" HEAD:appcast
