@@ -144,8 +144,8 @@ jobs:
           # Build the release-notes HTML from the matching CHANGELOG entry.
           NOTES="$(awk -v v="$VERSION" 'BEGIN{p=0} /^## /{if(p)exit; if(index($0,v)){p=1; next}} p&&/^- /{sub(/^- /,""); print "<li>"$0"</li>"}' CHANGELOG.md)"
           # Fetch existing appcast branch and build the new <item>.
-          git fetch github appcast
-          git worktree add /tmp/appcast github/appcast
+          git fetch origin appcast
+          git worktree add /tmp/appcast origin/appcast
           cat > /tmp/new_item.xml <<EOF
           <item>
             <title>Version ${VERSION}</title>
