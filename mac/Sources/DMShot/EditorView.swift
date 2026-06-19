@@ -1,9 +1,5 @@
 import SwiftUI
 
-private let palette = [
-    "#EF4444", "#F59E0B", "#10B981", "#3B82F6", "#8B5CF6", "#000000", "#FFFFFF",
-]
-
 private struct ToolSpec {
     let tool: Tool
     let icon: String
@@ -36,16 +32,10 @@ struct EditorView: View {
     var onDeleteHistory: (String) -> Void
     var onOpenSettings: () -> Void
 
-    @State private var colorOpen = false
     @State private var hoveredHistoryID: String?
     @AppStorage("dmSidebarWidth") private var sidebarWidth: Double = 170
     @State private var sidebarDragStart: Double?
     private let sidebarRange: ClosedRange<Double> = 130...460
-
-    private var blurContext: Bool {
-        model.tool == .blur
-            || model.annotations.first(where: { $0.id == model.selectedID })?.kind == .blur
-    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -81,9 +71,9 @@ struct EditorView: View {
                 }
                 Divider().frame(height: 22)
 
-                colorPicker
+                EditorColorPicker(model: model)
                 Divider().frame(height: 22)
-                contextualSlider
+                EditorContextualSlider(model: model)
                 Divider().frame(height: 22)
 
                 Button(action: model.undo) { Image(systemName: "arrow.uturn.backward") }
@@ -97,67 +87,6 @@ struct EditorView: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
-        }
-    }
-
-    private var colorPicker: some View {
-        Button {
-            colorOpen.toggle()
-        } label: {
-            Circle().fill(Color(nsColor: NSColor(hex: model.colorHex)))
-                .frame(width: 20, height: 20)
-                .overlay(Circle().stroke(.secondary, lineWidth: 1))
-        }
-        .buttonStyle(.plain)
-        .help("Color")
-        .popover(isPresented: $colorOpen) {
-            VStack(alignment: .leading, spacing: 10) {
-                let columns = Array(repeating: GridItem(.fixed(24), spacing: 8), count: 4)
-                LazyVGrid(columns: columns, spacing: 8) {
-                    ForEach(palette, id: \.self) { hex in
-                        Button {
-                            model.colorHex = hex
-                            applyColorToSelection(hex)
-                            colorOpen = false
-                        } label: {
-                            Circle().fill(Color(nsColor: NSColor(hex: hex)))
-                                .frame(width: 22, height: 22)
-                                .overlay(Circle().stroke(.white.opacity(0.4)))
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                Divider()
-                ColorPicker("Custom", selection: Binding(
-                    get: { Color(nsColor: NSColor(hex: model.colorHex)) },
-                    set: { newColor in
-                        let hex = hexString(from: newColor)
-                        model.colorHex = hex
-                        applyColorToSelection(hex)
-                    }))
-            }
-            .padding(12)
-            .frame(width: 170)
-        }
-    }
-
-    @ViewBuilder private var contextualSlider: some View {
-        if blurContext {
-            HStack(spacing: 6) {
-                Text("Blur").font(.caption).foregroundStyle(.secondary).fixedSize()
-                Slider(value: $model.blurStrength, in: 2...60).frame(width: 90)
-                    .tint(.dmAccent)
-                    .onChange(of: model.blurStrength) { _, v in applyBlurToSelection(v) }
-                Text("\(Int(model.blurStrength))").font(.caption).monospacedDigit().fixedSize()
-            }
-        } else {
-            HStack(spacing: 6) {
-                Text("Size").font(.caption).foregroundStyle(.secondary).fixedSize()
-                Slider(value: $model.strokeWidth, in: 1...20).frame(width: 90)
-                    .tint(.dmAccent)
-                    .onChange(of: model.strokeWidth) { _, v in applyStrokeToSelection(v) }
-                Text("\(Int(model.strokeWidth))px").font(.caption).monospacedDigit().fixedSize()
-            }
         }
     }
 
@@ -279,26 +208,4 @@ struct EditorView: View {
             )
     }
 
-    // MARK: - Apply edits to current selection
-
-    private func applyColorToSelection(_ hex: String) {
-        if let id = model.selectedID { model.update(id) { $0.colorHex = hex } }
-    }
-    private func applyStrokeToSelection(_ w: CGFloat) {
-        if let id = model.selectedID { model.update(id, record: false) { $0.strokeWidth = w } }
-    }
-    private func applyBlurToSelection(_ r: CGFloat) {
-        if let id = model.selectedID,
-           model.annotations.first(where: { $0.id == id })?.kind == .blur {
-            model.update(id, record: false) { $0.blurRadius = r }
-        }
-    }
-
-    private func hexString(from color: Color) -> String {
-        let ns = NSColor(color).usingColorSpace(.sRGB) ?? .red
-        let r = Int(round(ns.redComponent * 255))
-        let g = Int(round(ns.greenComponent * 255))
-        let b = Int(round(ns.blueComponent * 255))
-        return String(format: "#%02X%02X%02X", r, g, b)
-    }
 }
