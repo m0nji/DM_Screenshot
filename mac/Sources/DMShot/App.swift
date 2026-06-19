@@ -7,6 +7,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private let history = HistoryStore()
     private let overlay = OverlayController()
     private let shortcutStore = ShortcutStore()
+    private let appSettings = AppSettingsStore()
     let updater = Updater()
     private var hotkeys: HotkeyManager?
     private var statusItem: NSStatusItem?
@@ -278,7 +279,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 contentRect: NSRect(x: 0, y: 0, width: 640, height: 420),
                 styleMask: [.titled, .closable], backing: .buffered, defer: false)
             win.title = "Settings"
-            win.contentView = NSHostingView(rootView: SettingsView(store: shortcutStore, appVersion: version, updater: updater))
+            win.contentView = NSHostingView(rootView: SettingsView(
+                store: shortcutStore, settings: appSettings, appVersion: version, updater: updater))
             win.delegate = self
             win.isReleasedWhenClosed = false
             win.center()
