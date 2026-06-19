@@ -12,6 +12,6 @@ final class ClipboardTests: XCTestCase {
         ImageUtils.copyGIF(data: data, fileURL: url, to: pb)
 
         XCTAssertEqual(pb.data(forType: gifType), data)
-        XCTAssertNotNil(pb.string(forType: .fileURL))
+        XCTAssertEqual(pb.string(forType: .fileURL), url.absoluteString)
     }
 }
