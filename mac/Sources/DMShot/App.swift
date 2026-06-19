@@ -7,6 +7,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private let history = HistoryStore()
     private let overlay = OverlayController()
     private let shortcutStore = ShortcutStore()
+    let updater = Updater()
     private var hotkeys: HotkeyManager?
     private var statusItem: NSStatusItem?
     private var editorWindow: NSWindow?
@@ -22,6 +23,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         setupPersistence()
         overlay.onComplete = { [weak self] image in self?.deliver(image) }
         showEditor()
+        updater.start()
         // Register with ScreenCaptureKit so the app appears in the Screen Recording
         // list and (if needed) prompts on first launch.
         Task { await ScreenCapture.registerForScreenRecording() }
