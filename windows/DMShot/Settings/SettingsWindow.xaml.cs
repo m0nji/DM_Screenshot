@@ -67,6 +67,22 @@ public partial class SettingsWindow : Window
             Text = "Start DM_Screenshot automatically when you sign in.",
             Foreground = TextDim, Margin = new Thickness(0, 6, 0, 0), TextWrapping = TextWrapping.Wrap
         });
+
+        Pane.Children.Add(new TextBlock
+        {
+            Text = "After capture", Foreground = Text, FontSize = 14,
+            Margin = new Thickness(0, 18, 0, 4)
+        });
+        var afterCombo = new ComboBox { Width = 240, HorizontalAlignment = HorizontalAlignment.Left };
+        afterCombo.Items.Add("Open main window");
+        afterCombo.Items.Add("Show Quick-Edit overlay");
+        afterCombo.SelectedIndex = _settings.AfterCapture == AfterCaptureMode.QuickEdit ? 1 : 0;
+        afterCombo.SelectionChanged += (_, _) =>
+        {
+            _settings.AfterCapture = afterCombo.SelectedIndex == 1 ? AfterCaptureMode.QuickEdit : AfterCaptureMode.MainWindow;
+            Commit();
+        };
+        Pane.Children.Add(afterCombo);
     }
 
     private void ShowShortcuts()
