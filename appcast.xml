@@ -40,5 +40,17 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.2.0/DM_Screenshot-v0.2.0.dmg" type="application/octet-stream" sparkle:edSignature="73l9v1IuHUC3hqJjXWbBvRjd7p5eE3Xp+FaxclWs7EOFwTw23Nt7Th1V9Y9PZHRByCpg0qJb/t+iA4fbKiWXCg==" length="2205092" />
 </item>
 
+<item>
+  <title>Version 0.2.1</title>
+  <description><![CDATA[<ul><li>fix: Section (area) video recordings of mostly-static content now work — previously the GIF preview never appeared after Stop (macOS)</li>
+<li>fix: Recording a second clip no longer crashes the app while a preview is still open (macOS)</li>
+<li>fix: The trim/preview window, and the created GIF, now come to the front automatically (after Stop, and after “Create GIF”) (macOS)</li>
+<li>feat: A highlight frame marks the recorded region during a section recording, and DM_Screenshot now steps aside while you record so it stays out of the way and out of the recording (macOS)</li>
+<li>fix: The Screen Recording permission notice offers a one-click “Relaunch Now” so a freshly granted permission applies immediately (macOS)</li></ul>]]></description>
+  <sparkle:version>0.2.1</sparkle:version>
+  <sparkle:shortVersionString>0.2.1</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.2.1/DM_Screenshot-v0.2.1.dmg" type="application/octet-stream" sparkle:edSignature="4JQf+eoraH6ipapZlkyyCNqZ3j+4prjrgnApEc4J2I6aY8Oq1S59RfDpmfJ38LKZDQenjFdw6wLWVn0r7/fBAA==" length="2212761" />
+</item>
+
 </channel>
 </rss>
