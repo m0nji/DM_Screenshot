@@ -5,6 +5,7 @@ using DMShot.Editor;
 using DMShot.History;
 using DMShot.Platform;
 using DMShot.Settings;
+using DMShot.Update;
 namespace DMShot;
 
 public partial class App : Application
@@ -17,6 +18,7 @@ public partial class App : Application
     private ITrayIcon _tray = null!;
     private Settings.Settings _settings = null!;
     private SettingsStore _settingsStore = null!;
+    private UpdaterService _updater = null!;
 
     private const int HK_FULL = 1, HK_AREA = 2;
 
@@ -50,6 +52,11 @@ public partial class App : Application
         _tray.SettingsRequested += OpenSettings;
         _tray.QuitRequested += () => Shutdown();
         _tray.Show();
+
+        // Velopack-backed auto-update. Created on the UI thread so the service captures
+        // the dispatcher SynchronizationContext for state callbacks. Silent launch check.
+        _updater = new UpdaterService();
+        _ = _updater.StartAsync();
     }
 
     private void RegisterHotkeysFromSettings()
@@ -61,7 +68,7 @@ public partial class App : Application
 
     private void OpenSettings()
     {
-        var w = new SettingsWindow(_settings, _settingsStore);
+        var w = new SettingsWindow(_settings, _settingsStore, _updater);
         w.Saved += s => { _settings = s; RegisterHotkeysFromSettings(); };
         w.Show();
     }

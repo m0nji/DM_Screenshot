@@ -174,3 +174,55 @@ jobs:
           git add appcast.xml
           git -c user.email=ci@dmscreenshot -c user.name=CI commit -m "chore: appcast ${GITHUB_REF_NAME}" || true
           git push "https://x-access-token:${GH_TOKEN}@github.com/m0nji/DM_Screenshot.git" HEAD:appcast
+
+  # Build the Windows app and publish a Velopack release (installer + delta + feed)
+  # into the SAME GitHub Release. The WPF app auto-updates from this repo's releases
+  # via Velopack's GithubSource. Runs after `macos` so the release already exists.
+  # NOTE: unsigned — no Windows code-signing cert is configured, so first launch shows
+  # a SmartScreen prompt. Add `--signParams` here once a cert is available.
+  windows:
+    runs-on: windows-latest
+    needs: macos
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Publish (self-contained win-x64)
+        run: |
+          set -euo pipefail
+          dotnet publish windows/DMShot/DMShot.csproj \
+            -c Release -r win-x64 --self-contained true \
+            -o publish
+
+      - name: Pack & upload Velopack release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"
+          # vpk CLI version must match the Velopack library version pinned in the csproj.
+          dotnet tool install -g vpk --version 0.0.1298
+          export PATH="$PATH:$HOME/.dotnet/tools"
+          # Produce Setup.exe + full/delta nupkg + RELEASES feed under ./Releases.
+          vpk pack \
+            --packId DM_Screenshot \
+            --packVersion "$VERSION" \
+            --packDir publish \
+            --mainExe DMShot.exe \
+            --packTitle "DM_Screenshot" \
+            --packAuthors "DM" \
+            --icon windows/DMShot/Resources/AppIcon.ico
+          # Append the Velopack assets to the existing GitHub Release for this tag.
+          vpk upload github \
+            --repoUrl https://github.com/m0nji/DM_Screenshot \
+            --token "$GH_TOKEN" \
+            --tag "${GITHUB_REF_NAME}" \
+            --releaseName "${GITHUB_REF_NAME}" \
+            --merge \
+            --publish

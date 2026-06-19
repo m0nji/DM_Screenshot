@@ -45,7 +45,7 @@ Definition of done for a behavior change:
 | History store + sidebar | `HistoryStore.swift`, `EditorView.swift` | `History/HistoryStore.cs`, `EditorWindow.xaml(.cs)` |
 | Tray / menu bar | `App.swift` | `Platform/NotifyIconTray.cs` |
 | Settings (shortcuts, launch-at-login) | `Settings.swift`, `ShortcutRecorderView.swift` | `Settings/*.cs`, `SettingsWindow.xaml(.cs)` |
-| Auto-update (Sparkle/Velopack) + changelog | `Updater.swift`, `Changelog.swift`, `CHANGELOG.md`, `Info.plist` (SUFeedURL/SUPublicEDKey) | _Spec 2: Velopack + Windows release pipeline (pending)_ |
+| Auto-update (Sparkle/Velopack) + changelog | `Updater.swift`, `Changelog.swift`, `CHANGELOG.md`, `Info.plist` (SUFeedURL/SUPublicEDKey) | `Update/UpdaterService.cs`, `Update/UpdateState.cs`, `Update/Changelog.cs`, `Program.cs` (Velopack bootstrap), `SettingsWindow.xaml.cs` (Updates pane); CI: `release.yml` `windows` job (`vpk pack`/`upload github`) |
 | Theme | `Theme.swift` | `Theme/DmTheme.xaml` |
 | App icon | `Resources/AppIcon.svg` → `.icns` | `Resources/AppIcon.ico` |
 
@@ -62,5 +62,5 @@ Definition of done for a behavior change:
 - [ ] Sidebar is resizable by dragging its right edge; thumbnails scale with the sidebar width.
 - [ ] Tray actions + hide-on-close + Quit.
 - [ ] Settings: editable shortcuts (live re-register), launch-at-login toggles, version shown == `VERSION`.
-- [ ] Auto-update: launch check, themed available/progress/restart states, "What's new" from `CHANGELOG.md`, appcast resolves + verifies.
+- [ ] Auto-update: launch check, themed available/progress/restart states, "What's new" from `CHANGELOG.md`. macOS: Sparkle appcast resolves + verifies. Windows: Velopack reads the GitHub releases feed; installed app updates + relaunches.
 - [ ] Theme: dark surfaces, orange accent as fill only, no platform-default blue chrome.

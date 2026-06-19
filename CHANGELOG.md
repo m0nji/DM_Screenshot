@@ -2,6 +2,9 @@
 
 All notable changes to DM_Screenshot. Newest version first. Always written in English.
 
+## Unreleased
+- feat: Windows automatic updates — DM_Screenshot for Windows now checks for new versions on launch and from Settings → Updates, shows a themed "What's new" from the changelog, and installs the update with one click (Velopack, matching the macOS auto-updater)
+
 ## 0.1.3 – 2026-06-19
 - fix: Area-capture overlay now shows the crosshair cursor immediately when it appears — no initial click needed to take focus (macOS and Windows)
 - feat: Delete a single history capture by hovering its thumbnail and clicking the trash button
