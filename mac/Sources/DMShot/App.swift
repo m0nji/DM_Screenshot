@@ -306,6 +306,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     private func loadHistory(_ id: String) {
+        if history.items.first(where: { $0.id == id })?.kind == .video {
+            if let data = history.loadGIF(id) {
+                let fileURL = FileManager.default.temporaryDirectory.appendingPathComponent("\(id).gif")
+                try? data.write(to: fileURL)
+                ImageUtils.copyGIF(data: data, fileURL: fileURL)
+            }
+            return
+        }
         guard let img = history.loadOriginal(id) else { return }
         model.load(image: img, entryID: id, annotations: history.loadAnnotations(id))
     }

@@ -233,6 +233,15 @@ struct EditorView: View {
                         .help("Delete this capture")
                     }
                 }
+                .overlay(alignment: .bottomLeading) {
+                    if item.kind == .video {
+                        Image(systemName: "play.circle.fill")
+                            .foregroundStyle(.white)
+                            .padding(4)
+                            .background(Circle().fill(Color.black.opacity(0.55)))
+                            .padding(4)
+                    }
+                }
         }
         .buttonStyle(.plain)
         .onHover { inside in

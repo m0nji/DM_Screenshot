@@ -2,6 +2,11 @@
 
 All notable changes to DM_Screenshot. Newest version first. Always written in English.
 
+## [Unreleased]
+
+### Added
+- Video/GIF capture: record full screen or a section (Cmd+Ctrl+1 / Cmd+Ctrl+2), trim, and copy an animated GIF for pasting into chat/email. Max 60s.
+
 ## 0.1.4 – 2026-06-19
 - fix: Area capture (⌘⇧2) now lets you drag a selection on the very first click — previously the first click was swallowed to activate the overlay, so a selection only worked on the second click (macOS)
 - fix: The resizable left-sidebar handle is grabbable again and no longer draws a stray line across the editor canvas (macOS)
