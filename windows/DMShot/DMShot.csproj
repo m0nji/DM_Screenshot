@@ -9,6 +9,7 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AssemblyName>DMShot</AssemblyName>
     <RootNamespace>DMShot</RootNamespace>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <ApplicationIcon>Resources\AppIcon.ico</ApplicationIcon>
     <!-- Single source of truth shared with the macOS app (repo-root VERSION file). -->
     <Version>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\..\VERSION').Trim())</Version>
