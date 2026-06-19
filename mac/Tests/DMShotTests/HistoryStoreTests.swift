@@ -17,11 +17,11 @@ final class HistoryItemMetaTests: XCTestCase {
 }
 
 final class HistoryStoreVideoTests: XCTestCase {
-    func testAddVideoStoresGifAndMarksKind() {
+    func testAddVideoStoresGifAndMarksKind() throws {
         let store = HistoryStore()
         let id = "vid-\(UUID().uuidString)"
         let img = GIFEncoderTests.solid(8, 8, r: 1, g: 2, b: 3)
-        let gif = GIFEncoder.encode(frames: [img, img], frameDelay: 0.1)!
+        let gif = try XCTUnwrap(GIFEncoder.encode(frames: [img, img], frameDelay: 0.1))
         store.addVideo(id: id, gifData: gif, thumbnail: img)
         defer { store.delete(id) }
 
@@ -29,5 +29,24 @@ final class HistoryStoreVideoTests: XCTestCase {
         XCTAssertEqual(store.items.first?.kind, .video)
         XCTAssertEqual(store.loadGIF(id), gif)
         XCTAssertNotNil(store.thumbnail(id))
+    }
+
+    func testEvictionRemovesGifFile() throws {
+        let store = HistoryStore()
+        let img = GIFEncoderTests.solid(8, 8, r: 4, g: 5, b: 6)
+        let gif = try XCTUnwrap(GIFEncoder.encode(frames: [img, img], frameDelay: 0.1))
+        // Insert 11 video entries; the first (oldest) must be evicted (limit is 10).
+        var ids: [String] = []
+        for _ in 0..<11 {
+            let id = "evict-\(UUID().uuidString)"
+            ids.append(id)
+            store.addVideo(id: id, gifData: gif, thumbnail: img)
+        }
+        defer { for id in ids { store.delete(id) } }
+
+        let oldest = ids.first!
+        XCTAssertFalse(store.items.contains { $0.id == oldest })  // evicted from index
+        XCTAssertNil(store.loadGIF(oldest))                        // gif file removed from disk
+        XCTAssertEqual(store.items.count, 10)
     }
 }
