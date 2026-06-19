@@ -3,5 +3,13 @@
   <channel>
     <title>DM_Screenshot</title>
     <description>DM_Screenshot updates</description>
-  </channel>
+  <item>
+  <title>Version 0.1.2</title>
+  <description><![CDATA[<ul><li>feat: Automatic updates — DM_Screenshot now checks for new versions on launch and from Settings → Updates, shows a themed "What's new" with the changelog, and installs the update with one click</li></ul>]]></description>
+  <sparkle:version>0.1.2</sparkle:version>
+  <sparkle:shortVersionString>0.1.2</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.1.2/DM_Screenshot-v0.1.2.dmg" type="application/octet-stream" sparkle:edSignature="Eqo55k0LKWJTLw8008xq5bXx6Gb8aLpcT806/5CuWf8lzlJVUw+J7giP2nYpGEeIKlMQtqd0ITxozOMpIbvXDw==" length="2037989" />
+</item>
+
+</channel>
 </rss>
