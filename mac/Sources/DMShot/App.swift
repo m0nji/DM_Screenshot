@@ -235,6 +235,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         return false
     }
 
+    // @MainActor: deliver() does UI work and calls main-actor-isolated showQuickEdit(); all callers already run on the main thread.
     @MainActor private func deliver(_ image: CGImage) {
         ImageUtils.copyToClipboard(image)
         let id = "\(Int(Date().timeIntervalSince1970 * 1000))"
@@ -247,6 +248,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     @MainActor private func showQuickEdit() {
+        editorWindow?.orderOut(nil)  // bar XOR main window: hide editor to prevent split keyboard focus
         quickEditBar?.close()
         let bar = QuickEditBar(
             model: model,
