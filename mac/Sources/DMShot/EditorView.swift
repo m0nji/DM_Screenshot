@@ -31,9 +31,14 @@ struct EditorView: View {
     var onCaptureFull: () -> Void
     var onCaptureArea: () -> Void
     var onSelectHistory: (String) -> Void
+    var onDeleteHistory: (String) -> Void
     var onOpenSettings: () -> Void
 
     @State private var colorOpen = false
+    @State private var hoveredHistoryID: String?
+    @AppStorage("dmSidebarWidth") private var sidebarWidth: Double = 170
+    @State private var sidebarDragStart: Double?
+    private let sidebarRange: ClosedRange<Double> = 130...460
 
     private var blurContext: Bool {
         model.tool == .blur
@@ -46,7 +51,8 @@ struct EditorView: View {
             Divider()
             HStack(spacing: 0) {
                 sidebar
-                Divider()
+                    .frame(width: sidebarWidth)
+                resizeHandle
                 CanvasView(model: model)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
@@ -173,16 +179,7 @@ struct EditorView: View {
                 VStack(spacing: 8) {
                     ForEach(history.items) { item in
                         if let thumb = history.thumbnail(item.id) {
-                            Button {
-                                onSelectHistory(item.id)
-                            } label: {
-                                Image(nsImage: thumb)
-                                    .resizable().scaledToFit()
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 6)
-                                            .stroke(model.entryID == item.id ? Color.dmAccent : .clear, lineWidth: 2))
-                            }
-                            .buttonStyle(.plain)
+                            historyThumb(item: item, thumb: thumb)
                         }
                     }
                 }
@@ -195,7 +192,63 @@ struct EditorView: View {
             .buttonStyle(.bordered)
         }
         .padding(8)
-        .frame(width: 150)
+    }
+
+    @ViewBuilder
+    private func historyThumb(item: HistoryItemMeta, thumb: NSImage) -> some View {
+        Button {
+            onSelectHistory(item.id)
+        } label: {
+            Image(nsImage: thumb)
+                .resizable().scaledToFit()
+                .frame(maxWidth: .infinity)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6)
+                        .stroke(model.entryID == item.id ? Color.dmAccent : .clear, lineWidth: 2))
+                .overlay(alignment: .topTrailing) {
+                    if hoveredHistoryID == item.id {
+                        Button {
+                            onDeleteHistory(item.id)
+                        } label: {
+                            Image(systemName: "trash")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundStyle(.white)
+                                .padding(5)
+                                .background(Circle().fill(Color.black.opacity(0.55)))
+                        }
+                        .buttonStyle(.plain)
+                        .padding(4)
+                        .help("Delete this capture")
+                    }
+                }
+        }
+        .buttonStyle(.plain)
+        .onHover { inside in
+            hoveredHistoryID = inside ? item.id : (hoveredHistoryID == item.id ? nil : hoveredHistoryID)
+        }
+    }
+
+    private var resizeHandle: some View {
+        ZStack {
+            Divider()
+            Rectangle()
+                .fill(Color.clear)
+                .frame(width: 10)
+                .contentShape(Rectangle())
+                .onHover { inside in
+                    if inside { NSCursor.resizeLeftRight.push() } else { NSCursor.pop() }
+                }
+                .gesture(
+                    DragGesture(minimumDistance: 0)
+                        .onChanged { value in
+                            let start = sidebarDragStart ?? sidebarWidth
+                            if sidebarDragStart == nil { sidebarDragStart = start }
+                            let proposed = start + Double(value.translation.width)
+                            sidebarWidth = min(max(proposed, sidebarRange.lowerBound), sidebarRange.upperBound)
+                        }
+                        .onEnded { _ in sidebarDragStart = nil }
+                )
+        }
     }
 
     // MARK: - Apply edits to current selection

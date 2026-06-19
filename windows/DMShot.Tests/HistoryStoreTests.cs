@@ -37,5 +37,40 @@ public class HistoryStoreTests : IDisposable
         Assert.True(File.Exists(store2.Entries[0].OriginalPngPath));
     }
 
+    [Fact]
+    public void Delete_RemovesEntryAndFiles()
+    {
+        var store = new HistoryStore(_root);
+        HistoryEntry keep, drop;
+        using (var bmp = new Bitmap(10, 10))
+        {
+            keep = store.Add(bmp, Array.Empty<Annotation>(), null, Next());
+            drop = store.Add(bmp, Array.Empty<Annotation>(), null, Next());
+        }
+
+        store.Delete(drop.Id);
+
+        Assert.Single(store.Entries);
+        Assert.Equal(keep.Id, store.Entries[0].Id);
+        Assert.False(File.Exists(drop.OriginalPngPath));
+        Assert.False(File.Exists(drop.ThumbnailPngPath));
+
+        // Persisted: a fresh store sees only the kept entry.
+        var reloaded = new HistoryStore(_root);
+        reloaded.Load();
+        Assert.Single(reloaded.Entries);
+        Assert.Equal(keep.Id, reloaded.Entries[0].Id);
+    }
+
+    [Fact]
+    public void Delete_UnknownId_IsNoOp()
+    {
+        var store = new HistoryStore(_root);
+        using (var bmp = new Bitmap(10, 10))
+            store.Add(bmp, Array.Empty<Annotation>(), null, Next());
+        store.Delete("does-not-exist");
+        Assert.Single(store.Entries);
+    }
+
     public void Dispose() { if (Directory.Exists(_root)) Directory.Delete(_root, true); }
 }

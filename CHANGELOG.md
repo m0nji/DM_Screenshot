@@ -2,6 +2,11 @@
 
 All notable changes to DM_Screenshot. Newest version first. Always written in English.
 
+## 0.1.3 – 2026-06-19
+- fix: Area-capture overlay now shows the crosshair cursor immediately when it appears — no initial click needed to take focus (macOS and Windows)
+- feat: Delete a single history capture by hovering its thumbnail and clicking the trash button
+- feat: The left sidebar is now resizable by dragging its edge; history previews scale with the sidebar width
+
 ## 0.1.2 – 2026-06-19
 - feat: Automatic updates — DM_Screenshot now checks for new versions on launch and from Settings → Updates, shows a themed "What's new" with the changelog, and installs the update with one click
 

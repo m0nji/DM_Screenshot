@@ -173,8 +173,16 @@
       </ScrollViewer>
     </Border>
 
+    <!-- ===== Sidebar | splitter | canvas (resizable) ===== -->
+    <Grid>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition x:Name="SidebarColumn" Width="168" MinWidth="130" MaxWidth="460"/>
+        <ColumnDefinition Width="Auto"/>
+        <ColumnDefinition Width="*"/>
+      </Grid.ColumnDefinitions>
+
     <!-- ===================== Sidebar ===================== -->
-    <Border DockPanel.Dock="Left" Width="168" Background="{StaticResource DmBackground}"
+    <Border Grid.Column="0" Background="{StaticResource DmBackground}"
             BorderBrush="{StaticResource DmBorder}" BorderThickness="0,0,1,0">
       <DockPanel Margin="10">
         <Button DockPanel.Dock="Top" Style="{StaticResource SidebarButton}" Click="FullScreenClick" Margin="0,0,0,8">
@@ -225,16 +233,49 @@
           </ListBox.ItemContainerStyle>
           <ListBox.ItemTemplate>
             <DataTemplate>
-              <Image Source="{Binding Thumb}" Stretch="Uniform" MaxHeight="120"/>
+              <Grid x:Name="ThumbRoot">
+                <Image Source="{Binding Thumb}" Stretch="Uniform"/>
+                <!-- Delete button: vector trash can, revealed on hover -->
+                <Button x:Name="DeleteButton" Tag="{Binding Id}"
+                        PreviewMouseLeftButtonDown="DeleteHistoryClick"
+                        HorizontalAlignment="Right" VerticalAlignment="Top"
+                        Margin="0,4,4,0" Width="24" Height="24" Cursor="Hand"
+                        Visibility="Collapsed" ToolTip="Delete this capture">
+                  <Button.Template>
+                    <ControlTemplate TargetType="Button">
+                      <Border Background="#CC000000" CornerRadius="12">
+                        <Viewbox Width="14" Height="14">
+                          <Canvas Width="24" Height="24">
+                            <Path Data="M5,7 L19,7 M9.5,7 L9.5,4.5 L14.5,4.5 L14.5,7 M6.5,7 L7.5,20 L16.5,20 L17.5,7 M10,10.5 L10,16.5 M14,10.5 L14,16.5"
+                                  Stroke="White" StrokeThickness="2"
+                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/>
+                          </Canvas>
+                        </Viewbox>
+                      </Border>
+                    </ControlTemplate>
+                  </Button.Template>
+                </Button>
+              </Grid>
+              <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
+                  <Setter TargetName="DeleteButton" Property="Visibility" Value="Visible"/>
+                </DataTrigger>
+              </DataTemplate.Triggers>
             </DataTemplate>
           </ListBox.ItemTemplate>
         </ListBox>
       </DockPanel>
     </Border>
 
+    <!-- ===================== Splitter ===================== -->
+    <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch"
+                  Background="{StaticResource DmBorder}" Cursor="SizeWE"
+                  ResizeBehavior="PreviousAndNext" ResizeDirection="Columns"/>
+
     <!-- ===================== Canvas ===================== -->
-    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" Background="#141418">
+    <ScrollViewer Grid.Column="2" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" Background="#141418">
       <ed:CanvasControl x:Name="Canvas" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="24"/>
     </ScrollViewer>
+    </Grid>
   </DockPanel>
 </Window>

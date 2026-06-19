@@ -22,10 +22,38 @@ final class SelectionView: NSView {
 
     override var isFlipped: Bool { true }
     override var acceptsFirstResponder: Bool { true }
+    // The overlay is summoned by a global hotkey while another app is frontmost.
+    // Plain cursor rects only take effect once our window is key in the active
+    // app, which is why the crosshair used to appear only after a first click.
+    // An `.activeAlways` tracking area with `.cursorUpdate` lets us set the
+    // crosshair on hover regardless of activation state.
+    private var crosshairTracking: NSTrackingArea?
 
     override func resetCursorRects() {
         addCursorRect(bounds, cursor: .crosshair)
     }
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        if let crosshairTracking { removeTrackingArea(crosshairTracking) }
+        let area = NSTrackingArea(
+            rect: .zero,
+            options: [.activeAlways, .inVisibleRect, .mouseEnteredAndExited, .mouseMoved, .cursorUpdate],
+            owner: self, userInfo: nil)
+        addTrackingArea(area)
+        crosshairTracking = area
+    }
+
+    override func cursorUpdate(with event: NSEvent) {
+        NSCursor.crosshair.set()
+    }
+    override func mouseEntered(with event: NSEvent) {
+        NSCursor.crosshair.set()
+    }
+    override func mouseMoved(with event: NSEvent) {
+        NSCursor.crosshair.set()
+    }
+
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
         NSCursor.crosshair.set()
@@ -112,6 +140,10 @@ final class OverlayController {
 
     func begin(captures: [DisplayCapture]) {
         close()
+        // Become frontmost first so the windows below come up as key in the
+        // active app — a prerequisite for the crosshair cursor to apply on hover
+        // without requiring an initial click.
+        NSApp.activate(ignoringOtherApps: true)
         for cap in captures {
             let view = SelectionView(capture: cap)
             view.onSelect = { [weak self] pixelRect in
@@ -132,9 +164,12 @@ final class OverlayController {
             win.contentView = view
             win.setFrame(cap.frameGlobal, display: true)
             win.makeKeyAndOrderFront(nil)
+            win.makeFirstResponder(view)
+            // Prime the crosshair immediately so it's correct from the first
+            // frame, before the user moves the mouse.
+            NSCursor.crosshair.set()
             windows.append(win)
         }
-        NSApp.activate(ignoringOtherApps: true)
     }
 
     func close() {

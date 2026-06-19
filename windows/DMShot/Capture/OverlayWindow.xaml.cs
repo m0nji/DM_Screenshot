@@ -12,6 +12,12 @@ public partial class OverlayWindow : Window
     [DllImport("user32.dll")] private static extern bool SetWindowPos(IntPtr hWnd, IntPtr after, int x, int y, int cx, int cy, uint flags);
     private const uint SWP_NOZORDER = 0x0004, SWP_NOACTIVATE = 0x0010;
 
+    [DllImport("user32.dll")] private static extern bool SetForegroundWindow(IntPtr hWnd);
+    [DllImport("user32.dll")] private static extern IntPtr GetForegroundWindow();
+    [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint pid);
+    [DllImport("user32.dll")] private static extern bool AttachThreadInput(uint idAttach, uint idAttachTo, bool fAttach);
+    [DllImport("kernel32.dll")] private static extern uint GetCurrentThreadId();
+
     private readonly DisplayInfo _display;
     private readonly Bitmap _frozen;
     private System.Windows.Point _start;
@@ -50,8 +56,30 @@ public partial class OverlayWindow : Window
 
     private void OnLoaded(object? s, RoutedEventArgs e)
     {
-        Activate(); Focus();
+        // The overlay is summoned by a global hotkey while another app owns the
+        // foreground. A plain Activate() is subject to Windows' foreground lock,
+        // so the window (and its Cross cursor / Esc handling) only became live
+        // after a first click. Force foreground, then pin the crosshair app-wide
+        // via OverrideCursor so it shows on hover regardless of focus timing.
+        ForceForeground();
+        Focus();
+        Mouse.OverrideCursor = Cursors.Cross;
         UpdateDim(new Rect());
+    }
+
+    private void ForceForeground()
+    {
+        var h = new WindowInteropHelper(this).Handle;
+        Activate();
+        if (SetForegroundWindow(h)) return;
+        // Foreground was denied — attach to the current foreground thread's input
+        // queue, which lets SetForegroundWindow succeed, then detach.
+        uint thisThread = GetCurrentThreadId();
+        uint fgThread = GetWindowThreadProcessId(GetForegroundWindow(), out _);
+        if (fgThread == thisThread) return;
+        AttachThreadInput(thisThread, fgThread, true);
+        SetForegroundWindow(h);
+        AttachThreadInput(thisThread, fgThread, false);
     }
 
     private double VisualTreeHelperDpi()
@@ -102,5 +130,9 @@ public partial class OverlayWindow : Window
         DimRight.Width = Math.Max(0, ActualWidth - sel.Right); DimRight.Height = sel.Height;
     }
 
-    private void Finish(bool committed) { Finished?.Invoke(this, committed); }
+    private void Finish(bool committed)
+    {
+        Mouse.OverrideCursor = null; // release the app-wide crosshair before the overlays close
+        Finished?.Invoke(this, committed);
+    }
 }

@@ -53,10 +53,13 @@ Definition of done for a behavior change:
 
 - [ ] Both apps build clean.
 - [ ] Capture: full-screen + area (per-monitor, DPI-correct), Esc cancels, auto-copy to clipboard.
+- [ ] Area overlay shows the crosshair cursor immediately on appear (no click-to-focus needed), even when summoned by hotkey from another app.
 - [ ] Every tool draws + flattens identically (arrow head, mosaic blur, step numbers, text, highlighter, crop).
 - [ ] Select tool: click-select, move, resize via handles, color/size/blur edit on selection, delete.
 - [ ] Copy → window gets out of the way; Save → PNG matches.
 - [ ] History persists last 10 across restart.
+- [ ] History: hover a thumbnail reveals a trash button that deletes that entry (file + thumbnail) and persists the removal.
+- [ ] Sidebar is resizable by dragging its right edge; thumbnails scale with the sidebar width.
 - [ ] Tray actions + hide-on-close + Quit.
 - [ ] Settings: editable shortcuts (live re-register), launch-at-login toggles, version shown == `VERSION`.
 - [ ] Auto-update: launch check, themed available/progress/restart states, "What's new" from `CHANGELOG.md`, appcast resolves + verifies.

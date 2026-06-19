@@ -160,6 +160,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 onCaptureFull: { [weak self] in self?.captureFull() },
                 onCaptureArea: { [weak self] in self?.captureArea() },
                 onSelectHistory: { [weak self] id in self?.loadHistory(id) },
+                onDeleteHistory: { [weak self] id in self?.deleteHistory(id) },
                 onOpenSettings: { [weak self] in self?.openSettings() })
             let win = NSWindow(
                 contentRect: NSRect(x: 0, y: 0, width: 1100, height: 720),
@@ -178,7 +179,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     @objc private func openSettings() {
         if settingsWindow == nil {
-            let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.1.2"
+            let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.1.3"
             let win = NSWindow(
                 contentRect: NSRect(x: 0, y: 0, width: 640, height: 420),
                 styleMask: [.titled, .closable], backing: .buffered, defer: false)
@@ -224,6 +225,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private func loadHistory(_ id: String) {
         guard let img = history.loadOriginal(id) else { return }
         model.load(image: img, entryID: id, annotations: history.loadAnnotations(id))
+    }
+
+    private func deleteHistory(_ id: String) {
+        let wasCurrent = (model.entryID == id)
+        history.delete(id)
+        guard wasCurrent else { return }
+        // The open capture was just deleted: fall back to the newest remaining
+        // entry, or detach so debounced persistence won't recreate the files.
+        if let next = history.items.first, let img = history.loadOriginal(next.id) {
+            model.load(image: img, entryID: next.id, annotations: history.loadAnnotations(next.id))
+        } else {
+            model.entryID = nil
+        }
     }
 
     // MARK: - Permission

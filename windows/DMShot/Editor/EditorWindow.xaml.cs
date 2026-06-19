@@ -142,6 +142,16 @@ public partial class EditorWindow : Window
         return bi;
     }
 
+    private void DeleteHistoryClick(object sender, MouseButtonEventArgs e)
+    {
+        // Handle on preview-down so the click never reaches the ListBoxItem —
+        // otherwise it would select (and load) the entry we're about to delete.
+        e.Handled = true;
+        if (Store is null || (sender as FrameworkElement)?.Tag is not string id) return;
+        Store.Delete(id);
+        RefreshHistory();
+    }
+
     private void HistorySelected(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
         if (Store is null || HistoryList.SelectedItem is not HistoryVM vm) return;

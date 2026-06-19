@@ -51,6 +51,17 @@ public sealed class HistoryStore
         return entry;
     }
 
+    /// <summary>Removes a single entry (its PNG + thumbnail) from history. No-op if unknown.</summary>
+    public void Delete(string id)
+    {
+        int i = _entries.FindIndex(e => e.Id == id);
+        if (i < 0) return;
+        var entry = _entries[i];
+        _entries.RemoveAt(i);
+        TryDelete(entry.OriginalPngPath); TryDelete(entry.ThumbnailPngPath);
+        Persist();
+    }
+
     private static void SaveThumb(Bitmap src, string path)
     {
         int w = 200, h = Math.Max(1, (int)(src.Height * (200.0 / src.Width)));

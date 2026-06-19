@@ -76,6 +76,16 @@ final class HistoryStore: ObservableObject {
         }
     }
 
+    /// Removes a single entry (its PNG, thumbnail and annotations) from history.
+    func delete(_ id: String) {
+        guard items.contains(where: { $0.id == id }) else { return }
+        items.removeAll { $0.id == id }
+        try? FileManager.default.removeItem(at: pngURL(id))
+        try? FileManager.default.removeItem(at: thumbURL(id))
+        try? FileManager.default.removeItem(at: jsonURL(id))
+        saveIndex()
+    }
+
     private func evict() {
         while items.count > maxEntries {
             let old = items.removeLast()
