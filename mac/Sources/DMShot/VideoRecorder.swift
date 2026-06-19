@@ -88,11 +88,19 @@ final class VideoRecorder: NSObject, SCStreamOutput {
 
     func stream(_ stream: SCStream, didOutputSampleBuffer sampleBuffer: CMSampleBuffer,
                 of type: SCStreamOutputType) {
-        guard type == .screen, CMSampleBufferDataIsReady(sampleBuffer),
-              let writer, let input else { return }
+        guard type == .screen, CMSampleBufferDataIsReady(sampleBuffer) else { return }
+        // Append only COMPLETE frames. When the captured area is static (common for
+        // a small section), SCStream emits idle/blank frames that carry no fresh
+        // surface; appending them fails the AVAssetWriter with AVErrorUnknown
+        // (-11800) and aborts the whole recording. Skip any non-complete frame.
+        guard let attachments = CMSampleBufferGetSampleAttachmentsArray(sampleBuffer, createIfNecessary: false)
+                as? [[SCStreamFrameInfo: Any]],
+              let statusRaw = attachments.first?[.status] as? Int,
+              let status = SCFrameStatus(rawValue: statusRaw), status == .complete
+        else { return }
+        guard let writer, let input else { return }
         if !sessionStarted {
             let pts = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
-            // Fix 1: check startWriting() return value; bail on failure
             guard writer.startWriting() else {
                 NSLog("[VideoRecorder] startWriting() failed: %@", writer.error?.localizedDescription ?? "unknown error")
                 return
