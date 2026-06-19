@@ -11,5 +11,15 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.1.2/DM_Screenshot-v0.1.2.dmg" type="application/octet-stream" sparkle:edSignature="Eqo55k0LKWJTLw8008xq5bXx6Gb8aLpcT806/5CuWf8lzlJVUw+J7giP2nYpGEeIKlMQtqd0ITxozOMpIbvXDw==" length="2037989" />
 </item>
 
+<item>
+  <title>Version 0.1.3</title>
+  <description><![CDATA[<ul><li>fix: Area-capture overlay now shows the crosshair cursor immediately when it appears — no initial click needed to take focus (macOS and Windows)</li>
+<li>feat: Delete a single history capture by hovering its thumbnail and clicking the trash button</li>
+<li>feat: The left sidebar is now resizable by dragging its edge; history previews scale with the sidebar width</li></ul>]]></description>
+  <sparkle:version>0.1.3</sparkle:version>
+  <sparkle:shortVersionString>0.1.3</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.1.3/DM_Screenshot-v0.1.3.dmg" type="application/octet-stream" sparkle:edSignature="g4sIC9mzSB3Wwb5LfmN9MflfWmQFD6hndIUHogu4JAI5ZufcMXROZo4y4eX2e+cjTQpuQajDfWXUwN4PY1z4BA==" length="2057813" />
+</item>
+
 </channel>
 </rss>
