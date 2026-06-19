@@ -3,7 +3,7 @@ import Foundation
 /// Pure planning math for GIF encoding (no I/O). Shared contract for both platforms.
 enum GIFPlan {
     static let defaultFPS: Double = 10
-    static let defaultMaxWidth: Int = 800
+    static let defaultMaxWidth: Int = 1000
     /// Rough average compressed bytes per output pixel per frame. Tuned down from a
     /// naive 0.5 because the encoder applies inter-frame transparency optimization,
     /// which collapses the (usually large) static regions of screen recordings.

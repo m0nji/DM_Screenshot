@@ -22,9 +22,16 @@ final class GIFViewerWindow: NSObject {
         saveButton.bezelStyle = .rounded
         saveButton.translatesAutoresizingMaskIntoConstraints = false
 
+        let copyButton = NSButton(title: "Copy", target: self, action: #selector(copyGIF))
+        copyButton.bezelStyle = .rounded
+        copyButton.keyEquivalent = "c"
+        copyButton.keyEquivalentModifierMask = .command
+        copyButton.translatesAutoresizingMaskIntoConstraints = false
+
         let container = NSView()
         container.addSubview(imageView)
         container.addSubview(saveButton)
+        container.addSubview(copyButton)
         NSLayoutConstraint.activate([
             imageView.topAnchor.constraint(equalTo: container.topAnchor),
             imageView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
@@ -32,6 +39,8 @@ final class GIFViewerWindow: NSObject {
             imageView.bottomAnchor.constraint(equalTo: saveButton.topAnchor, constant: -8),
             saveButton.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -12),
             saveButton.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -10),
+            copyButton.trailingAnchor.constraint(equalTo: saveButton.leadingAnchor, constant: -8),
+            copyButton.centerYAnchor.constraint(equalTo: saveButton.centerYAnchor),
         ])
 
         let size = image.size
@@ -48,6 +57,13 @@ final class GIFViewerWindow: NSObject {
         win.makeKeyAndOrderFront(nil)
         NSApp.activate()
         window = win
+    }
+
+    @objc private func copyGIF() {
+        guard let gifData else { return }
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("dmshot-copy.gif")
+        try? gifData.write(to: url)
+        ImageUtils.copyGIF(data: gifData, fileURL: url)
     }
 
     @objc private func saveGIF() {
