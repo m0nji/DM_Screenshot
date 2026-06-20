@@ -21,6 +21,11 @@ final class CanvasNSView: NSView {
         self.model = model
         self.pad = pad
         super.init(frame: .zero)
+        // Confine all drawing to the canvas. NSView.clipsToBounds defaults to
+        // false on macOS 10.14+, so without this a zoomed-in image (whose drawn
+        // frame exceeds the view bounds) paints out over the sidebar and the
+        // rest of the window instead of staying inside the editor canvas.
+        clipsToBounds = true
     }
     required init?(coder: NSCoder) { fatalError() }
 

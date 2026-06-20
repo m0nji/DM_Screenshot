@@ -295,7 +295,7 @@
 
     <!-- ===================== Canvas ===================== -->
     <Border Grid.Column="2" Background="#141418" ClipToBounds="True">
-      <ed:CanvasControl x:Name="Canvas" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+      <ed:CanvasControl x:Name="Canvas" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ClipToBounds="True"/>
     </Border>
     </Grid>
   </DockPanel>
