@@ -201,7 +201,7 @@ public partial class QuickEditOverlayWindow : Window
         <ContentPresenter HorizontalAlignment='Center' VerticalAlignment='Center'/>
       </Border>
       <ControlTemplate.Triggers>
-        <Trigger Property='IsMouseOver' Value='True'><Setter TargetName='b' Property='Background' Value='#26FFFFFF'/></Trigger>
+        <Trigger Property='IsMouseOver' Value='True'><Setter TargetName='b' Property='Background' Value='#34343C'/></Trigger>
         <Trigger Property='IsChecked' Value='True'><Setter TargetName='b' Property='Background' Value='#C97B4A'/><Setter Property='Foreground' Value='#1A1A1A'/></Trigger>
       </ControlTemplate.Triggers>
     </ControlTemplate>
@@ -218,8 +218,8 @@ public partial class QuickEditOverlayWindow : Window
         <ContentPresenter HorizontalAlignment='Center' VerticalAlignment='Center'/>
       </Border>
       <ControlTemplate.Triggers>
-        <Trigger Property='IsMouseOver' Value='True'><Setter TargetName='b' Property='Background' Value='#26FFFFFF'/></Trigger>
-        <Trigger Property='IsPressed' Value='True'><Setter TargetName='b' Property='Background' Value='#33FFFFFF'/></Trigger>
+        <Trigger Property='IsMouseOver' Value='True'><Setter TargetName='b' Property='Background' Value='#34343C'/></Trigger>
+        <Trigger Property='IsPressed' Value='True'><Setter TargetName='b' Property='Background' Value='#41414B'/></Trigger>
       </ControlTemplate.Triggers>
     </ControlTemplate>
   </Setter.Value></Setter>

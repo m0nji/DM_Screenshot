@@ -1,4 +1,5 @@
 using System.Windows.Controls;
+using System.Windows.Markup;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Hardcodet.Wpf.TaskbarNotification;
@@ -20,7 +21,9 @@ public sealed class NotifyIconTray : ITrayIcon
             ToolTipText = "DM_Screenshot",
             IconSource = LoadIcon()
         };
-        var menu = new ContextMenu();
+        var menu = new ContextMenu { Style = MenuStyle };
+        menu.Resources.Add(typeof(MenuItem), MenuItemStyle);
+        menu.Resources.Add(typeof(Separator), SeparatorStyle);
         menu.Items.Add(Item("New Fullscreen Shot", () => FullScreenRequested?.Invoke()));
         menu.Items.Add(Item("New Area Shot", () => AreaRequested?.Invoke()));
         menu.Items.Add(Item("Open Editor", () => OpenRequested?.Invoke()));
@@ -58,6 +61,48 @@ public sealed class NotifyIconTray : ITrayIcon
 
     private static MenuItem Item(string header, Action onClick)
     { var m = new MenuItem { Header = header }; m.Click += (_, _) => onClick(); return m; }
+
+    // ===== Dark context-menu styling (the default WPF menu rendered dark text on the
+    // OS dark menu background — unreadable). Dark surface + light text + dark hover. =====
+
+    private static System.Windows.Style St(string xaml) => (System.Windows.Style)XamlReader.Parse(xaml);
+
+    private static readonly System.Windows.Style MenuStyle = St(
+@"<Style xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation' xmlns:x='http://schemas.microsoft.com/winfx/2006/xaml' TargetType='ContextMenu'>
+  <Setter Property='Foreground' Value='#E8E8EA'/><Setter Property='FontSize' Value='13'/>
+  <Setter Property='Template'><Setter.Value>
+    <ControlTemplate TargetType='ContextMenu'>
+      <Border Background='#1E1E22' BorderBrush='#3A3A42' BorderThickness='1' CornerRadius='8' Padding='3'>
+        <ItemsPresenter/>
+      </Border>
+    </ControlTemplate>
+  </Setter.Value></Setter>
+</Style>");
+
+    private static readonly System.Windows.Style MenuItemStyle = St(
+@"<Style xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation' xmlns:x='http://schemas.microsoft.com/winfx/2006/xaml' TargetType='MenuItem'>
+  <Setter Property='Foreground' Value='#E8E8EA'/>
+  <Setter Property='Template'><Setter.Value>
+    <ControlTemplate TargetType='MenuItem'>
+      <Border x:Name='b' Background='Transparent' CornerRadius='5' Padding='12,6' Margin='2,1'>
+        <ContentPresenter ContentSource='Header' RecognizesAccessKey='True' VerticalAlignment='Center'/>
+      </Border>
+      <ControlTemplate.Triggers>
+        <Trigger Property='IsHighlighted' Value='True'><Setter TargetName='b' Property='Background' Value='#3A3A42'/></Trigger>
+        <Trigger Property='IsEnabled' Value='False'><Setter Property='Foreground' Value='#6A6A70'/></Trigger>
+      </ControlTemplate.Triggers>
+    </ControlTemplate>
+  </Setter.Value></Setter>
+</Style>");
+
+    private static readonly System.Windows.Style SeparatorStyle = St(
+@"<Style xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation' xmlns:x='http://schemas.microsoft.com/winfx/2006/xaml' TargetType='Separator'>
+  <Setter Property='Template'><Setter.Value>
+    <ControlTemplate TargetType='Separator'>
+      <Border Height='1' Background='#2E2E35' Margin='8,4'/>
+    </ControlTemplate>
+  </Setter.Value></Setter>
+</Style>");
 
     public void Show() => _icon.Visibility = System.Windows.Visibility.Visible;
     public void Dispose() => _icon.Dispose();
