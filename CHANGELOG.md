@@ -4,6 +4,14 @@ All notable changes to DM_Screenshot. Newest version first. Always written in En
 
 ## [Unreleased]
 
+## 0.3.0 – 2026-06-20
+- feat: New black-and-white app icon — a camera-in-viewfinder on a dark squircle, matching the DM family look. The menu-bar / tray icon uses the same motif, sized to fill (macOS + Windows)
+- feat: Launch DM_Screenshot automatically at login, from a toggle under Settings (macOS)
+- feat: Selections can now be moved and resized with handles in the editor, and Undo restores the full document — moves, resizes and crops, not just annotations (macOS + Windows)
+- feat: The video / GIF preview now shows the estimated GIF file size, updating live as you trim (macOS + Windows)
+- fix: More of the interface is fully translated now — editor help text, file dialogs, tooltips and the "GIF ready" viewer (macOS + Windows)
+- fix: The Settings → Language dropdown is dark-themed instead of the light system dropdown; combo boxes and text fields are now dark by default (Windows)
+
 ## 0.2.8 – 2026-06-20
 - feat: DM_Screenshot is now available in German as well as English. Switch live (no restart) under Settings → Language; English stays the default. Menus, tooltips, settings, dialogs and the editor are all translated (macOS + Windows)
 - fix: Sidebar capture-button labels (Full Screen / Selection / Video Full Screen / Video Section) now line up consistently, instead of "Selection" sitting slightly off (macOS)
