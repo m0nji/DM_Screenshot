@@ -18,6 +18,7 @@ public sealed class CanvasControl : FrameworkElement
     private int _handle = -1;
     private const double HandleR = 5;
     private const double Pad = 24;
+    private const double WheelPanStep = 48;   // pixels panned per wheel notch (Delta of 120); tune on hardware
     private double _scale = 1;
     private Point _offset;
     private Point _origin;   // image-space origin (always (0,0) on Windows; full image is the content)
@@ -167,10 +168,12 @@ public sealed class CanvasControl : FrameworkElement
         if (_source is null) return;
         if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
             ZoomAt(e.Delta > 0 ? ViewportMath.ZoomStep : 1 / ViewportMath.ZoomStep, e.GetPosition(this));
-        else if (Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
-            PanBy(e.Delta, 0);   // negate if it feels inverted on real hardware
         else
-            PanBy(0, e.Delta);
+        {
+            double step = e.Delta / 120.0 * WheelPanStep;   // 120 = one wheel notch; proportional for precision touchpads
+            if (Keyboard.Modifiers.HasFlag(ModifierKeys.Shift)) PanBy(step, 0);   // negate if inverted on hardware
+            else PanBy(0, step);
+        }
         e.Handled = true;
     }
 
