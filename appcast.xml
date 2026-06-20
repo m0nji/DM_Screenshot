@@ -87,5 +87,16 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.2.5/DM_Screenshot-v0.2.5.dmg" type="application/octet-stream" sparkle:edSignature="n0nuJ/HdAUevPqkcCZJ6fjxJ8TZ8VEnqFmSreM2xnvxeKjATo3Jj85laPQFDOfGZ6KCxVYxV6pk+He7ZSj2wDw==" length="2221494" />
 </item>
 
+<item>
+  <title>Version 0.2.6</title>
+  <description><![CDATA[<ul><li>fix: Quick-Edit toolbar Copy / Save / Edit-in-main are now icon-only buttons matching the macOS toolbar (Windows)</li>
+<li>fix: Tray menu no longer shows a stray white separator line above Quit (Windows)</li>
+<li>fix: Settings panes scroll when the content is tall, so the Updates "Download & Install" button is always reachable (Windows)</li>
+<li>fix: The "What's new" in Settings → Updates now shows only the latest release's notes instead of the entire changelog history (macOS + Windows)</li></ul>]]></description>
+  <sparkle:version>0.2.6</sparkle:version>
+  <sparkle:shortVersionString>0.2.6</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.2.6/DM_Screenshot-v0.2.6.dmg" type="application/octet-stream" sparkle:edSignature="mz+Q0r5N+QmO/ZWPMb1BvUHBzCHbGHhcSA5uLA2WRTX/G/aMMzd4mI/uw5QaAnoHGHOFGnjUmE5+hqHuRaJDBg==" length="2224586" />
+</item>
+
 </channel>
 </rss>
