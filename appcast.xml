@@ -63,5 +63,13 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.2.2/DM_Screenshot-v0.2.2.dmg" type="application/octet-stream" sparkle:edSignature="1q14qiX3RyAuY+cPt27F59/lKe2acRP3+gOlNRR3w7ayeJdUQnPh0XTxsiBCVpHbR6Z2BTMC5+w/sQ8kfIWcBQ==" length="2212444" />
 </item>
 
+<item>
+  <title>Version 0.2.3</title>
+  <description><![CDATA[<ul><li>feat: Editor zoom & pan — the screenshot now fits the editor window instead of resizing it to the capture; zoom toward the cursor with Ctrl/⌘+mouse-wheel or a trackpad pinch, pan with scroll / Shift+scroll or Space-drag, and reset from the toolbar zoom-% indicator (⌘/Ctrl 0 = fit, 1 = 100%). Small captures open at 100% and large ones scale to fit, while the window stays a stable, resizable size (macOS + Windows)</li></ul>]]></description>
+  <sparkle:version>0.2.3</sparkle:version>
+  <sparkle:shortVersionString>0.2.3</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.2.3/DM_Screenshot-v0.2.3.dmg" type="application/octet-stream" sparkle:edSignature="DwEjeO0OMmZnObIDXx9rdLrn53YKvddBfC5+HZyuci2oFIJ8X/IvWv9MithFC+lxX9JYdF5KL1eysHyWFxlEDQ==" length="2221195" />
+</item>
+
 </channel>
 </rss>
