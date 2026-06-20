@@ -110,10 +110,19 @@ public partial class QuickEditOverlayWindow : Window
     private const string SizeGeo  = "M4,8 L20,8 L20,9.4 L4,9.4 Z M4,13 L20,13 L20,16 L4,16 Z";
     private const string UndoGeo  = "M9,6 L5,9.5 L9,13 M5,9.5 L14,9.5 C17,9.5 19,11.6 19,14.2 C19,16.8 17,18.5 14.3,18.5 L11,18.5";
     private const string CloseGeo = "M6.5,6.5 L17.5,17.5 M17.5,6.5 L6.5,17.5";
-    // Action icons mirror the macOS toolbar's SF Symbols: doc.on.doc / square.and.arrow.down / macwindow.
-    private const string CopyGeo  = "M8,8 L19,8 L19,20 L8,20 Z M5,4 L16,4 L16,16 L5,16 Z";
-    private const string SaveGeo  = "M12,4 L12,13 M8.5,9.5 L12,13 L15.5,9.5 M5,15 L5,19.5 L19,19.5 L19,15";
-    private const string MainGeo  = "M4,5 L20,5 L20,19 L4,19 Z M4,9 L20,9";
+    // Action icons mirror the macOS toolbar's SF Symbols so both platforms read identically.
+    // doc.on.doc: a full front page (bottom-left) with the back page's top/right edges peeking out.
+    private const string CopyGeo  =
+        "M5.8,8.5 L12.7,8.5 A1.8,1.8 0 0 1 14.5,10.3 L14.5,18.2 A1.8,1.8 0 0 1 12.7,20 L5.8,20 A1.8,1.8 0 0 1 4,18.2 L4,10.3 A1.8,1.8 0 0 1 5.8,8.5 Z " +
+        "M8.5,5.8 A1.8,1.8 0 0 1 10.3,4 L17.2,4 A1.8,1.8 0 0 1 19,5.8 L19,13.7 A1.8,1.8 0 0 1 17.2,15.5 L14.6,15.5";
+    // square.and.arrow.down: a down arrow dropping into an open-top tray.
+    private const string SaveGeo  =
+        "M4.5,13 L4.5,17.5 A2,2 0 0 0 6.5,19.5 L17.5,19.5 A2,2 0 0 0 19.5,17.5 L19.5,13 " +
+        "M12,3.5 L12,14 M8.5,10.5 L12,14 L15.5,10.5";
+    // macwindow: a window with a title bar line and three traffic-light dots (drawn as round-cap stubs).
+    private const string MainGeo  =
+        "M6,5 L18,5 A2.5,2.5 0 0 1 20.5,7.5 L20.5,16.5 A2.5,2.5 0 0 1 18,19 L6,19 A2.5,2.5 0 0 1 3.5,16.5 L3.5,7.5 A2.5,2.5 0 0 1 6,5 Z " +
+        "M3.5,9 L20.5,9 M5.95,7 L6.05,7 M8.25,7 L8.35,7 M10.55,7 L10.65,7";
 
     private Border BuildToolbar()
     {
