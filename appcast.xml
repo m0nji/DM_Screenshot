@@ -118,5 +118,18 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.2.8/DM_Screenshot-v0.2.8.dmg" type="application/octet-stream" sparkle:edSignature="8vYi7qHBPQ6SmbnwYekAZ3vTN8DfPOsZiVViR63mn5+1qGhipyvEfcbmrg3cqXlvnuKv2Ui58VNHhcCMybEZDQ==" length="2253718" />
 </item>
 
+<item>
+  <title>Version 0.3.0</title>
+  <description><![CDATA[<ul><li>feat: New black-and-white app icon — a camera-in-viewfinder on a dark squircle, matching the DM family look. The menu-bar / tray icon uses the same motif, sized to fill (macOS + Windows)</li>
+<li>feat: Launch DM_Screenshot automatically at login, from a toggle under Settings (macOS)</li>
+<li>feat: Selections can now be moved and resized with handles in the editor, and Undo restores the full document — moves, resizes and crops, not just annotations (macOS + Windows)</li>
+<li>feat: The video / GIF preview now shows the estimated GIF file size, updating live as you trim (macOS + Windows)</li>
+<li>fix: More of the interface is fully translated now — editor help text, file dialogs, tooltips and the "GIF ready" viewer (macOS + Windows)</li>
+<li>fix: The Settings → Language dropdown is dark-themed instead of the light system dropdown; combo boxes and text fields are now dark by default (Windows)</li></ul>]]></description>
+  <sparkle:version>0.3.0</sparkle:version>
+  <sparkle:shortVersionString>0.3.0</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.3.0/DM_Screenshot-v0.3.0.dmg" type="application/octet-stream" sparkle:edSignature="oM2rqfSddBluacGeemNMiPnvbNkNMEppT7zHehq+NCGxZqw3QxJl5T0/0SPDdg12s6pwBWOZ3EoMI1RO6BAiCw==" length="1966098" />
+</item>
+
 </channel>
 </rss>
