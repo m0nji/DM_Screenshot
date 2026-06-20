@@ -97,30 +97,26 @@ struct EditorView: View {
         }
     }
 
+    // A sidebar capture button with a fixed-width icon column, so every label
+    // lines up regardless of each SF Symbol's intrinsic width.
+    private func captureButton(_ title: String, icon: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: icon).frame(width: 22)
+                Text(title)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .buttonStyle(.bordered)
+        .controlSize(.large)
+    }
+
     private var sidebar: some View {
         VStack(spacing: 8) {
-            Button(action: onCaptureFull) {
-                Label("Full Screen", systemImage: "rectangle.dashed")
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .buttonStyle(.bordered)
-            .controlSize(.large)
-            Button(action: onCaptureArea) {
-                Label("Selection", systemImage: "selection.pin.in.out")
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .buttonStyle(.bordered)
-            .controlSize(.large)
-            Button(action: onVideoFull) {
-                Label("Video Full Screen", systemImage: "video")
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .buttonStyle(.bordered).controlSize(.large)
-            Button(action: onVideoArea) {
-                Label("Video Section", systemImage: "video.badge.plus")
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .buttonStyle(.bordered).controlSize(.large)
+            captureButton("Full Screen", icon: "rectangle.dashed", action: onCaptureFull)
+            captureButton("Selection", icon: "selection.pin.in.out", action: onCaptureArea)
+            captureButton("Video Full Screen", icon: "video", action: onVideoFull)
+            captureButton("Video Section", icon: "video.badge.plus", action: onVideoArea)
             Text("HISTORY").font(.caption2).foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
             ScrollView {
