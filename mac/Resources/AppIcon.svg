@@ -1,0 +1,67 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1f1f24"/>
+      <stop offset="1" stop-color="#08080a"/>
+    </linearGradient>
+    <radialGradient id="vibrancy" cx="0.5" cy="0.42" r="0.62">
+      <stop offset="0" stop-color="#5b6cff" stop-opacity="0.22"/>
+      <stop offset="0.55" stop-color="#2a2f55" stop-opacity="0.09"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="tile" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#4a4a55" stop-opacity="0.92"/>
+      <stop offset="0.5" stop-color="#2a2a32" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#141418" stop-opacity="0.9"/>
+    </linearGradient>
+    <linearGradient id="gloss" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.30"/>
+      <stop offset="0.4" stop-color="#ffffff" stop-opacity="0.05"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="bgGloss" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.16"/>
+      <stop offset="0.35" stop-color="#ffffff" stop-opacity="0.02"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7c8bff"/>
+      <stop offset="1" stop-color="#5b6cff"/>
+    </linearGradient>
+    <filter id="soft" x="-25%" y="-25%" width="150%" height="150%">
+      <feDropShadow dx="0" dy="7" stdDeviation="12" flood-color="#000" flood-opacity="0.5"/>
+    </filter>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feDropShadow dx="0" dy="0" stdDeviation="10" flood-color="#5b6cff" flood-opacity="0.55"/>
+    </filter>
+  </defs>
+
+  <!-- Background plate (DM family) -->
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#bg)"/>
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#vibrancy)"/>
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#bgGloss)"/>
+  <rect x="101.5" y="101.5" width="821" height="821" rx="183.5" fill="none" stroke="#ffffff" stroke-opacity="0.08" stroke-width="3"/>
+
+  <!-- Central glass viewport -->
+  <g filter="url(#soft)">
+    <rect x="296" y="296" width="432" height="432" rx="72" fill="url(#tile)"/>
+  </g>
+  <rect x="297.5" y="297.5" width="429" height="429" rx="70.5" fill="none" stroke="#ffffff" stroke-opacity="0.14" stroke-width="2.5"/>
+  <rect x="296" y="296" width="432" height="200" rx="72" fill="url(#gloss)"/>
+
+  <!-- Selection corner brackets (screenshot motif) -->
+  <g fill="none" stroke="url(#accent)" stroke-width="34" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)">
+    <!-- top-left -->
+    <path d="M 360 430 L 360 360 L 430 360"/>
+    <!-- top-right -->
+    <path d="M 594 360 L 664 360 L 664 430"/>
+    <!-- bottom-left -->
+    <path d="M 360 594 L 360 664 L 430 664"/>
+    <!-- bottom-right -->
+    <path d="M 664 594 L 664 664 L 594 664"/>
+  </g>
+
+  <!-- Center accent dot -->
+  <circle cx="512" cy="512" r="26" fill="#ffffff" fill-opacity="0.92"/>
+  <circle cx="512" cy="512" r="26" fill="none" stroke="url(#accent)" stroke-width="8"/>
+</svg>
