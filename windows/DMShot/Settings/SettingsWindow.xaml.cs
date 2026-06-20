@@ -4,6 +4,9 @@ using System.Windows.Input;
 using System.Windows.Media;
 using DMShot.Localization;
 using DMShot.Update;
+// `Window.Language` (XmlLanguage) shadows the DMShot.Localization.Language enum in
+// instance context, so reference the enum through this alias.
+using LocLanguage = DMShot.Localization.Language;
 namespace DMShot.Settings;
 
 public partial class SettingsWindow : Window
@@ -153,13 +156,13 @@ public partial class SettingsWindow : Window
         });
 
         var combo = new ComboBox { Width = 220, HorizontalAlignment = HorizontalAlignment.Left };
-        foreach (var lang in new[] { Language.English, Language.German })
+        foreach (var lang in new[] { LocLanguage.English, LocLanguage.German })
             combo.Items.Add(new ComboBoxItem { Content = lang.DisplayName(), Tag = lang });
         var current = LanguageCodes.FromCode(_settings.Language);
-        combo.SelectedItem = combo.Items.Cast<ComboBoxItem>().First(i => (Language)i.Tag! == current);
+        combo.SelectedItem = combo.Items.Cast<ComboBoxItem>().First(i => (LocLanguage)i.Tag! == current);
         combo.SelectionChanged += (_, _) =>
         {
-            if (combo.SelectedItem is ComboBoxItem item && item.Tag is Language lang)
+            if (combo.SelectedItem is ComboBoxItem item && item.Tag is LocLanguage lang)
             {
                 _settings.Language = lang.Code();
                 Commit();
