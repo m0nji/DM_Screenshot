@@ -20,19 +20,19 @@ enum ShortcutAction: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .fullScreen: return "Full screen"
-        case .areaSelection: return "Area selection"
-        case .videoFullScreen: return "Video full screen"
-        case .videoAreaSelection: return "Video section"
+        case .fullScreen: return tr(.actionFullScreen)
+        case .areaSelection: return tr(.actionAreaSelection)
+        case .videoFullScreen: return tr(.actionVideoFullScreen)
+        case .videoAreaSelection: return tr(.actionVideoSection)
         }
     }
 
     var subtitle: String {
         switch self {
-        case .fullScreen: return "Capture the whole screen."
-        case .areaSelection: return "Capture a selected area (frozen)."
-        case .videoFullScreen: return "Record the whole screen as a GIF (max 60s)."
-        case .videoAreaSelection: return "Record a selected area as a GIF (max 60s)."
+        case .fullScreen: return tr(.subFullScreen)
+        case .areaSelection: return tr(.subAreaSelection)
+        case .videoFullScreen: return tr(.subVideoFullScreen)
+        case .videoAreaSelection: return tr(.subVideoSection)
         }
     }
 

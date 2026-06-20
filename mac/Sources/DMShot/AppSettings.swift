@@ -7,8 +7,8 @@ enum AfterCapture: String, CaseIterable, Identifiable {
     var id: String { rawValue }
     var title: String {
         switch self {
-        case .mainWindow: return "Open main window"
-        case .quickEdit: return "Show Quick-Edit bar"
+        case .mainWindow: return tr(.afterCaptureMainWindow)
+        case .quickEdit: return tr(.afterCaptureQuickEdit)
         }
     }
 }
