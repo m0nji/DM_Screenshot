@@ -1,4 +1,5 @@
 using DMShot.Capture;
+using System.Windows;
 namespace DMShot.Editor;
 
 public sealed class EditorModel
@@ -15,7 +16,21 @@ public sealed class EditorModel
     public bool CanRedo => _redo.Count > 0;
     public event Action? Changed;
 
+    // View-state for canvas zoom/pan (see ViewportMath). Authoritative.
+    public double UserScale { get; set; } = 1;     // absolute image→view scale (used when !IsFitMode)
+    public Point Pan { get; set; }                 // view-space pan beyond centering
+    public bool IsFitMode { get; set; } = true;    // true → follow BaseScale (auto-fit on resize)
+    public int ZoomPercent { get; set; } = 100;    // for the toolbar indicator (canvas updates it)
+    public event Action? ZoomChanged;
+
     public Annotation CreateStep() => new() { Kind = ToolKind.Step, StepNumber = ++_stepCounter };
+
+    public void ResetZoom()
+    {
+        IsFitMode = true;
+        Pan = new Point(0, 0);
+        ZoomChanged?.Invoke();
+    }
 
     public void Add(Annotation a)
     {
@@ -33,6 +48,7 @@ public sealed class EditorModel
     {
         var prev = Crop;
         Do(() => Crop = rect, () => Crop = prev);
+        ResetZoom();
     }
 
     private void Do(Action apply, Action revert)
