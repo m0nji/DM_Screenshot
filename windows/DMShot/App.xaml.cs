@@ -270,7 +270,8 @@ public partial class App : Application
     private void DeliverGif(IReadOnlyList<RecordedFrame> frames, double start, double end)
     {
         var (gif, thumb) = GifRenderer.Render(frames, start, end);
-        var entry = _history.AddVideo(thumb, gif, DateTime.UtcNow);
+        HistoryEntry entry;
+        using (thumb) { entry = _history.AddVideo(thumb, gif, DateTime.UtcNow); }
         _clipboard.SetGif(gif, entry.GifPath);                     // auto-copy the GIF
         var viewer = new GifViewerWindow(gif, entry.GifPath, _clipboard);
         viewer.Show(); viewer.Activate();                          // V20
@@ -280,10 +281,15 @@ public partial class App : Application
     /// <summary>V17: re-copy a stored GIF and open it in the viewer (instead of editing as an image).</summary>
     private void OpenGifViewerForEntry(HistoryEntry entry)
     {
-        var bytes = File.ReadAllBytes(entry.GifPath);
-        _clipboard.SetGif(bytes, entry.GifPath);
-        var viewer = new GifViewerWindow(bytes, entry.GifPath, _clipboard);
-        viewer.Show(); viewer.Activate();
+        if (string.IsNullOrEmpty(entry.GifPath) || !File.Exists(entry.GifPath)) return;
+        try
+        {
+            var bytes = File.ReadAllBytes(entry.GifPath);
+            _clipboard.SetGif(bytes, entry.GifPath);
+            var viewer = new GifViewerWindow(bytes, entry.GifPath, _clipboard);
+            viewer.Show(); viewer.Activate();
+        }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"open gif failed: {ex}"); }
     }
 
     [DllImport("user32.dll")] private static extern bool SetWindowPos(
