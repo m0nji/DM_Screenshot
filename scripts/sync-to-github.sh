@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Publish the current `main` source to the public GitHub repo as a source-only
-# snapshot (internal docs/ excluded, fresh single-commit history) and optionally
+# snapshot (internal docs/ and CLAUDE.md excluded, fresh single-commit history) and optionally
 # cut a release tag that triggers the notarization CI.
 #
 # Usage (from anywhere inside the repo):
@@ -14,7 +14,7 @@ set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 
 GITHUB_REMOTE="github"
-EXCLUDE=("docs")            # paths kept OUT of the public repo (and its history)
+EXCLUDE=("docs" "CLAUDE.md") # paths kept OUT of the public repo (and its history)
 TMP_BRANCH="_github_snapshot"
 TAG="${1:-}"
 
