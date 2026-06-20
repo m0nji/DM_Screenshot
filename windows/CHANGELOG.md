@@ -4,6 +4,12 @@ All notable changes to DM_Screenshot for Windows. Newest version first. Always w
 
 ## [Unreleased]
 
+## 0.2.7 – 2026-06-20
+- fix: Active/selected controls use white labels and icons on the orange accent instead of near-black (Windows)
+- fix: Sliders, checkboxes and radio buttons are now dark-themed instead of light system chrome (Windows)
+- fix: Settings sidebar entries show an orange border on hover, matching the main window (Windows)
+- feat: Tray menu now has "New Video (Full Screen)" and "New Video (Area)" entries (Windows)
+
 ## 0.2.6 – 2026-06-20
 - fix: Quick-Edit toolbar Copy / Save / Edit-in-main are now icon-only buttons, matching the macOS toolbar (Windows)
 - fix: Tray menu no longer shows a stray white separator line above Quit (the dark separator style was keyed wrong) (Windows)
