@@ -3,7 +3,12 @@
 All notable changes to DM_Screenshot. Newest version first. Always written in English.
 
 ## [Unreleased]
-- fix: The "What's new" in Settings → Updates now shows only the latest release's notes instead of the entire changelog history
+
+## 0.2.6 – 2026-06-20
+- fix: Quick-Edit toolbar Copy / Save / Edit-in-main are now icon-only buttons matching the macOS toolbar (Windows)
+- fix: Tray menu no longer shows a stray white separator line above Quit (Windows)
+- fix: Settings panes scroll when the content is tall, so the Updates "Download & Install" button is always reachable (Windows)
+- fix: The "What's new" in Settings → Updates now shows only the latest release's notes instead of the entire changelog history (macOS + Windows)
 
 ## 0.2.5 – 2026-06-20
 - fix: Settings → Updates now shows the actual installed version. The app version is stamped from the single-source-of-truth VERSION file at build time, instead of a stale hard-coded value (macOS)
