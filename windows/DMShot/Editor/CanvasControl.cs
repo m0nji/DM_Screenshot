@@ -88,7 +88,13 @@ public sealed class CanvasControl : FrameworkElement
         _offset = ViewportMath.Offset(ContentSize, ViewportSize, _scale, Model.Pan);
 
         int pct = (int)Math.Round(_scale * 100);
-        if (Model.ZoomPercent != pct) { Model.ZoomPercent = pct; Model.RaiseZoomChanged(); }
+        if (Model.ZoomPercent != pct)
+            Dispatcher.BeginInvoke(() =>
+            {
+                if (Model.ZoomPercent == pct) return;
+                Model.ZoomPercent = pct;
+                Model.RaiseZoomChanged();
+            });
 
         dc.PushTransform(new TranslateTransform(_offset.X, _offset.Y));
         dc.PushTransform(new ScaleTransform(_scale, _scale));
