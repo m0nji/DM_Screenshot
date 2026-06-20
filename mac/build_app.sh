@@ -16,6 +16,13 @@ rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/DMShot"
 cp Info.plist "$APP/Contents/Info.plist"
+# Stamp the real version (single source of truth: repo-root VERSION) into the
+# bundle, so the app shows it (Settings → Updates) and Sparkle version-compares
+# correctly. build_app.sh is used by both local dev and the release CI, so this
+# is the one place that keeps the shipped CFBundleVersion in sync with VERSION.
+APP_VERSION="$(tr -d '[:space:]' < ../VERSION)"
+/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $APP_VERSION" "$APP/Contents/Info.plist"
+/usr/libexec/PlistBuddy -c "Set :CFBundleVersion $APP_VERSION" "$APP/Contents/Info.plist"
 cp ../CHANGELOG.md "$APP/Contents/Resources/CHANGELOG.md"
 [ -f Resources/AppIcon.icns ] && cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns" || true
 

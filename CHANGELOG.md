@@ -4,6 +4,9 @@ All notable changes to DM_Screenshot. Newest version first. Always written in En
 
 ## [Unreleased]
 
+## 0.2.5 – 2026-06-20
+- fix: Settings → Updates now shows the actual installed version. The app version is stamped from the single-source-of-truth VERSION file at build time, instead of a stale hard-coded value (macOS)
+
 ## 0.2.4 – 2026-06-20
 - fix: A zoomed-in screenshot now stays inside the editor canvas instead of painting out over the sidebar and the rest of the window (macOS; Windows hardening)
 
