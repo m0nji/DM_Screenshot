@@ -79,5 +79,13 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.2.4/DM_Screenshot-v0.2.4.dmg" type="application/octet-stream" sparkle:edSignature="jzKi48BI+e/1S+jdvopCnraCnn34Zh1imPJru6LTZorqR3LaSlscn/xLrxKuVApZRCh5+oLGk3mlC6/UoPPyCA==" length="2223901" />
 </item>
 
+<item>
+  <title>Version 0.2.5</title>
+  <description><![CDATA[<ul><li>fix: Settings → Updates now shows the actual installed version. The app version is stamped from the single-source-of-truth VERSION file at build time, instead of a stale hard-coded value (macOS)</li></ul>]]></description>
+  <sparkle:version>0.2.5</sparkle:version>
+  <sparkle:shortVersionString>0.2.5</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.2.5/DM_Screenshot-v0.2.5.dmg" type="application/octet-stream" sparkle:edSignature="n0nuJ/HdAUevPqkcCZJ6fjxJ8TZ8VEnqFmSreM2xnvxeKjATo3Jj85laPQFDOfGZ6KCxVYxV6pk+He7ZSj2wDw==" length="2221494" />
+</item>
+
 </channel>
 </rss>
