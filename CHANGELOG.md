@@ -3,6 +3,7 @@
 All notable changes to DM_Screenshot. Newest version first. Always written in English.
 
 ## [Unreleased]
+- fix: The sidebar Settings button also shows the orange hover border on mouse-over now, and its gear icon lines up with the capture buttons above (macOS; Windows already had it)
 
 ## 0.3.1 – 2026-06-20
 - fix: The editor sidebar capture buttons (Full Screen / Selection / Video Full Screen / Video Section) now show the orange hover border on mouse-over, matching the Settings sidebar (macOS; Windows already had it)

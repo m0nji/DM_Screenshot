@@ -145,11 +145,7 @@ struct EditorView: View {
                 }
             }
             Divider()
-            Button(action: onOpenSettings) {
-                Label(tr(.settings), systemImage: "gearshape")
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .buttonStyle(.bordered)
+            CaptureButton(title: tr(.settings), icon: "gearshape", action: onOpenSettings)
         }
         .padding(8)
     }
