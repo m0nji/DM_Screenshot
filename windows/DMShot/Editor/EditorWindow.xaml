@@ -169,6 +169,9 @@
           <Rectangle Style="{StaticResource VDivider}"/>
 
           <TextBlock x:Name="DimText" Foreground="{StaticResource DmTextDim}" VerticalAlignment="Center" FontSize="12"/>
+          <Button x:Name="ZoomBtn" Content="100%" Click="ResetZoomClick" Cursor="Hand"
+                  Background="Transparent" BorderThickness="0" Padding="8,2" Margin="8,0,0,0"
+                  Foreground="{StaticResource DmTextDim}" FontSize="12" ToolTip="Reset zoom to fit"/>
         </StackPanel>
       </ScrollViewer>
     </Border>

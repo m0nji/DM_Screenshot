@@ -131,11 +131,73 @@ public sealed class CanvasControl : FrameworkElement
             dc.DrawRectangle(fill, white, new Rect(p.X - hr, p.Y - hr, hr * 2, hr * 2));
     }
 
+    // ===== Zoom / pan =====
+    private void ApplyZoom((double Scale, Point Pan) r)
+    {
+        double bas = ViewportMath.BaseScale(ContentSize, ViewportSize, Pad);
+        if (r.Scale <= bas + 0.0001) { Model.IsFitMode = true; Model.Pan = new Point(0, 0); }
+        else { Model.IsFitMode = false; Model.UserScale = r.Scale; Model.Pan = r.Pan; }
+        InvalidateVisual();
+    }
+
+    private void ZoomAt(double factor, Point anchor)
+        => ApplyZoom(ViewportMath.PanForZoomAtPoint(anchor, ContentSize, ViewportSize, Pad, _origin,
+                                                    _scale, Model.Pan, _scale * factor));
+
+    private Point Center => new(ActualWidth / 2, ActualHeight / 2);
+    public void ZoomInCenter()  { if (_source is not null) ZoomAt(ViewportMath.ZoomStep, Center); }
+    public void ZoomOutCenter() { if (_source is not null) ZoomAt(1 / ViewportMath.ZoomStep, Center); }
+    public void ResetFit()      { Model.ResetZoom(); InvalidateVisual(); }
+    public void ActualSize()
+    {
+        if (_source is null) return;
+        ApplyZoom(ViewportMath.PanForZoomAtPoint(Center, ContentSize, ViewportSize, Pad, _origin,
+                                                 _scale, Model.Pan, 1.0));
+    }
+
+    private void PanBy(double dx, double dy)
+    {
+        var moved = new Point(Model.Pan.X + dx, Model.Pan.Y + dy);
+        Model.Pan = ViewportMath.ClampPan(ContentSize, ViewportSize, _scale, moved);
+        InvalidateVisual();
+    }
+
+    protected override void OnMouseWheel(MouseWheelEventArgs e)
+    {
+        if (_source is null) return;
+        if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
+            ZoomAt(e.Delta > 0 ? ViewportMath.ZoomStep : 1 / ViewportMath.ZoomStep, e.GetPosition(this));
+        else if (Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
+            PanBy(e.Delta, 0);   // negate if it feels inverted on real hardware
+        else
+            PanBy(0, e.Delta);
+        e.Handled = true;
+    }
+
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        if (e.Key == Key.Space && !_space) { _space = true; Cursor = Cursors.Hand; e.Handled = true; }
+        base.OnKeyDown(e);
+    }
+
+    protected override void OnKeyUp(KeyEventArgs e)
+    {
+        if (e.Key == Key.Space) { _space = false; Cursor = Cursors.Arrow; e.Handled = true; }
+        base.OnKeyUp(e);
+    }
+
     // ===== Drawing / selecting =====
     protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
     {
         if (_source is null) return;
         Focus();
+        if (_space)
+        {
+            _grabStartView = e.GetPosition(this);
+            _grabStartPan = Model.Pan;
+            CaptureMouse();
+            return;
+        }
         var p = ToImage(e.GetPosition(this));
 
         if (ActiveTool == ToolKind.Select)
@@ -164,6 +226,15 @@ public sealed class CanvasControl : FrameworkElement
 
     protected override void OnMouseMove(MouseEventArgs e)
     {
+        if (_space && IsMouseCaptured && Mouse.LeftButton == MouseButtonState.Pressed)
+        {
+            var cur = e.GetPosition(this);
+            var moved = new Point(_grabStartPan.X + (cur.X - _grabStartView.X),
+                                  _grabStartPan.Y + (cur.Y - _grabStartView.Y));
+            Model.Pan = ViewportMath.ClampPan(ContentSize, ViewportSize, _scale, moved);
+            InvalidateVisual();
+            return;
+        }
         var p = ToImage(e.GetPosition(this));
 
         if (_resizing && _selected is not null)
@@ -192,6 +263,7 @@ public sealed class CanvasControl : FrameworkElement
 
     protected override void OnMouseLeftButtonUp(MouseButtonEventArgs e)
     {
+        if (_space) { if (IsMouseCaptured) ReleaseMouseCapture(); return; }
         if (_resizing) { _resizing = false; _handle = -1; ReleaseMouseCapture(); return; }
         if (_moving) { _moving = false; ReleaseMouseCapture(); return; }
         if (_draft is null) return;
