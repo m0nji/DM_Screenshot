@@ -92,6 +92,8 @@ public partial class SettingsWindow : Window
         Pane.Children.Add(SectionTitle("Shortcuts"));
         Pane.Children.Add(Row("Full screen", _settings.FullScreenHotkey, h => { _settings.FullScreenHotkey = h; Commit(); }));
         Pane.Children.Add(Row("Area selection", _settings.AreaHotkey, h => { _settings.AreaHotkey = h; Commit(); }));
+        Pane.Children.Add(Row("Record full screen", _settings.VideoFullHotkey, h => { _settings.VideoFullHotkey = h; Commit(); }));
+        Pane.Children.Add(Row("Record area", _settings.VideoAreaHotkey, h => { _settings.VideoAreaHotkey = h; Commit(); }));
         Pane.Children.Add(new TextBlock
         {
             Text = "Click a field and press the new key combination.",

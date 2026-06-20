@@ -14,6 +14,8 @@ public partial class EditorWindow : Window
     public Action? OnRequestFullScreen { get; set; }
     public Action? OnRequestArea { get; set; }
     public Action? OnRequestSettings { get; set; }
+    /// <summary>V17: invoked when a video history entry is clicked, instead of loading it as an image.</summary>
+    public Action<HistoryEntry>? OnVideoEntryActivated { get; set; }
 
     public sealed record HistoryVM(string Id, System.Windows.Media.ImageSource Thumb);
     public HistoryStore? Store { get; set; }
@@ -167,6 +169,11 @@ public partial class EditorWindow : Window
         if (Store is null || HistoryList.SelectedItem is not HistoryVM vm) return;
         var entry = Store.Entries.FirstOrDefault(x => x.Id == vm.Id);
         if (entry is null) return;
+        if (entry.Kind == HistoryKind.Video)   // V17: re-open GIF in viewer instead of loading as image
+        {
+            OnVideoEntryActivated?.Invoke(entry);
+            return;
+        }
         using var bmp = new System.Drawing.Bitmap(entry.OriginalPngPath);
         LoadImage(bmp);
         foreach (var d in entry.Annotations) Canvas.Model.Add(d.To());

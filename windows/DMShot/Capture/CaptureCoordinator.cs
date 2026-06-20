@@ -12,6 +12,9 @@ public sealed class CaptureCoordinator
 
     private readonly IScreenCapturer _capturer;
     public event Action<CaptureResult>? CaptureProduced;
+    /// <summary>Raised when a video recording is requested for a display, with an optional crop
+    /// (the selection in that display's local source pixels; null = whole display).</summary>
+    public event Action<DisplayInfo, PixelRect?>? VideoRequested;
     public CaptureCoordinator(IScreenCapturer capturer) => _capturer = capturer;
 
     public void CaptureFullScreen()
@@ -45,6 +48,37 @@ public sealed class CaptureCoordinator
                     var screenRect = CaptureGeometry.ScreenRect(r, d.Bounds);
                     CaptureProduced?.Invoke(new CaptureResult(cropped, screenRect, d.Bounds));
                 }
+            };
+            overlays.Add(o);
+        }
+        foreach (var o in overlays) o.Show();
+    }
+
+    public void StartVideoFull()
+    {
+        var displays = _capturer.GetDisplays();
+        var target = DisplayUnderCursor(displays);
+        VideoRequested?.Invoke(target, null);          // null crop = whole display
+    }
+
+    public void StartVideoArea()
+    {
+        var displays = _capturer.GetDisplays();
+        var overlays = new List<OverlayWindow>();
+        bool done = false;
+
+        foreach (var d in displays)
+        {
+            var frozen = _capturer.CaptureDisplay(d);
+            var o = new OverlayWindow(d, frozen);
+            var display = d;
+            o.Finished += (win, committed) =>
+            {
+                if (done) return;
+                done = true;
+                foreach (var ov in overlays) ov.Close();
+                if (committed && win.Result is { } r && r.Width > 0 && r.Height > 0)
+                    VideoRequested?.Invoke(display, r);  // r = selection in display-local source px
             };
             overlays.Add(o);
         }
