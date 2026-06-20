@@ -9,7 +9,7 @@
       <TextBlock x:Name="TimerText" Text="00:00" Foreground="White" FontSize="14"
                  VerticalAlignment="Center" Margin="0,0,12,0"/>
       <Button x:Name="StopButton" Content="Stop" MinWidth="56" Height="28"
-              Foreground="#1A1A1A" Background="#C97B4A" BorderThickness="0"/>
+              Foreground="{StaticResource DmOnAccent}" Background="#C97B4A" BorderThickness="0"/>
     </StackPanel>
   </Border>
 </Window>
