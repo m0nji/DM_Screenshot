@@ -23,7 +23,9 @@ public sealed class NotifyIconTray : ITrayIcon
         };
         var menu = new ContextMenu { Style = MenuStyle };
         menu.Resources.Add(typeof(MenuItem), MenuItemStyle);
-        menu.Resources.Add(typeof(Separator), SeparatorStyle);
+        // A Separator inside a menu is styled via MenuItem.SeparatorStyleKey, NOT typeof(Separator)
+        // — keying it wrong left the OS default (a bright white line) showing on the dark menu.
+        menu.Resources.Add(MenuItem.SeparatorStyleKey, SeparatorStyle);
         menu.Items.Add(Item("New Fullscreen Shot", () => FullScreenRequested?.Invoke()));
         menu.Items.Add(Item("New Area Shot", () => AreaRequested?.Invoke()));
         menu.Items.Add(Item("Open Editor", () => OpenRequested?.Invoke()));

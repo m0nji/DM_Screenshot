@@ -3,6 +3,7 @@
 All notable changes to DM_Screenshot. Newest version first. Always written in English.
 
 ## [Unreleased]
+- fix: The "What's new" in Settings → Updates now shows only the latest release's notes instead of the entire changelog history
 
 ## 0.2.5 – 2026-06-20
 - fix: Settings → Updates now shows the actual installed version. The app version is stamped from the single-source-of-truth VERSION file at build time, instead of a stale hard-coded value (macOS)

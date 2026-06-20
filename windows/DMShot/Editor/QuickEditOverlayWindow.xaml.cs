@@ -110,6 +110,10 @@ public partial class QuickEditOverlayWindow : Window
     private const string SizeGeo  = "M4,8 L20,8 L20,9.4 L4,9.4 Z M4,13 L20,13 L20,16 L4,16 Z";
     private const string UndoGeo  = "M9,6 L5,9.5 L9,13 M5,9.5 L14,9.5 C17,9.5 19,11.6 19,14.2 C19,16.8 17,18.5 14.3,18.5 L11,18.5";
     private const string CloseGeo = "M6.5,6.5 L17.5,17.5 M17.5,6.5 L6.5,17.5";
+    // Action icons mirror the macOS toolbar's SF Symbols: doc.on.doc / square.and.arrow.down / macwindow.
+    private const string CopyGeo  = "M8,8 L19,8 L19,20 L8,20 Z M5,4 L16,4 L16,16 L5,16 Z";
+    private const string SaveGeo  = "M12,4 L12,13 M8.5,9.5 L12,13 L15.5,9.5 M5,15 L5,19.5 L19,19.5 L19,15";
+    private const string MainGeo  = "M4,5 L20,5 L20,19 L4,19 Z M4,9 L20,9";
 
     private Border BuildToolbar()
     {
@@ -132,9 +136,10 @@ public partial class QuickEditOverlayWindow : Window
         row.Children.Add(IconAction(Icon(SizeGeo, true), "Size / blur strength", ToggleSizeFlyout));
         row.Children.Add(IconAction(Icon(UndoGeo, false), "Undo", () => Canvas.Model.Undo()));
         row.Children.Add(Divider());
-        row.Children.Add(ActionButton("Copy", primary: true, () => CopyRequested?.Invoke()));
-        row.Children.Add(ActionButton("Save", primary: false, () => SaveRequested?.Invoke()));
-        row.Children.Add(ActionButton("Edit in main", primary: false, () => EditInMainRequested?.Invoke()));
+        // Icon-only actions (no text labels), matching the macOS Quick-Edit toolbar.
+        row.Children.Add(IconAction(Icon(CopyGeo, false), "Copy", () => CopyRequested?.Invoke()));
+        row.Children.Add(IconAction(Icon(SaveGeo, false), "Save", () => SaveRequested?.Invoke()));
+        row.Children.Add(IconAction(Icon(MainGeo, false), "Edit in main window", () => EditInMainRequested?.Invoke()));
         row.Children.Add(IconAction(Icon(CloseGeo, false), "Close", CloseOverlay));
 
         return new Border
@@ -150,13 +155,6 @@ public partial class QuickEditOverlayWindow : Window
     private Button IconAction(UIElement icon, string tip, Action onClick)
     {
         var b = new Button { Style = IconButtonStyle, Content = icon, ToolTip = tip };
-        b.Click += (_, _) => onClick();
-        return b;
-    }
-
-    private Button ActionButton(string text, bool primary, Action onClick)
-    {
-        var b = new Button { Style = primary ? PrimaryActionStyle : SecondaryActionStyle, Content = text };
         b.Click += (_, _) => onClick();
         return b;
     }
@@ -220,40 +218,6 @@ public partial class QuickEditOverlayWindow : Window
       <ControlTemplate.Triggers>
         <Trigger Property='IsMouseOver' Value='True'><Setter TargetName='b' Property='Background' Value='#34343C'/></Trigger>
         <Trigger Property='IsPressed' Value='True'><Setter TargetName='b' Property='Background' Value='#41414B'/></Trigger>
-      </ControlTemplate.Triggers>
-    </ControlTemplate>
-  </Setter.Value></Setter>
-</Style>");
-
-    private static readonly Style SecondaryActionStyle = S(
-@"<Style xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation' xmlns:x='http://schemas.microsoft.com/winfx/2006/xaml' TargetType='Button'>
-  <Setter Property='Height' Value='30'/><Setter Property='Margin' Value='3,0'/><Setter Property='Padding' Value='12,0'/>
-  <Setter Property='Foreground' Value='#E8E8EA'/><Setter Property='FontSize' Value='13'/><Setter Property='Cursor' Value='Hand'/>
-  <Setter Property='Template'><Setter.Value>
-    <ControlTemplate TargetType='Button'>
-      <Border x:Name='b' CornerRadius='8' Background='#3A3A42' Padding='{TemplateBinding Padding}'>
-        <ContentPresenter HorizontalAlignment='Center' VerticalAlignment='Center'/>
-      </Border>
-      <ControlTemplate.Triggers>
-        <Trigger Property='IsMouseOver' Value='True'><Setter TargetName='b' Property='Background' Value='#47474F'/></Trigger>
-        <Trigger Property='IsPressed' Value='True'><Setter TargetName='b' Property='Background' Value='#2E2E35'/></Trigger>
-      </ControlTemplate.Triggers>
-    </ControlTemplate>
-  </Setter.Value></Setter>
-</Style>");
-
-    private static readonly Style PrimaryActionStyle = S(
-@"<Style xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation' xmlns:x='http://schemas.microsoft.com/winfx/2006/xaml' TargetType='Button'>
-  <Setter Property='Height' Value='30'/><Setter Property='Margin' Value='3,0'/><Setter Property='Padding' Value='14,0'/>
-  <Setter Property='Foreground' Value='#1A1A1A'/><Setter Property='FontSize' Value='13'/><Setter Property='FontWeight' Value='SemiBold'/><Setter Property='Cursor' Value='Hand'/>
-  <Setter Property='Template'><Setter.Value>
-    <ControlTemplate TargetType='Button'>
-      <Border x:Name='b' CornerRadius='8' Background='#C97B4A' Padding='{TemplateBinding Padding}'>
-        <ContentPresenter HorizontalAlignment='Center' VerticalAlignment='Center'/>
-      </Border>
-      <ControlTemplate.Triggers>
-        <Trigger Property='IsMouseOver' Value='True'><Setter TargetName='b' Property='Background' Value='#D7894F'/></Trigger>
-        <Trigger Property='IsPressed' Value='True'><Setter TargetName='b' Property='Background' Value='#B96C3E'/></Trigger>
       </ControlTemplate.Triggers>
     </ControlTemplate>
   </Setter.Value></Setter>

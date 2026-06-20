@@ -3,6 +3,10 @@
 All notable changes to DM_Screenshot for Windows. Newest version first. Always written in English.
 
 ## [Unreleased]
+- fix: Tray menu no longer shows a stray white separator line above Quit (the dark separator style was keyed wrong) (Windows)
+- fix: Quick-Edit toolbar Copy / Save / Edit-in-main are now icon-only buttons, matching the macOS toolbar (Windows)
+- fix: Settings panes scroll when content is tall, so the Updates "Download & Install" button is always reachable (Windows)
+- fix: The "What's new" in Settings → Updates now shows only the latest release's notes instead of the entire changelog history (Windows)
 
 ## 0.2.2 – 2026-06-20
 - feat: Video/GIF capture — record full screen or a selected region (Ctrl+Alt+1 / Ctrl+Alt+2),

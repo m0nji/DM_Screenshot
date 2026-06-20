@@ -83,10 +83,7 @@ final class Updater: NSObject, ObservableObject, SPUUserDriver, SPUUpdaterDelega
     }
 
     private func notesNewerThanCurrent(_ appcastVersion: String) -> [ChangelogVersion] {
-        let all = Changelog.bundled()
-        // Show the matched version's notes if present; otherwise everything (best effort).
-        let matched = all.filter { $0.version == appcastVersion }
-        return matched.isEmpty ? all : matched
+        Changelog.notes(Changelog.bundled(), for: appcastVersion)
     }
 
     // MARK: SPUUserDriver
