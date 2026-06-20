@@ -109,5 +109,14 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.2.7/DM_Screenshot-v0.2.7.dmg" type="application/octet-stream" sparkle:edSignature="jpSL/tNWdAd2TxPuAdZvI2rORLDX+Zzo2nNrM5Qk2JhyCUsGfRnwUgrzQbpZ4LvqMT+RBSg2tx0qHqZW8UWNBw==" length="2225544" />
 </item>
 
+<item>
+  <title>Version 0.2.8</title>
+  <description><![CDATA[<ul><li>feat: DM_Screenshot is now available in German as well as English. Switch live (no restart) under Settings → Language; English stays the default. Menus, tooltips, settings, dialogs and the editor are all translated (macOS + Windows)</li>
+<li>fix: Sidebar capture-button labels (Full Screen / Selection / Video Full Screen / Video Section) now line up consistently, instead of "Selection" sitting slightly off (macOS)</li></ul>]]></description>
+  <sparkle:version>0.2.8</sparkle:version>
+  <sparkle:shortVersionString>0.2.8</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.2.8/DM_Screenshot-v0.2.8.dmg" type="application/octet-stream" sparkle:edSignature="8vYi7qHBPQ6SmbnwYekAZ3vTN8DfPOsZiVViR63mn5+1qGhipyvEfcbmrg3cqXlvnuKv2Ui58VNHhcCMybEZDQ==" length="2253718" />
+</item>
+
 </channel>
 </rss>
