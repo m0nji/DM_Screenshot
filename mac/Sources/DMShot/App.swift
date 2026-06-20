@@ -58,8 +58,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private func setupStatusItem() {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = item.button {
+            // Enlarged so the camera-in-viewfinder fills the menu bar (matches the app icon motif).
+            let config = NSImage.SymbolConfiguration(pointSize: 18, weight: .regular)
             let icon = NSImage(systemSymbolName: "camera.viewfinder",
-                               accessibilityDescription: "DM_Screenshot")
+                               accessibilityDescription: "DM_Screenshot")?
+                .withSymbolConfiguration(config)
             icon?.isTemplate = true  // monochrome, adapts to light/dark menu bar
             button.image = icon
         }

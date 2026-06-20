@@ -1,0 +1,19 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <mask id="cam">
+      <rect x="0" y="0" width="1024" height="1024" fill="black"/>
+      <rect x="347" y="418" width="330" height="218" rx="50" fill="white"/>
+      <rect x="450" y="374" width="146" height="56" rx="24" fill="white"/>
+      <circle cx="512" cy="527" r="78" fill="black"/>
+      <circle cx="512" cy="527" r="24" fill="white"/>
+    </mask>
+  </defs>
+  <!-- filling white camera-in-viewfinder glyph, transparent background -->
+  <g fill="none" stroke="#ffffff" stroke-width="76" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M 110 262 L 110 110 L 262 110"/>
+    <path d="M 762 110 L 914 110 L 914 262"/>
+    <path d="M 110 762 L 110 914 L 262 914"/>
+    <path d="M 914 762 L 914 914 L 762 914"/>
+  </g>
+  <rect x="0" y="0" width="1024" height="1024" fill="#ffffff" mask="url(#cam)"/>
+</svg>

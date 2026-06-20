@@ -49,13 +49,14 @@ public sealed class NotifyIconTray : ITrayIcon
         _icon.ContextMenu = menu;
     }
 
-    // Tries the bundled .ico (added in Task 17); falls back to a generated orange
-    // marker so the tray icon is still visible before the final art ships.
+    // Tray uses the dedicated filling camera-in-viewfinder glyph (white on transparent),
+    // matching the macOS menu-bar symbol — not the full app squircle. Falls back to a
+    // generated white viewfinder marker if the bundled .ico is missing.
     private static ImageSource LoadIcon()
     {
         try
         {
-            return new BitmapImage(new Uri("pack://application:,,,/Resources/AppIcon.ico"));
+            return new BitmapImage(new Uri("pack://application:,,,/Resources/TrayIcon.ico"));
         }
         catch
         {
@@ -63,10 +64,8 @@ public sealed class NotifyIconTray : ITrayIcon
             var dv = new DrawingVisual();
             using (var dc = dv.RenderOpen())
             {
-                dc.DrawRoundedRectangle(new SolidColorBrush(Color.FromRgb(0x1F, 0x1F, 0x24)), null,
-                    new System.Windows.Rect(0, 0, 16, 16), 3, 3);
-                dc.DrawRectangle(null, new System.Windows.Media.Pen(new SolidColorBrush(Color.FromRgb(0xC9, 0x7B, 0x4A)), 1.5),
-                    new System.Windows.Rect(3, 3, 10, 10));
+                dc.DrawRectangle(null, new System.Windows.Media.Pen(new SolidColorBrush(Colors.White), 1.5),
+                    new System.Windows.Rect(2, 2, 12, 12));
             }
             rtb.Render(dv);
             rtb.Freeze();
