@@ -3,6 +3,7 @@ using System.Windows;
 using DMShot.Capture;
 using DMShot.Editor;
 using DMShot.History;
+using DMShot.Localization;
 using DMShot.Platform;
 using DMShot.Settings;
 using DMShot.Update;
@@ -36,6 +37,9 @@ public partial class App : Application
 
         _settingsStore = SettingsStore.Default();
         _settings = _settingsStore.Load();
+        // Seed the interface language from the persisted setting before any window
+        // or the tray menu is built, so the first paint is already localized.
+        Loc.Instance.Current = LanguageCodes.FromCode(_settings.Language);
 
         _hotkeys = new Win32HotkeyManager();
         _hotkeys.HotkeyPressed += id =>
