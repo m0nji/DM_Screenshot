@@ -1,0 +1,51 @@
+# Changelog
+
+All notable changes to DM_Screenshot. Newest version first. Always written in English.
+
+## [Unreleased]
+
+## 0.2.5 – 2026-06-20
+- fix: Settings → Updates now shows the actual installed version. The app version is stamped from the single-source-of-truth VERSION file at build time, instead of a stale hard-coded value (macOS)
+
+## 0.2.4 – 2026-06-20
+- fix: A zoomed-in screenshot now stays inside the editor canvas instead of painting out over the sidebar and the rest of the window (macOS; Windows hardening)
+
+## 0.2.3 – 2026-06-20
+- feat: Editor zoom & pan — the screenshot now fits the editor window instead of resizing it to the capture; zoom toward the cursor with Ctrl/⌘+mouse-wheel or a trackpad pinch, pan with scroll / Shift+scroll or Space-drag, and reset from the toolbar zoom-% indicator (⌘/Ctrl 0 = fit, 1 = 100%). Small captures open at 100% and large ones scale to fit, while the window stays a stable, resizable size (macOS + Windows)
+
+## 0.2.2 – 2026-06-20
+- feat: Quick-Edit in-place markup overlay is now on Windows — a capture appears framed over a dimmed backdrop with a compact floating toolbar so you can mark it up in place; enable via Settings → General → After capture, with the same reduced tools, color/size flyouts, undo, and one-click "Edit in main window" that carries annotations over (Windows)
+- feat: Video/GIF capture is now on Windows — record the full screen or a section (Ctrl+Alt+1 / Ctrl+Alt+2), trim the clip, and copy an optimized animated GIF (≤1000px, 10fps, max 60s) that pastes into Teams/Outlook; clips are kept in history and can be re-copied or saved (Windows)
+- feat: Record full-screen / section buttons added to the editor sidebar alongside the image-capture buttons (Windows)
+- fix: Windows theming polish — dark title bars on the preview and GIF windows, a readable dark tray menu and dark tooltips, and a restyled Quick-Edit toolbar with proper icons and buttons; the preview/GIF action buttons are no longer clipped at the default window size (Windows)
+
+## 0.2.1 – 2026-06-19
+- fix: Section (area) video recordings of mostly-static content now work — previously the GIF preview never appeared after Stop (macOS)
+- fix: Recording a second clip no longer crashes the app while a preview is still open (macOS)
+- fix: The trim/preview window, and the created GIF, now come to the front automatically (after Stop, and after “Create GIF”) (macOS)
+- feat: A highlight frame marks the recorded region during a section recording, and DM_Screenshot now steps aside while you record so it stays out of the way and out of the recording (macOS)
+- fix: The Screen Recording permission notice offers a one-click “Relaunch Now” so a freshly granted permission applies immediately (macOS)
+
+## 0.2.0 – 2026-06-19
+- feat: Video/GIF capture — record the full screen or a section (Cmd+Ctrl+1 / Cmd+Ctrl+2), trim the clip, and copy an animated GIF for pasting into chat/email (max 60s)
+- feat: Quick-Edit bar — optionally mark up a screenshot in place: the capture appears framed over a dimmed backdrop with a compact floating toolbar (Settings → General → After capture), offering the same tools, color/size flyouts, undo, and one-click escalation to the main window
+
+## 0.1.4 – 2026-06-19
+- fix: Area capture (⌘⇧2) now lets you drag a selection on the very first click — previously the first click was swallowed to activate the overlay, so a selection only worked on the second click (macOS)
+- fix: The resizable left-sidebar handle is grabbable again and no longer draws a stray line across the editor canvas (macOS)
+- feat: Windows automatic updates — DM_Screenshot for Windows now checks for new versions on launch and from Settings → Updates, shows a themed "What's new" from the changelog, and installs the update with one click (Velopack, matching the macOS auto-updater)
+
+## 0.1.3 – 2026-06-19
+- fix: Area-capture overlay now shows the crosshair cursor immediately when it appears — no initial click needed to take focus (macOS and Windows)
+- feat: Delete a single history capture by hovering its thumbnail and clicking the trash button
+- feat: The left sidebar is now resizable by dragging its edge; history previews scale with the sidebar width
+
+## 0.1.2 – 2026-06-19
+- feat: Automatic updates — DM_Screenshot now checks for new versions on launch and from Settings → Updates, shows a themed "What's new" with the changelog, and installs the update with one click
+
+## 0.1.1 – 2026-06-18
+- feat: Editor crosshair cursor and a menu-bar icon
+- fix: Saved screenshots use a timestamped name (DM_Screenshot_DDMMYYYY_HH_MM) with _1/_2 suffixes for same-minute collisions
+
+## 0.1.0 – 2026-06-16
+- feat: First native macOS release — full-screen and area capture, annotation editor (arrow, box, ellipse, line, pen, mosaic blur, text, step numbers, highlighter, crop), copy and save, history sidebar, editable shortcuts, launch-at-login
