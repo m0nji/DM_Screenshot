@@ -12,6 +12,8 @@ public sealed class NotifyIconTray : ITrayIcon
     public event Action? OpenRequested;
     public event Action? FullScreenRequested;
     public event Action? AreaRequested;
+    public event Action? VideoFullRequested;
+    public event Action? VideoAreaRequested;
     public event Action? SettingsRequested;
     public event Action? QuitRequested;
 
@@ -32,9 +34,14 @@ public sealed class NotifyIconTray : ITrayIcon
     {
         var menu = new ContextMenu { Style = MenuStyle };
         menu.Resources.Add(typeof(MenuItem), MenuItemStyle);
-        menu.Resources.Add(typeof(Separator), SeparatorStyle);
+        // A Separator inside a menu is styled via MenuItem.SeparatorStyleKey, NOT typeof(Separator)
+        // — keying it wrong left the OS default (a bright white line) showing on the dark menu.
+        menu.Resources.Add(MenuItem.SeparatorStyleKey, SeparatorStyle);
         menu.Items.Add(Item(Loc.Instance["menuNewFullScreen"], () => FullScreenRequested?.Invoke()));
         menu.Items.Add(Item(Loc.Instance["menuNewSelection"], () => AreaRequested?.Invoke()));
+        menu.Items.Add(Item(Loc.Instance["menuNewVideoFull"], () => VideoFullRequested?.Invoke()));
+        menu.Items.Add(Item(Loc.Instance["menuNewVideoArea"], () => VideoAreaRequested?.Invoke()));
+        menu.Items.Add(new Separator());
         menu.Items.Add(Item(Loc.Instance["menuOpenWindow"], () => OpenRequested?.Invoke()));
         menu.Items.Add(Item(Loc.Instance["menuSettings"], () => SettingsRequested?.Invoke()));
         menu.Items.Add(new Separator());

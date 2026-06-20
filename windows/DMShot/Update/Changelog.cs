@@ -1,4 +1,5 @@
 using System.IO;
+using System.Linq;
 namespace DMShot.Update;
 
 public readonly record struct ChangelogEntry(string Kind, string Text);
@@ -60,6 +61,22 @@ public static class Changelog
         }
         Flush();
         return versions;
+    }
+
+    /// <summary>
+    /// Release notes to show for an offered <paramref name="version"/>: that version's entries
+    /// if the bundled changelog has them, otherwise just the most recent version that has
+    /// content. Empty placeholder sections (e.g. "[Unreleased]") are never shown. This keeps
+    /// the Updates pane to the latest changes rather than the whole history — the installed
+    /// build's changelog never contains the newer offered version, so an exact match usually
+    /// fails and we'd otherwise dump everything.
+    /// </summary>
+    public static IReadOnlyList<ChangelogVersion> NotesFor(IReadOnlyList<ChangelogVersion> all, string version)
+    {
+        var withContent = all.Where(v => v.Entries.Count > 0).ToList();
+        var matched = withContent.Where(v => v.Version == version).ToList();
+        if (matched.Count > 0) return matched;
+        return withContent.Count > 0 ? withContent.GetRange(0, 1) : new List<ChangelogVersion>();
     }
 
     /// <summary>Load + parse the CHANGELOG.md bundled next to the executable (empty if missing).</summary>

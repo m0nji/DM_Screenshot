@@ -66,6 +66,8 @@ public partial class App : Application
         _tray = new NotifyIconTray();
         _tray.FullScreenRequested += () => _coordinator.CaptureFullScreen();
         _tray.AreaRequested += () => _coordinator.CaptureArea();
+        _tray.VideoFullRequested += () => _coordinator.StartVideoFull();
+        _tray.VideoAreaRequested += () => _coordinator.StartVideoArea();
         _tray.OpenRequested += ShowEditor;
         _tray.SettingsRequested += OpenSettings;
         _tray.QuitRequested += () => Shutdown();

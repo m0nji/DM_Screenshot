@@ -23,7 +23,7 @@ Definition of done for a behavior change:
 |---|---|---|---|
 | Version | `VERSION` file (repo root) | `mac/Info.plist` (build copies it); `App.swift` fallback | `windows/DMShot/DMShot.csproj` reads `VERSION` at build |
 | Accent (brand orange) | `#c97b4a` | `Theme.swift` `accentHex` | `Theme/DmTheme.xaml` `DmAccent` |
-| On-accent label | `#1a1a1a` | `Theme.swift` `onAccentHex` | `DmTheme.xaml` `DmOnAccent` |
+| On-accent label | `#ffffff` | `Theme.swift` `onAccentHex` | `DmTheme.xaml` `DmOnAccent` |
 | Default hotkeys | `Ctrl/Cmd+Shift+1` full, `+2` area; `Cmd+Ctrl+1` video full, `Cmd+Ctrl+2` video area | `Shortcuts`/`Settings` | `Settings/Settings.cs` (`FullScreenHotkey`, `AreaHotkey`, `VideoFullHotkey`=`Ctrl+Alt+1`, `VideoAreaHotkey`=`Ctrl+Alt+2`) |
 | History limit | 10 | `HistoryStore.swift` | `History/HistoryStore.cs` |
 | Color palette | red/amber/green/blue/purple/black/white (+orange) | `EditorView.swift` `palette` | `Editor/EditorWindow.xaml` palette |

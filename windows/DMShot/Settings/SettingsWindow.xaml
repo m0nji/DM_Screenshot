@@ -43,9 +43,11 @@
       </ListBox>
     </Border>
 
-    <!-- Content -->
-    <Border Grid.Column="1" Padding="28,24">
+    <!-- Content (scrollable so long panes — e.g. Updates with release notes — can reach
+         their action buttons) -->
+    <ScrollViewer Grid.Column="1" Padding="28,24" VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled">
       <StackPanel x:Name="Pane"/>
-    </Border>
+    </ScrollViewer>
   </Grid>
 </Window>

@@ -89,12 +89,7 @@ public sealed class UpdaterService
 
     public void Dismiss() => Set(_mgr.IsInstalled ? UpdateState.Idle : UpdateState.Disabled);
 
-    private IReadOnlyList<ChangelogVersion> NotesFor(string version)
-    {
-        var all = Changelog.Bundled();
-        var matched = all.Where(v => v.Version == version).ToList();
-        return matched.Count == 0 ? all : matched;
-    }
+    private IReadOnlyList<ChangelogVersion> NotesFor(string version) => Changelog.NotesFor(Changelog.Bundled(), version);
 
     private void Set(UpdateState s)
     {

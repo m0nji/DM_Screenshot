@@ -66,8 +66,11 @@ struct SettingsView: View {
         }
     }
 
+    @State private var hoveredSection: SettingsSection?
+
     private func navButton(_ s: SettingsSection) -> some View {
         let active = section == s
+        let hovered = hoveredSection == s
         return Button {
             section = s
         } label: {
@@ -76,9 +79,17 @@ struct SettingsView: View {
                 .padding(.horizontal, 10)
                 .padding(.vertical, 7)
                 .background(RoundedRectangle(cornerRadius: 7).fill(active ? Color.dmAccent : Color.clear))
+                // Orange hover border on non-active rows, matching the Windows sidebar.
+                .overlay(
+                    RoundedRectangle(cornerRadius: 7)
+                        .stroke(Color.dmAccent, lineWidth: 1)
+                        .opacity(!active && hovered ? 1 : 0)
+                )
                 .foregroundStyle(active ? Color.dmOnAccent : Color.primary)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .onHover { hoveredSection = $0 ? s : (hoveredSection == s ? nil : hoveredSection) }
     }
 
     @ViewBuilder private var detail: some View {

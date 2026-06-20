@@ -4,7 +4,7 @@ import SwiftUI
 /// DM app family accent (shared with DM_Voice / DM_Workspace).
 enum Theme {
     static let accentHex = "#c97b4a"      // brand orange — used as a FILL only
-    static let onAccentHex = "#1a1a1a"    // near-black label on top of accent fills
+    static let onAccentHex = "#ffffff"    // white label on accent fills (a dark label reads as muted/disabled)
 }
 
 extension NSColor {

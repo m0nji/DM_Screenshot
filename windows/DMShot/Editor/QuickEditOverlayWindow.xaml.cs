@@ -110,6 +110,19 @@ public partial class QuickEditOverlayWindow : Window
     private const string SizeGeo  = "M4,8 L20,8 L20,9.4 L4,9.4 Z M4,13 L20,13 L20,16 L4,16 Z";
     private const string UndoGeo  = "M9,6 L5,9.5 L9,13 M5,9.5 L14,9.5 C17,9.5 19,11.6 19,14.2 C19,16.8 17,18.5 14.3,18.5 L11,18.5";
     private const string CloseGeo = "M6.5,6.5 L17.5,17.5 M17.5,6.5 L6.5,17.5";
+    // Action icons mirror the macOS toolbar's SF Symbols so both platforms read identically.
+    // doc.on.doc: a full front page (bottom-left) with the back page's top/right edges peeking out.
+    private const string CopyGeo  =
+        "M5.8,8.5 L12.7,8.5 A1.8,1.8 0 0 1 14.5,10.3 L14.5,18.2 A1.8,1.8 0 0 1 12.7,20 L5.8,20 A1.8,1.8 0 0 1 4,18.2 L4,10.3 A1.8,1.8 0 0 1 5.8,8.5 Z " +
+        "M8.5,5.8 A1.8,1.8 0 0 1 10.3,4 L17.2,4 A1.8,1.8 0 0 1 19,5.8 L19,13.7 A1.8,1.8 0 0 1 17.2,15.5 L14.6,15.5";
+    // square.and.arrow.down: a down arrow dropping into an open-top tray.
+    private const string SaveGeo  =
+        "M4.5,13 L4.5,17.5 A2,2 0 0 0 6.5,19.5 L17.5,19.5 A2,2 0 0 0 19.5,17.5 L19.5,13 " +
+        "M12,3.5 L12,14 M8.5,10.5 L12,14 L15.5,10.5";
+    // macwindow: a window with a title bar line and three traffic-light dots (drawn as round-cap stubs).
+    private const string MainGeo  =
+        "M6,5 L18,5 A2.5,2.5 0 0 1 20.5,7.5 L20.5,16.5 A2.5,2.5 0 0 1 18,19 L6,19 A2.5,2.5 0 0 1 3.5,16.5 L3.5,7.5 A2.5,2.5 0 0 1 6,5 Z " +
+        "M3.5,9 L20.5,9 M5.95,7 L6.05,7 M8.25,7 L8.35,7 M10.55,7 L10.65,7";
 
     private Border BuildToolbar()
     {
@@ -132,9 +145,10 @@ public partial class QuickEditOverlayWindow : Window
         row.Children.Add(IconAction(Icon(SizeGeo, true), "Size / blur strength", ToggleSizeFlyout));
         row.Children.Add(IconAction(Icon(UndoGeo, false), "Undo", () => Canvas.Model.Undo()));
         row.Children.Add(Divider());
-        row.Children.Add(ActionButton("Copy", primary: true, () => CopyRequested?.Invoke()));
-        row.Children.Add(ActionButton("Save", primary: false, () => SaveRequested?.Invoke()));
-        row.Children.Add(ActionButton("Edit in main", primary: false, () => EditInMainRequested?.Invoke()));
+        // Icon-only actions (no text labels), matching the macOS Quick-Edit toolbar.
+        row.Children.Add(IconAction(Icon(CopyGeo, false), "Copy", () => CopyRequested?.Invoke()));
+        row.Children.Add(IconAction(Icon(SaveGeo, false), "Save", () => SaveRequested?.Invoke()));
+        row.Children.Add(IconAction(Icon(MainGeo, false), "Edit in main window", () => EditInMainRequested?.Invoke()));
         row.Children.Add(IconAction(Icon(CloseGeo, false), "Close", CloseOverlay));
 
         return new Border
@@ -150,13 +164,6 @@ public partial class QuickEditOverlayWindow : Window
     private Button IconAction(UIElement icon, string tip, Action onClick)
     {
         var b = new Button { Style = IconButtonStyle, Content = icon, ToolTip = tip };
-        b.Click += (_, _) => onClick();
-        return b;
-    }
-
-    private Button ActionButton(string text, bool primary, Action onClick)
-    {
-        var b = new Button { Style = primary ? PrimaryActionStyle : SecondaryActionStyle, Content = text };
         b.Click += (_, _) => onClick();
         return b;
     }
@@ -202,7 +209,7 @@ public partial class QuickEditOverlayWindow : Window
       </Border>
       <ControlTemplate.Triggers>
         <Trigger Property='IsMouseOver' Value='True'><Setter TargetName='b' Property='Background' Value='#34343C'/></Trigger>
-        <Trigger Property='IsChecked' Value='True'><Setter TargetName='b' Property='Background' Value='#C97B4A'/><Setter Property='Foreground' Value='#1A1A1A'/></Trigger>
+        <Trigger Property='IsChecked' Value='True'><Setter TargetName='b' Property='Background' Value='#C97B4A'/><Setter Property='Foreground' Value='#FFFFFF'/></Trigger>
       </ControlTemplate.Triggers>
     </ControlTemplate>
   </Setter.Value></Setter>
@@ -220,40 +227,6 @@ public partial class QuickEditOverlayWindow : Window
       <ControlTemplate.Triggers>
         <Trigger Property='IsMouseOver' Value='True'><Setter TargetName='b' Property='Background' Value='#34343C'/></Trigger>
         <Trigger Property='IsPressed' Value='True'><Setter TargetName='b' Property='Background' Value='#41414B'/></Trigger>
-      </ControlTemplate.Triggers>
-    </ControlTemplate>
-  </Setter.Value></Setter>
-</Style>");
-
-    private static readonly Style SecondaryActionStyle = S(
-@"<Style xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation' xmlns:x='http://schemas.microsoft.com/winfx/2006/xaml' TargetType='Button'>
-  <Setter Property='Height' Value='30'/><Setter Property='Margin' Value='3,0'/><Setter Property='Padding' Value='12,0'/>
-  <Setter Property='Foreground' Value='#E8E8EA'/><Setter Property='FontSize' Value='13'/><Setter Property='Cursor' Value='Hand'/>
-  <Setter Property='Template'><Setter.Value>
-    <ControlTemplate TargetType='Button'>
-      <Border x:Name='b' CornerRadius='8' Background='#3A3A42' Padding='{TemplateBinding Padding}'>
-        <ContentPresenter HorizontalAlignment='Center' VerticalAlignment='Center'/>
-      </Border>
-      <ControlTemplate.Triggers>
-        <Trigger Property='IsMouseOver' Value='True'><Setter TargetName='b' Property='Background' Value='#47474F'/></Trigger>
-        <Trigger Property='IsPressed' Value='True'><Setter TargetName='b' Property='Background' Value='#2E2E35'/></Trigger>
-      </ControlTemplate.Triggers>
-    </ControlTemplate>
-  </Setter.Value></Setter>
-</Style>");
-
-    private static readonly Style PrimaryActionStyle = S(
-@"<Style xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation' xmlns:x='http://schemas.microsoft.com/winfx/2006/xaml' TargetType='Button'>
-  <Setter Property='Height' Value='30'/><Setter Property='Margin' Value='3,0'/><Setter Property='Padding' Value='14,0'/>
-  <Setter Property='Foreground' Value='#1A1A1A'/><Setter Property='FontSize' Value='13'/><Setter Property='FontWeight' Value='SemiBold'/><Setter Property='Cursor' Value='Hand'/>
-  <Setter Property='Template'><Setter.Value>
-    <ControlTemplate TargetType='Button'>
-      <Border x:Name='b' CornerRadius='8' Background='#C97B4A' Padding='{TemplateBinding Padding}'>
-        <ContentPresenter HorizontalAlignment='Center' VerticalAlignment='Center'/>
-      </Border>
-      <ControlTemplate.Triggers>
-        <Trigger Property='IsMouseOver' Value='True'><Setter TargetName='b' Property='Background' Value='#D7894F'/></Trigger>
-        <Trigger Property='IsPressed' Value='True'><Setter TargetName='b' Property='Background' Value='#B96C3E'/></Trigger>
       </ControlTemplate.Triggers>
     </ControlTemplate>
   </Setter.Value></Setter>

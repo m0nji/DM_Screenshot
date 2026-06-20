@@ -50,4 +50,50 @@ public class ChangelogTests
     {
         Assert.Empty(Changelog.Parse(""));
     }
+
+    private static readonly string Sample = """
+        # Changelog
+
+        ## [Unreleased]
+
+        ## 0.2.2 – 2026-06-20
+        - feat: Latest thing
+
+        ## 0.1.0 – 2026-06-16
+        - feat: First release
+        """;
+
+    [Fact]
+    public void NotesForReturnsMatchedVersionWhenPresent()
+    {
+        var all = Changelog.Parse(Sample);
+        var notes = Changelog.NotesFor(all, "0.1.0");
+        Assert.Single(notes);
+        Assert.Equal("0.1.0", notes[0].Version);
+    }
+
+    [Fact]
+    public void NotesForFallsBackToLatestNonEmptyWhenVersionMissing()
+    {
+        // The offered version (0.2.3) is newer than anything in the installed build's
+        // changelog — show only the most recent real entry, never the whole history.
+        var all = Changelog.Parse(Sample);
+        var notes = Changelog.NotesFor(all, "0.2.3");
+        Assert.Single(notes);
+        Assert.Equal("0.2.2", notes[0].Version);
+    }
+
+    [Fact]
+    public void NotesForNeverReturnsEmptyUnreleasedPlaceholder()
+    {
+        var all = Changelog.Parse(Sample);
+        var notes = Changelog.NotesFor(all, "9.9.9");
+        Assert.DoesNotContain(notes, v => v.Entries.Count == 0);
+    }
+
+    [Fact]
+    public void NotesForEmptyChangelogReturnsEmpty()
+    {
+        Assert.Empty(Changelog.NotesFor(Changelog.Parse(""), "1.0.0"));
+    }
 }

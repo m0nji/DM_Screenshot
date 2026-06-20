@@ -44,6 +44,19 @@ enum Changelog {
         return versions
     }
 
+    /// Release notes to show for an offered `version`: that version's entries if the bundled
+    /// changelog has them, otherwise just the most recent version that has content. Empty
+    /// placeholder sections (e.g. "[Unreleased]") are never shown. Keeps the Updates pane to
+    /// the latest changes rather than the whole history — the installed build's changelog never
+    /// contains the newer offered version, so an exact match usually fails and we'd otherwise
+    /// dump everything.
+    static func notes(_ all: [ChangelogVersion], for version: String) -> [ChangelogVersion] {
+        let withContent = all.filter { !$0.entries.isEmpty }
+        let matched = withContent.filter { $0.version == version }
+        if !matched.isEmpty { return matched }
+        return withContent.isEmpty ? [] : [withContent[0]]
+    }
+
     /// Load + parse the bundled CHANGELOG.md (empty if missing — e.g. unbundled `swift run`).
     static func bundled(_ bundle: Bundle = .main) -> [ChangelogVersion] {
         guard let url = bundle.url(forResource: "CHANGELOG", withExtension: "md"),
