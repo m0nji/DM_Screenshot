@@ -6,13 +6,8 @@
         TextOptions.TextFormattingMode="Ideal" UseLayoutRounding="True">
 
   <DockPanel>
-    <!-- ===== Preview image ===== -->
-    <Border DockPanel.Dock="Top" Background="#0D0D10" Margin="16,16,16,0" CornerRadius="6"
-            BorderBrush="{StaticResource DmBorder}" BorderThickness="1">
-      <Image x:Name="Preview" Stretch="Uniform" MaxHeight="340"/>
-    </Border>
-
-    <!-- ===== Bottom panel: timeline + buttons ===== -->
+    <!-- ===== Bottom panel: timeline + buttons (pinned to the bottom, ALWAYS visible;
+         declared before the fill child so it can never be pushed off-screen) ===== -->
     <Border DockPanel.Dock="Bottom" Margin="16,12,16,16"
             Background="{StaticResource DmSurface}" CornerRadius="10"
             BorderBrush="{StaticResource DmBorder}" BorderThickness="1" Padding="16,12">
@@ -89,6 +84,12 @@
         </Grid>
 
       </StackPanel>
+    </Border>
+
+    <!-- ===== Preview image: fills the remaining space above the buttons (last child) ===== -->
+    <Border Background="#0D0D10" Margin="16,16,16,0" CornerRadius="6"
+            BorderBrush="{StaticResource DmBorder}" BorderThickness="1">
+      <Image x:Name="Preview" Stretch="Uniform"/>
     </Border>
   </DockPanel>
 </Window>

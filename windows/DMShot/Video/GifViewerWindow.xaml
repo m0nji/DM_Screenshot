@@ -7,13 +7,8 @@
         TextOptions.TextFormattingMode="Ideal" UseLayoutRounding="True">
 
   <DockPanel>
-    <!-- ===== Animated GIF preview ===== -->
-    <Border DockPanel.Dock="Top" Background="#0D0D10" Margin="16,16,16,0" CornerRadius="6"
-            BorderBrush="{StaticResource DmBorder}" BorderThickness="1">
-      <Image x:Name="GifImage" Stretch="Uniform" MaxHeight="540"/>
-    </Border>
-
-    <!-- ===== Bottom panel: Copy + Save buttons ===== -->
+    <!-- ===== Bottom panel: Copy + Save (pinned to the bottom, ALWAYS visible;
+         declared before the fill child so it can never be pushed off-screen) ===== -->
     <Border DockPanel.Dock="Bottom" Margin="16,12,16,16"
             Background="{StaticResource DmSurface}" CornerRadius="10"
             BorderBrush="{StaticResource DmBorder}" BorderThickness="1" Padding="16,12">
@@ -35,6 +30,12 @@
         <Button x:Name="SaveButton" Grid.Column="3" Content="Save…"
                 Style="{StaticResource AccentButton}" MinWidth="100" Height="32"/>
       </Grid>
+    </Border>
+
+    <!-- ===== Animated GIF preview: fills the remaining space above the buttons (last child) ===== -->
+    <Border Background="#0D0D10" Margin="16,16,16,0" CornerRadius="6"
+            BorderBrush="{StaticResource DmBorder}" BorderThickness="1">
+      <Image x:Name="GifImage" Stretch="Uniform"/>
     </Border>
   </DockPanel>
 </Window>
