@@ -4,6 +4,12 @@ All notable changes to DM_Screenshot. Newest version first. Always written in En
 
 ## [Unreleased]
 
+## 0.2.2 – 2026-06-20
+- feat: Quick-Edit in-place markup overlay is now on Windows — a capture appears framed over a dimmed backdrop with a compact floating toolbar so you can mark it up in place; enable via Settings → General → After capture, with the same reduced tools, color/size flyouts, undo, and one-click "Edit in main window" that carries annotations over (Windows)
+- feat: Video/GIF capture is now on Windows — record the full screen or a section (Ctrl+Alt+1 / Ctrl+Alt+2), trim the clip, and copy an optimized animated GIF (≤1000px, 10fps, max 60s) that pastes into Teams/Outlook; clips are kept in history and can be re-copied or saved (Windows)
+- feat: Record full-screen / section buttons added to the editor sidebar alongside the image-capture buttons (Windows)
+- fix: Windows theming polish — dark title bars on the preview and GIF windows, a readable dark tray menu and dark tooltips, and a restyled Quick-Edit toolbar with proper icons and buttons; the preview/GIF action buttons are no longer clipped at the default window size (Windows)
+
 ## 0.2.1 – 2026-06-19
 - fix: Section (area) video recordings of mostly-static content now work — previously the GIF preview never appeared after Stop (macOS)
 - fix: Recording a second clip no longer crashes the app while a preview is still open (macOS)
