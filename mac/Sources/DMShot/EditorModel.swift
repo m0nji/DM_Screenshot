@@ -10,7 +10,19 @@ final class EditorModel: ObservableObject {
     @Published var blurStrength: CGFloat = 12
     @Published var annotations: [Annotation] = []
     @Published var selectedID: UUID?
-    @Published var crop: CGRect?
+    @Published var crop: CGRect? { didSet { resetZoom() } }
+
+    // View-state for canvas zoom/pan (see ViewportMath). Authoritative; the
+    // canvas reads these, renders through the transform, and writes back.
+    @Published var userScale: CGFloat = 1      // absolute image→view scale (used when !isFitMode)
+    @Published var pan: CGPoint = .zero        // view-space pan beyond centering
+    @Published var isFitMode: Bool = true      // true → follow baseScale (auto-fit on resize)
+    @Published var zoomPercent: Int = 100      // for the toolbar indicator (canvas updates it)
+
+    func resetZoom() {
+        isFitMode = true
+        pan = .zero
+    }
 
     private var undoStack: [[Annotation]] = []
     private var redoStack: [[Annotation]] = []
@@ -31,6 +43,7 @@ final class EditorModel: ObservableObject {
         undoStack = []
         redoStack = []
         stepCounter = annotations.filter { $0.kind == .step }.map { $0.stepLabel }.max() ?? 0
+        resetZoom()
     }
 
     func snapshot() {
