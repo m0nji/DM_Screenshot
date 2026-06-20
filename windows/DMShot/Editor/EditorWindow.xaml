@@ -169,6 +169,9 @@
           <Rectangle Style="{StaticResource VDivider}"/>
 
           <TextBlock x:Name="DimText" Foreground="{StaticResource DmTextDim}" VerticalAlignment="Center" FontSize="12"/>
+          <Button x:Name="ZoomBtn" Content="100%" Click="ResetZoomClick" Cursor="Hand"
+                  Background="Transparent" BorderThickness="0" Padding="8,2" Margin="8,0,0,0"
+                  Foreground="{StaticResource DmTextDim}" FontSize="12" ToolTip="Reset zoom to fit"/>
         </StackPanel>
       </ScrollViewer>
     </Border>
@@ -291,9 +294,9 @@
                   ResizeBehavior="PreviousAndNext" ResizeDirection="Columns"/>
 
     <!-- ===================== Canvas ===================== -->
-    <ScrollViewer Grid.Column="2" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" Background="#141418">
-      <ed:CanvasControl x:Name="Canvas" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="24"/>
-    </ScrollViewer>
+    <Border Grid.Column="2" Background="#141418" ClipToBounds="True">
+      <ed:CanvasControl x:Name="Canvas" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+    </Border>
     </Grid>
   </DockPanel>
 </Window>

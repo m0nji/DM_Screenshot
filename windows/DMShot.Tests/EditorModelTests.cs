@@ -1,5 +1,6 @@
 using DMShot.Capture;
 using DMShot.Editor;
+using System.Windows;
 using Xunit;
 
 public class EditorModelTests
@@ -44,5 +45,23 @@ public class EditorModelTests
         var m = new EditorModel();
         m.SetCrop(new PixelRect(1, 2, 3, 4));
         Assert.Equal(new PixelRect(1, 2, 3, 4), m.Crop);
+    }
+
+    [Fact]
+    public void ResetZoom_SetsFitAndZeroPan()
+    {
+        var m = new EditorModel { IsFitMode = false, UserScale = 3, Pan = new Point(5, 6) };
+        m.ResetZoom();
+        Assert.True(m.IsFitMode);
+        Assert.Equal(new Point(0, 0), m.Pan);
+    }
+
+    [Fact]
+    public void SetCrop_ResetsZoom()
+    {
+        var m = new EditorModel { IsFitMode = false, Pan = new Point(5, 6) };
+        m.SetCrop(new PixelRect(0, 0, 10, 10));
+        Assert.True(m.IsFitMode);
+        Assert.Equal(new Point(0, 0), m.Pan);
     }
 }

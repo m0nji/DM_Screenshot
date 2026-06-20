@@ -44,6 +44,7 @@ public partial class EditorWindow : Window
         };
         Canvas.ContentChanged += UpdateStatus;
         Canvas.SelectionChanged += SyncFromSelection;
+        Canvas.Model.ZoomChanged += () => ZoomBtn.Content = $"{Canvas.Model.ZoomPercent}%";
         KeyDown += OnKey;
         Canvas.ActiveTool = ToolKind.Select; // matches the Select tool checked by default
     }
@@ -221,13 +222,22 @@ public partial class EditorWindow : Window
     protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
     { e.Cancel = true; Hide(); }
 
+    private void ResetZoomClick(object s, RoutedEventArgs e) => Canvas.ResetFit();
+
     private void OnKey(object sender, KeyEventArgs e)
     {
         if (e.Key is Key.Delete or Key.Back) { Canvas.DeleteSelected(); return; }
         if (Keyboard.Modifiers != ModifierKeys.Control) return;
-        if (e.Key == Key.C) CopyClick(sender, e);
-        else if (e.Key == Key.Z) Canvas.Model.Undo();
-        else if (e.Key == Key.Y) Canvas.Model.Redo();
-        else if (e.Key == Key.S) SaveClick(sender, e);
+        switch (e.Key)
+        {
+            case Key.D0: case Key.NumPad0: Canvas.ResetFit(); e.Handled = true; break;
+            case Key.D1: case Key.NumPad1: Canvas.ActualSize(); e.Handled = true; break;
+            case Key.OemPlus: case Key.Add: Canvas.ZoomInCenter(); e.Handled = true; break;
+            case Key.OemMinus: case Key.Subtract: Canvas.ZoomOutCenter(); e.Handled = true; break;
+            case Key.C: CopyClick(sender, e); break;
+            case Key.Z: Canvas.Model.Undo(); break;
+            case Key.Y: Canvas.Model.Redo(); break;
+            case Key.S: SaveClick(sender, e); break;
+        }
     }
 }

@@ -42,6 +42,7 @@ Definition of done for a behavior change:
 | Rendering / flatten / blur | `Rendering.swift` | `Editor/Renderer.cs` |
 | Selection / move / resize | `CanvasView.swift` | `Editor/CanvasControl.cs`, `SelectionGeometry.cs` |
 | Editor UI | `EditorView.swift` | `Editor/EditorWindow.xaml(.cs)` |
+| Editor zoom & pan (static window, fit-to-window; Ctrl/⌘+wheel & pinch zoom; scroll + Space-drag pan) | `ViewportMath.swift`, `CanvasView.swift`, `EditorModel.swift`, `EditorView.swift` | `Editor/ViewportMath.cs`, `Editor/CanvasControl.cs`, `Editor/EditorModel.cs`, `Editor/EditorWindow.xaml(.cs)` |
 | Save file naming | `ScreenshotFilename.swift` | `Editor/ScreenshotFilename.cs` |
 | History store + sidebar | `HistoryStore.swift`, `EditorView.swift` | `History/HistoryStore.cs`, `EditorWindow.xaml(.cs)` |
 | Tray / menu bar | `App.swift` | `Platform/NotifyIconTray.cs` |
@@ -63,6 +64,7 @@ Definition of done for a behavior change:
 - [ ] History persists last 10 across restart.
 - [ ] History: hover a thumbnail reveals a trash button that deletes that entry (file + thumbnail) and persists the removal.
 - [ ] Sidebar is resizable by dragging its right edge; thumbnails scale with the sidebar width.
+- [ ] Editor zoom/pan: screenshot fits the static (resizable) window; Ctrl/⌘+wheel and trackpad pinch zoom toward the cursor; plain scroll + Space-drag pan when zoomed in; ⌘/Ctrl 0 = fit, 1 = 100%; toolbar % click resets to fit; small images open at 100% (not upscaled), large images fit; window resize keeps fit.
 - [ ] Tray actions + hide-on-close + Quit.
 - [ ] Settings: editable shortcuts (live re-register), launch-at-login toggles, version shown == `VERSION`.
 - [ ] Auto-update: launch check, themed available/progress/restart states, "What's new" from `CHANGELOG.md`. macOS: Sparkle appcast resolves + verifies. Windows: Velopack reads the GitHub releases feed; installed app updates + relaunches.

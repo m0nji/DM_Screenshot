@@ -13,6 +13,10 @@ final class CanvasNSView: NSView {
     private var moveStart: CGPoint?
     private var movedOriginal: Annotation?
 
+    private var spaceDown = false
+    private var grabStartView: CGPoint?
+    private var grabStartPan: CGPoint?
+
     init(model: EditorModel, pad: CGFloat = 24) {
         self.model = model
         self.pad = pad
@@ -38,18 +42,29 @@ final class CanvasNSView: NSView {
     private func recomputeTransform() {
         let vr = model.viewRect
         guard vr.width > 0, vr.height > 0 else { return }
-        let s = min((bounds.width - pad) / vr.width, (bounds.height - pad) / vr.height)
-        scale = s > 0 ? s : 1
-        offset = CGPoint(
-            x: (bounds.width - vr.width * scale) / 2,
-            y: (bounds.height - vr.height * scale) / 2)
+        let content = vr.size
+        let viewport = bounds.size
+        let eff = model.isFitMode
+            ? ViewportMath.baseScale(content: content, viewport: viewport, pad: pad)
+            : ViewportMath.clampScale(model.userScale, content: content, viewport: viewport, pad: pad)
+        scale = eff
+        offset = ViewportMath.offset(content: content, viewport: viewport, scale: eff, pan: model.pan)
+        updateZoomIndicator(percent: Int((eff * 100).rounded()))
     }
 
     private func toImage(_ p: NSPoint) -> CGPoint {
         let vr = model.viewRect
-        return CGPoint(
-            x: (p.x - offset.x) / scale + vr.minX,
-            y: (p.y - offset.y) / scale + vr.minY)
+        return ViewportMath.viewToImage(p, origin: vr.origin, scale: scale, offset: offset)
+    }
+
+    /// Publish the current zoom % to the model (for the toolbar), off the draw
+    /// pass and only when it actually changes, to avoid a redraw loop.
+    private func updateZoomIndicator(percent: Int) {
+        guard model.zoomPercent != percent else { return }
+        DispatchQueue.main.async { [weak model] in
+            guard let model, model.zoomPercent != percent else { return }
+            model.zoomPercent = percent
+        }
     }
 
     override func draw(_ dirtyRect: NSRect) {
@@ -89,9 +104,91 @@ final class CanvasNSView: NSView {
         }
     }
 
+    // MARK: - Zoom / pan
+
+    private func applyZoom(_ result: (scale: CGFloat, pan: CGPoint)) {
+        let vr = model.viewRect
+        let base = ViewportMath.baseScale(content: vr.size, viewport: bounds.size, pad: pad)
+        if result.scale <= base + 0.0001 {
+            model.isFitMode = true
+            model.pan = .zero
+        } else {
+            model.isFitMode = false
+            model.userScale = result.scale
+            model.pan = result.pan
+        }
+        refresh()
+    }
+
+    private func zoom(by factor: CGFloat, at anchor: CGPoint) {
+        let vr = model.viewRect
+        let result = ViewportMath.panForZoomAtPoint(
+            anchor: anchor, content: vr.size, viewport: bounds.size, pad: pad,
+            origin: vr.origin, oldScale: scale, oldPan: model.pan,
+            requestedScale: scale * factor)
+        applyZoom(result)
+    }
+
+    private func setActualSize(at anchor: CGPoint) {
+        let vr = model.viewRect
+        let result = ViewportMath.panForZoomAtPoint(
+            anchor: anchor, content: vr.size, viewport: bounds.size, pad: pad,
+            origin: vr.origin, oldScale: scale, oldPan: model.pan, requestedScale: 1.0)
+        applyZoom(result)
+    }
+
+    private func panBy(dx: CGFloat, dy: CGFloat) {
+        let vr = model.viewRect
+        let moved = CGPoint(x: model.pan.x + dx, y: model.pan.y + dy)
+        model.pan = ViewportMath.clampPan(content: vr.size, viewport: bounds.size, scale: scale, pan: moved)
+        refresh()
+    }
+
+    override func scrollWheel(with event: NSEvent) {
+        guard model.image != nil else { return }
+        let anchor = convert(event.locationInWindow, from: nil)
+        if event.modifierFlags.contains(.control) || event.modifierFlags.contains(.command) {
+            let factor: CGFloat = event.hasPreciseScrollingDeltas
+                ? max(0.2, 1 + event.scrollingDeltaY * 0.01)
+                : pow(ViewportMath.zoomStep, event.scrollingDeltaY >= 0 ? 1 : -1)
+            zoom(by: factor, at: anchor)
+        } else {
+            // Pan. (If panning feels inverted on real hardware, negate dx/dy here.)
+            var dx = event.scrollingDeltaX
+            var dy = event.scrollingDeltaY
+            if event.modifierFlags.contains(.shift), dx == 0 { dx = dy; dy = 0 }
+            panBy(dx: dx, dy: dy)
+        }
+    }
+
+    override func magnify(with event: NSEvent) {
+        guard model.image != nil else { return }
+        zoom(by: 1 + event.magnification, at: convert(event.locationInWindow, from: nil))
+    }
+
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        guard model.image != nil, event.modifierFlags.contains(.command) else {
+            return super.performKeyEquivalent(with: event)
+        }
+        let center = CGPoint(x: bounds.midX, y: bounds.midY)
+        switch event.charactersIgnoringModifiers {
+        case "0": model.resetZoom(); refresh(); return true
+        case "1": setActualSize(at: center); return true
+        case "+", "=": zoom(by: ViewportMath.zoomStep, at: center); return true
+        case "-": zoom(by: 1 / ViewportMath.zoomStep, at: center); return true
+        default: return super.performKeyEquivalent(with: event)
+        }
+    }
+
     // MARK: - Mouse
 
     override func mouseDown(with event: NSEvent) {
+        if spaceDown {
+            grabStartView = convert(event.locationInWindow, from: nil)
+            grabStartPan = model.pan
+            NSCursor.closedHand.set()
+            return
+        }
         guard model.image != nil else { return }
         let p = toImage(convert(event.locationInWindow, from: nil))
 
@@ -128,6 +225,14 @@ final class CanvasNSView: NSView {
     }
 
     override func mouseDragged(with event: NSEvent) {
+        if let start = grabStartView, let startPan = grabStartPan {
+            let cur = convert(event.locationInWindow, from: nil)
+            let vr = model.viewRect
+            let moved = CGPoint(x: startPan.x + (cur.x - start.x), y: startPan.y + (cur.y - start.y))
+            model.pan = ViewportMath.clampPan(content: vr.size, viewport: bounds.size, scale: scale, pan: moved)
+            refresh()
+            return
+        }
         let p = toImage(convert(event.locationInWindow, from: nil))
         if model.tool == .select, let start = moveStart, let orig = movedOriginal,
            let id = model.selectedID {
@@ -146,6 +251,12 @@ final class CanvasNSView: NSView {
     }
 
     override func mouseUp(with event: NSEvent) {
+        if grabStartView != nil {
+            grabStartView = nil
+            grabStartPan = nil
+            if spaceDown { NSCursor.openHand.set() }
+            return
+        }
         defer { draft = nil; moveStart = nil; movedOriginal = nil; refresh() }
         if model.tool == .crop, let d = draft {
             let r = d.normalizedRect
@@ -176,8 +287,25 @@ final class CanvasNSView: NSView {
             model.selectedID = nil
             if model.tool == .crop { model.tool = .select }
             refresh()
+        case 49:  // space → enter grab/hand mode
+            if !event.isARepeat {
+                spaceDown = true
+                NSCursor.openHand.set()
+            }
         default:
             super.keyDown(with: event)
+        }
+    }
+
+    override func keyUp(with event: NSEvent) {
+        if event.keyCode == 49 {  // space
+            spaceDown = false
+            grabStartView = nil
+            grabStartPan = nil
+            resetCursorRects()
+            window?.invalidateCursorRects(for: self)
+        } else {
+            super.keyUp(with: event)
         }
     }
 
