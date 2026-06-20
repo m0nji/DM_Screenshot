@@ -26,13 +26,13 @@ enum L: CaseIterable {
     // Editor
     case copy, save, saveEllipsis, undo, redo
     case editorFullScreen, editorSelection, editorVideoFullScreen, editorVideoSection
-    case historyHeader, settings, deleteCapture
+    case historyHeader, settings, deleteCapture, resetZoomToFit
     case toolSelect, toolArrow, toolRect, toolEllipse, toolUnderline, toolHighlighter
     case toolStep, toolText, toolBlur, toolCrop
     case color, sizeBlur, editInMainWindow, close
     case blur, size, custom, hex, stop, pixelsSuffix
     // Video preview / trim + GIF viewer
-    case previewTrimTitle, startLabel, endLabel, discard, createGIF
+    case previewTrimTitle, startLabel, endLabel, discard, createGIF, estimatedGIFSize, gifViewerTitle
     // Text prompt
     case enterText, ok, cancel
 }
@@ -128,6 +128,7 @@ final class Localizer: ObservableObject {
         case .historyHeader:        return ("HISTORY", "VERLAUF")
         case .settings:             return ("Settings", "Einstellungen")
         case .deleteCapture:        return ("Delete this capture", "Diese Aufnahme löschen")
+        case .resetZoomToFit:       return ("Reset zoom to fit", "Zoom auf Fenstergröße zurücksetzen")
         case .toolSelect:           return ("Select / Move", "Auswählen / Bewegen")
         case .toolArrow:            return ("Arrow", "Pfeil")
         case .toolRect:             return ("Rectangle", "Rechteck")
@@ -153,6 +154,8 @@ final class Localizer: ObservableObject {
         case .endLabel:             return ("End", "Ende")
         case .discard:              return ("Discard", "Verwerfen")
         case .createGIF:            return ("Create GIF", "GIF erstellen")
+        case .estimatedGIFSize:     return ("Estimated GIF size: %@", "Geschätzte GIF-Größe: %@")
+        case .gifViewerTitle:       return ("DM_Screenshot — GIF", "DM_Screenshot — GIF")
         case .enterText:            return ("Enter text", "Text eingeben")
         case .ok:                   return ("OK", "OK")
         case .cancel:               return ("Cancel", "Abbrechen")

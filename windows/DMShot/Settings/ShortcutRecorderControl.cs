@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using DMShot.Localization;
 using DMShot.Platform;
 namespace DMShot.Settings;
 
@@ -9,7 +10,21 @@ public sealed class ShortcutRecorderControl : TextBox
     public string Hotkey { get; private set; } = "";
     public event Action<string>? HotkeyChanged;
 
-    public ShortcutRecorderControl() { IsReadOnly = true; Focusable = true; Text = "Click and press keys…"; }
+    public ShortcutRecorderControl()
+    {
+        IsReadOnly = true;
+        Focusable = true;
+        SetPrompt();
+        Loc.Instance.LanguageChanged += OnLanguageChanged;
+        Unloaded += (_, _) => Loc.Instance.LanguageChanged -= OnLanguageChanged;
+    }
+
+    private void OnLanguageChanged()
+    {
+        if (string.IsNullOrEmpty(Hotkey)) SetPrompt();
+    }
+
+    private void SetPrompt() => Text = Loc.Instance["shortcutRecorderPrompt"];
 
     protected override void OnPreviewKeyDown(KeyEventArgs e)
     {

@@ -90,7 +90,7 @@ struct EditorView: View {
                     .buttonStyle(.plain)
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                    .help("Reset zoom to fit")
+                    .help(tr(.resetZoomToFit))
                     .fixedSize()
                     .disabled(model.image == nil)
             }

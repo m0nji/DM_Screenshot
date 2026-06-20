@@ -6,6 +6,7 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using DMShot.Capture;
+using DMShot.Localization;
 using DMShot.Platform;
 
 // Disambiguate System.Drawing vs System.Windows.Media
@@ -133,7 +134,7 @@ public partial class QuickEditOverlayWindow : Window
             var tb = new RadioButton
             {
                 Style = ToolToggleStyle, GroupName = "qetools",
-                Content = Icon(geo, fill), ToolTip = kind.ToString(),
+                Content = Icon(geo, fill), ToolTip = Loc.Instance[ToolTipKey(kind)],
                 IsChecked = kind == Canvas.ActiveTool,
             };
             var k = kind;
@@ -141,15 +142,15 @@ public partial class QuickEditOverlayWindow : Window
             row.Children.Add(tb);
         }
         row.Children.Add(Divider());
-        row.Children.Add(IconAction(Icon(ColorGeo, true), "Color", ToggleColorFlyout));
-        row.Children.Add(IconAction(Icon(SizeGeo, true), "Size / blur strength", ToggleSizeFlyout));
-        row.Children.Add(IconAction(Icon(UndoGeo, false), "Undo", () => Canvas.Model.Undo()));
+        row.Children.Add(IconAction(Icon(ColorGeo, true), Loc.Instance["color"], ToggleColorFlyout));
+        row.Children.Add(IconAction(Icon(SizeGeo, true), Loc.Instance["quickEditSizeBlur"], ToggleSizeFlyout));
+        row.Children.Add(IconAction(Icon(UndoGeo, false), Loc.Instance["undo"], () => Canvas.Model.Undo()));
         row.Children.Add(Divider());
         // Icon-only actions (no text labels), matching the macOS Quick-Edit toolbar.
-        row.Children.Add(IconAction(Icon(CopyGeo, false), "Copy", () => CopyRequested?.Invoke()));
-        row.Children.Add(IconAction(Icon(SaveGeo, false), "Save", () => SaveRequested?.Invoke()));
-        row.Children.Add(IconAction(Icon(MainGeo, false), "Edit in main window", () => EditInMainRequested?.Invoke()));
-        row.Children.Add(IconAction(Icon(CloseGeo, false), "Close", CloseOverlay));
+        row.Children.Add(IconAction(Icon(CopyGeo, false), Loc.Instance["copy"], () => CopyRequested?.Invoke()));
+        row.Children.Add(IconAction(Icon(SaveGeo, false), Loc.Instance["save"], () => SaveRequested?.Invoke()));
+        row.Children.Add(IconAction(Icon(MainGeo, false), Loc.Instance["quickEditEditInMain"], () => EditInMainRequested?.Invoke()));
+        row.Children.Add(IconAction(Icon(CloseGeo, false), Loc.Instance["close"], CloseOverlay));
 
         return new Border
         {
@@ -167,6 +168,17 @@ public partial class QuickEditOverlayWindow : Window
         b.Click += (_, _) => onClick();
         return b;
     }
+
+    private static string ToolTipKey(ToolKind kind) => kind switch
+    {
+        ToolKind.Select => "toolSelect",
+        ToolKind.Arrow => "toolArrow",
+        ToolKind.Rectangle => "toolRect",
+        ToolKind.Highlighter => "toolHighlighter",
+        ToolKind.Text => "toolText",
+        ToolKind.Blur => "toolBlur",
+        _ => "toolSelect",
+    };
 
     /// <summary>An 18px vector icon whose stroke/fill follows the hosting control's Foreground
     /// (so it turns dark when the chip is the active/accent tool).</summary>

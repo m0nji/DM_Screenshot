@@ -3,6 +3,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using DMShot.Capture;
 using DMShot.History;
+using DMShot.Localization;
 using DMShot.Platform;
 namespace DMShot.Editor;
 
@@ -83,8 +84,8 @@ public partial class EditorWindow : Window
                               PixelRect? crop)
     {
         LoadImage(image);
-        foreach (var a in annotations) Canvas.Model.Add(a.Clone());
-        if (crop is { } c) Canvas.Model.SetCrop(c);
+        Canvas.Model.ReplaceDocument(annotations, crop);
+        UpdateStatus();
     }
 
     private void UpdateStatus()
@@ -179,8 +180,8 @@ public partial class EditorWindow : Window
         }
         using var bmp = new System.Drawing.Bitmap(entry.OriginalPngPath);
         LoadImage(bmp);
-        foreach (var d in entry.Annotations) Canvas.Model.Add(d.To());
-        if (entry.Crop is { } c) Canvas.Model.SetCrop(c);
+        Canvas.Model.ReplaceDocument(entry.Annotations.Select(d => d.To()), entry.Crop);
+        UpdateStatus();
     }
 
     // ===== Commands =====
@@ -210,7 +211,7 @@ public partial class EditorWindow : Window
             name => System.IO.File.Exists(System.IO.Path.Combine(dir, name)));
         var dlg = new Microsoft.Win32.SaveFileDialog
         {
-            Filter = "PNG image|*.png",
+            Filter = Loc.Instance["saveDialogPngFilter"],
             InitialDirectory = dir,
             FileName = fileName,
         };

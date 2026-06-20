@@ -97,8 +97,12 @@ private struct PreviewView: View {
                 Slider(value: $state.end, in: 0...state.duration)
             }.font(.caption)
             HStack {
-                Text("\(String(format: "%.1f", max(0, state.end - state.start)))s")
-                    .font(.caption).foregroundStyle(.secondary)
+                Group {
+                    Text("\(String(format: "%.1f", max(0, state.end - state.start)))s")
+                    Text(String(format: tr(.estimatedGIFSize), sizeLabel(state.estimatedBytes)))
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
                 Spacer()
                 Button(tr(.discard), action: onDiscard)
                 Button(tr(.createGIF), action: onCreate)

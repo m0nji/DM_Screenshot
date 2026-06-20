@@ -96,7 +96,9 @@ struct SettingsView: View {
         switch section {
         case .general:
             settingRow(tr(.launchAtLogin), tr(.launchAtLoginHelp)) {
-                Text(tr(.comingSoon)).foregroundStyle(.secondary)
+                Toggle("", isOn: launchAtLoginBinding)
+                    .labelsHidden()
+                    .toggleStyle(.switch)
             }
             settingRow(tr(.afterCapture), tr(.afterCaptureHelp)) {
                 Picker("", selection: $settings.afterCapture) {
@@ -136,6 +138,19 @@ struct SettingsView: View {
                     .font(.caption).foregroundStyle(.secondary)
             }
         }
+    }
+
+    private var launchAtLoginBinding: Binding<Bool> {
+        Binding(
+            get: { settings.launchAtLogin },
+            set: { enabled in
+                do {
+                    try settings.setLaunchAtLogin(enabled)
+                } catch {
+                    return
+                }
+            }
+        )
     }
 
     @ViewBuilder private var updateStatusRow: some View {

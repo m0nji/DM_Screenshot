@@ -24,14 +24,20 @@ final class EditorModel: ObservableObject {
         pan = .zero
     }
 
-    private var undoStack: [[Annotation]] = []
-    private var redoStack: [[Annotation]] = []
+    private struct DocumentState {
+        var annotations: [Annotation]
+        var crop: CGRect?
+    }
+
+    private var undoStack: [DocumentState] = []
+    private var redoStack: [DocumentState] = []
     var stepCounter = 0
 
     var pixelSize: CGSize {
         image.map { CGSize(width: $0.width, height: $0.height) } ?? .zero
     }
     var viewRect: CGRect { crop ?? CGRect(origin: .zero, size: pixelSize) }
+    private var documentState: DocumentState { DocumentState(annotations: annotations, crop: crop) }
 
     func load(image: CGImage, entryID: String, annotations: [Annotation] = [], crop: CGRect? = nil) {
         self.image = image
@@ -42,12 +48,12 @@ final class EditorModel: ObservableObject {
         self.tool = .select
         undoStack = []
         redoStack = []
-        stepCounter = annotations.filter { $0.kind == .step }.map { $0.stepLabel }.max() ?? 0
+        stepCounter = Self.maxStepLabel(in: annotations)
         resetZoom()
     }
 
     func snapshot() {
-        undoStack.append(annotations)
+        undoStack.append(documentState)
         if undoStack.count > 50 { undoStack.removeFirst() }
         redoStack = []
     }
@@ -55,6 +61,7 @@ final class EditorModel: ObservableObject {
     func add(_ a: Annotation) {
         snapshot()
         annotations.append(a)
+        stepCounter = max(stepCounter, a.stepLabel)
         selectedID = a.id
     }
 
@@ -71,18 +78,33 @@ final class EditorModel: ObservableObject {
         selectedID = nil
     }
 
+    func setCrop(_ newCrop: CGRect?, record: Bool = true) {
+        guard crop != newCrop else { return }
+        if record { snapshot() }
+        crop = newCrop
+    }
+
     func undo() {
         guard let last = undoStack.popLast() else { return }
-        redoStack.append(annotations)
-        annotations = last
-        selectedID = nil
+        redoStack.append(documentState)
+        apply(last)
     }
 
     func redo() {
         guard let next = redoStack.popLast() else { return }
-        undoStack.append(annotations)
-        annotations = next
+        undoStack.append(documentState)
+        apply(next)
+    }
+
+    private func apply(_ state: DocumentState) {
+        annotations = state.annotations
+        crop = state.crop
         selectedID = nil
+        stepCounter = max(stepCounter, Self.maxStepLabel(in: annotations))
+    }
+
+    private static func maxStepLabel(in annotations: [Annotation]) -> Int {
+        annotations.filter { $0.kind == .step }.map { $0.stepLabel }.max() ?? 0
     }
 
     /// Flatten the base image + annotations to a CGImage (respecting crop).

@@ -21,7 +21,7 @@
             <ColumnDefinition Width="*"/>
             <ColumnDefinition Width="Auto"/>
           </Grid.ColumnDefinitions>
-          <TextBlock Grid.Column="0" Text="Play" Foreground="{StaticResource DmTextDim}"
+          <TextBlock Grid.Column="0" Text="{loc:Tr videoPlayhead}" Foreground="{StaticResource DmTextDim}"
                      FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0"/>
           <Slider x:Name="Scrub" Grid.Column="1" Minimum="0" Maximum="1" Value="0"
                   VerticalAlignment="Center" IsSnapToTickEnabled="False"/>
@@ -37,7 +37,7 @@
             <ColumnDefinition Width="*"/>
             <ColumnDefinition Width="Auto"/>
           </Grid.ColumnDefinitions>
-          <TextBlock Grid.Column="0" Text="In " Foreground="{StaticResource DmTextDim}"
+          <TextBlock Grid.Column="0" Text="{loc:Tr videoTrimIn}" Foreground="{StaticResource DmTextDim}"
                      FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0"/>
           <Slider x:Name="TrimStart" Grid.Column="1" Minimum="0" Maximum="1" Value="0"
                   VerticalAlignment="Center" IsSnapToTickEnabled="False"/>
@@ -53,7 +53,7 @@
             <ColumnDefinition Width="*"/>
             <ColumnDefinition Width="Auto"/>
           </Grid.ColumnDefinitions>
-          <TextBlock Grid.Column="0" Text="Out" Foreground="{StaticResource DmTextDim}"
+          <TextBlock Grid.Column="0" Text="{loc:Tr videoTrimOut}" Foreground="{StaticResource DmTextDim}"
                      FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0"/>
           <Slider x:Name="TrimEnd" Grid.Column="1" Minimum="0" Maximum="1" Value="1"
                   VerticalAlignment="Center" IsSnapToTickEnabled="False"/>
@@ -75,6 +75,8 @@
             <TextBlock Text="{loc:Tr duration}" Foreground="{StaticResource DmTextDim}" FontSize="12" Margin="0,0,6,0"/>
             <TextBlock x:Name="DurationLabel" FontSize="12" FontFamily="Consolas"
                        Foreground="{StaticResource DmText}" Text="0.0 s"/>
+            <TextBlock x:Name="EstimatedSizeLabel" Foreground="{StaticResource DmTextDim}"
+                       FontSize="12" Margin="16,0,0,0"/>
           </StackPanel>
 
           <Button x:Name="DiscardButton" Grid.Column="1" Content="{loc:Tr discard}"

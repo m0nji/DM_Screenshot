@@ -13,10 +13,11 @@ enum AfterCapture: String, CaseIterable, Identifiable {
     }
 }
 
-/// Persists user preferences not tied to shortcuts (currently the after-capture mode).
+/// Persists user preferences not tied to shortcuts.
 final class AppSettingsStore: ObservableObject {
     static let afterCaptureKey = "afterCapture"
     static let languageKey = "language"
+    static let launchAtLoginKey = "launchAtLogin"
 
     @Published var afterCapture: AfterCapture {
         didSet { defaults.set(afterCapture.rawValue, forKey: Self.afterCaptureKey) }
@@ -26,6 +27,8 @@ final class AppSettingsStore: ObservableObject {
         didSet { defaults.set(language.rawValue, forKey: Self.languageKey) }
     }
 
+    @Published private(set) var launchAtLogin: Bool
+
     private let defaults: UserDefaults
 
     init(defaults: UserDefaults = .standard) {
@@ -34,5 +37,16 @@ final class AppSettingsStore: ObservableObject {
         afterCapture = raw.flatMap(AfterCapture.init(rawValue:)) ?? .mainWindow
         let langRaw = defaults.string(forKey: Self.languageKey)
         language = langRaw.flatMap(Language.init(rawValue:)) ?? .english
+        launchAtLogin = defaults.object(forKey: Self.launchAtLoginKey) as? Bool ?? false
+    }
+
+    func setLaunchAtLogin(
+        _ enabled: Bool,
+        manager: LaunchAtLoginManaging = LaunchAtLoginManager()
+    ) throws {
+        guard enabled != launchAtLogin else { return }
+        try manager.apply(enabled: enabled)
+        launchAtLogin = enabled
+        defaults.set(enabled, forKey: Self.launchAtLoginKey)
     }
 }

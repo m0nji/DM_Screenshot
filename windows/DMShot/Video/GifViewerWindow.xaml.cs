@@ -3,6 +3,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
+using DMShot.Localization;
 using DMShot.Platform;
 
 namespace DMShot.Video;
@@ -72,7 +73,7 @@ public partial class GifViewerWindow : Window
                              DMShot.Editor.ScreenshotFilename.Base(DateTime.Now),
                              _ => false,
                              "gif"),
-            Filter     = "GIF image (*.gif)|*.gif",
+            Filter     = Loc.Instance["saveDialogGifFilter"],
             DefaultExt = "gif",
         };
         if (dlg.ShowDialog() == true)

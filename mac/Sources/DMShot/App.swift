@@ -32,12 +32,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private var lastCaptureScreenFrame: CGRect?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Seed the shared localizer from the persisted setting before building
+        // AppKit menus, then rebuild menu + window titles live on changes.
+        Localizer.shared.language = appSettings.language
         setupStatusItem()
         setupHotkeys()
         setupPersistence()
-        // Seed the shared localizer from the persisted setting, then rebuild the
-        // AppKit menu + window titles live whenever the language changes.
-        Localizer.shared.language = appSettings.language
         Localizer.shared.$language
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in
@@ -263,7 +263,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         // brought to the front. It's also saved to history.
         gifViewer?.close()
         let viewer = GIFViewerWindow()
-        viewer.show(gifData: data, title: "DM_Screenshot — GIF")
+        viewer.show(gifData: data, title: tr(.gifViewerTitle))
         gifViewer = viewer
     }
 
@@ -372,7 +372,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     @objc private func openSettings() {
         if settingsWindow == nil {
-            let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.1.4"
+            let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.2.8"
             let win = NSWindow(
                 contentRect: NSRect(x: 0, y: 0, width: 640, height: 420),
                 styleMask: [.titled, .closable], backing: .buffered, defer: false)
@@ -423,7 +423,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 try? data.write(to: fileURL)
                 ImageUtils.copyGIF(data: data, fileURL: fileURL)
                 let viewer = GIFViewerWindow()
-                viewer.show(gifData: data, title: "DM_Screenshot — GIF")
+                viewer.show(gifData: data, title: tr(.gifViewerTitle))
                 gifViewer = viewer
             }
             return

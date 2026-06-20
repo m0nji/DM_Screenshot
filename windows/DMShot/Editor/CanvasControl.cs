@@ -16,6 +16,7 @@ public sealed class CanvasControl : FrameworkElement
     private bool _moving;
     private bool _resizing;
     private int _handle = -1;
+    private Annotation? _editBefore;
     private const double HandleR = 5;
     private const double Pad = 24;
     private const double WheelPanStep = 48;   // pixels panned per wheel notch (Delta of 120); tune on hardware
@@ -57,7 +58,8 @@ public sealed class CanvasControl : FrameworkElement
 
     public void Load(System.Drawing.Bitmap image)
     {
-        Reset();
+        SetSelected(null);
+        Model.ClearDocument();
         _source?.Dispose();
         _source = (System.Drawing.Bitmap)image.Clone();
         _w = _source.Width; _h = _source.Height;
@@ -66,9 +68,8 @@ public sealed class CanvasControl : FrameworkElement
 
     public void Reset()
     {
-        foreach (var a in Model.Annotations.ToList()) Model.Remove(a);
-        Model.SetCrop(null);
         SetSelected(null);
+        Model.ClearDocument();
     }
 
     protected override Size MeasureOverride(Size availableSize)
@@ -214,11 +215,11 @@ public sealed class CanvasControl : FrameworkElement
             if (_selected is not null)
             {
                 int h = SelectionGeometry.HitHandle(p, _selected, (HandleR + 3) / _scale);
-                if (h >= 0) { _resizing = true; _handle = h; _last = p; CaptureMouse(); return; }
+                if (h >= 0) { _resizing = true; _handle = h; _last = p; _editBefore = _selected.Clone(); CaptureMouse(); return; }
             }
             var hit = SelectionGeometry.HitTest(Model.Annotations, p);
             SetSelected(hit);
-            if (hit is not null) { _moving = true; _last = p; CaptureMouse(); }
+            if (hit is not null) { _moving = true; _last = p; _editBefore = hit.Clone(); CaptureMouse(); }
             return;
         }
 
@@ -273,8 +274,8 @@ public sealed class CanvasControl : FrameworkElement
     protected override void OnMouseLeftButtonUp(MouseButtonEventArgs e)
     {
         if (_space) { if (IsMouseCaptured) ReleaseMouseCapture(); return; }
-        if (_resizing) { _resizing = false; _handle = -1; ReleaseMouseCapture(); return; }
-        if (_moving) { _moving = false; ReleaseMouseCapture(); return; }
+        if (_resizing) { FinishSelectionMutation(); _resizing = false; _handle = -1; ReleaseMouseCapture(); return; }
+        if (_moving) { FinishSelectionMutation(); _moving = false; ReleaseMouseCapture(); return; }
         if (_draft is null) return;
         ReleaseMouseCapture();
         var d = _draft; _draft = null;
@@ -297,17 +298,17 @@ public sealed class CanvasControl : FrameworkElement
     public void ApplyColorToSelected(uint argb)
     {
         if (_selected is null) return;
-        _selected.ColorArgb = argb; InvalidateVisual(); ContentChanged?.Invoke();
+        Model.Mutate(_selected, a => a.ColorArgb = argb);
     }
     public void ApplyStrokeToSelected(double w)
     {
         if (_selected is null) return;
-        _selected.StrokeWidth = w; InvalidateVisual(); ContentChanged?.Invoke();
+        Model.Mutate(_selected, a => a.StrokeWidth = w);
     }
     public void ApplyBlurToSelected(int strength)
     {
         if (_selected is null || _selected.Kind != ToolKind.Blur) return;
-        _selected.BlurStrength = strength; InvalidateVisual(); ContentChanged?.Invoke();
+        Model.Mutate(_selected, a => a.BlurStrength = strength);
     }
     public void DeleteSelected()
     {
@@ -321,5 +322,12 @@ public sealed class CanvasControl : FrameworkElement
         _selected = a;
         InvalidateVisual();
         SelectionChanged?.Invoke();
+    }
+
+    private void FinishSelectionMutation()
+    {
+        if (_selected is not null && _editBefore is not null)
+            Model.RecordMutation(_selected, _editBefore);
+        _editBefore = null;
     }
 }

@@ -12,6 +12,9 @@ final class CanvasNSView: NSView {
     private var draft: Annotation?
     private var moveStart: CGPoint?
     private var movedOriginal: Annotation?
+    private var resizeHandle: SelectionHandle?
+    private var resizeOriginal: Annotation?
+    private var gestureSnapshotTaken = false
 
     private var spaceDown = false
     private var grabStartView: CGPoint?
@@ -96,7 +99,7 @@ final class CanvasNSView: NSView {
         // Selection highlight (in view space).
         if let id = model.selectedID,
            let ann = model.annotations.first(where: { $0.id == id }) {
-            let r = ann.normalizedRect
+            let r = SelectionGeometry.bounds(for: ann)
             let viewRect = NSRect(
                 x: offset.x + (r.minX - vr.minX) * scale,
                 y: offset.y + (r.minY - vr.minY) * scale,
@@ -106,6 +109,7 @@ final class CanvasNSView: NSView {
             p.lineWidth = 1.5
             p.setLineDash([4, 3], count: 2, phase: 0)
             p.stroke()
+            drawSelectionHandles(for: ann, in: vr)
         }
     }
 
@@ -195,16 +199,31 @@ final class CanvasNSView: NSView {
             return
         }
         guard model.image != nil else { return }
+        recomputeTransform()
         let p = toImage(convert(event.locationInWindow, from: nil))
+        gestureSnapshotTaken = false
 
         switch model.tool {
         case .select:
-            if let hit = annotationHit(p) {
+            if let selected = selectedAnnotation(),
+               let handle = hitSelectionHandle(p, in: selected) {
+                model.selectedID = selected.id
+                resizeHandle = handle
+                resizeOriginal = selected
+                moveStart = nil
+                movedOriginal = nil
+            } else if let hit = annotationHit(p) {
                 model.selectedID = hit.id
                 moveStart = p
                 movedOriginal = hit
+                resizeHandle = nil
+                resizeOriginal = nil
             } else {
                 model.selectedID = nil
+                moveStart = nil
+                movedOriginal = nil
+                resizeHandle = nil
+                resizeOriginal = nil
             }
         case .text:
             if let text = Self.promptText(), !text.isEmpty {
@@ -238,14 +257,27 @@ final class CanvasNSView: NSView {
             refresh()
             return
         }
+        recomputeTransform()
         let p = toImage(convert(event.locationInWindow, from: nil))
-        if model.tool == .select, let start = moveStart, let orig = movedOriginal,
-           let id = model.selectedID {
-            let dx = p.x - start.x
-            let dy = p.y - start.y
-            model.update(id, record: false) { a in
-                a.x = orig.x + dx
-                a.y = orig.y + dy
+        if model.tool == .select, let id = model.selectedID {
+            if let handle = resizeHandle, let orig = resizeOriginal {
+                let resized = SelectionGeometry.resized(orig, dragging: handle, to: p)
+                if resized != orig {
+                    snapshotGestureIfNeeded()
+                    model.update(id, record: false) { a in
+                        a = resized
+                    }
+                }
+            } else if let start = moveStart, let orig = movedOriginal {
+                let dx = p.x - start.x
+                let dy = p.y - start.y
+                if dx != 0 || dy != 0 {
+                    snapshotGestureIfNeeded()
+                    model.update(id, record: false) { a in
+                        a.x = orig.x + dx
+                        a.y = orig.y + dy
+                    }
+                }
             }
         } else if var d = draft {
             d.width = p.x - d.x
@@ -262,10 +294,18 @@ final class CanvasNSView: NSView {
             if spaceDown { NSCursor.openHand.set() }
             return
         }
-        defer { draft = nil; moveStart = nil; movedOriginal = nil; refresh() }
+        defer {
+            draft = nil
+            moveStart = nil
+            movedOriginal = nil
+            resizeHandle = nil
+            resizeOriginal = nil
+            gestureSnapshotTaken = false
+            refresh()
+        }
         if model.tool == .crop, let d = draft {
             let r = d.normalizedRect
-            if r.width > 4, r.height > 4 { model.crop = r }
+            if r.width > 4, r.height > 4 { model.setCrop(r) }
             return
         }
         guard var d = draft else { return }
@@ -315,6 +355,46 @@ final class CanvasNSView: NSView {
     }
 
     // MARK: - Helpers
+
+    private func drawSelectionHandles(for annotation: Annotation, in viewRect: CGRect) {
+        for handle in SelectionGeometry.handles(for: annotation) {
+            let center = imageToView(handle.point, in: viewRect)
+            let radius = SelectionGeometry.viewHandleRadius
+            let rect = NSRect(
+                x: center.x - radius,
+                y: center.y - radius,
+                width: radius * 2,
+                height: radius * 2)
+            let path = NSBezierPath(ovalIn: rect)
+            NSColor.white.setFill()
+            path.fill()
+            NSColor.dmAccent.setStroke()
+            path.lineWidth = 1.5
+            path.stroke()
+        }
+    }
+
+    private func imageToView(_ p: CGPoint, in viewRect: CGRect) -> CGPoint {
+        CGPoint(
+            x: offset.x + (p.x - viewRect.minX) * scale,
+            y: offset.y + (p.y - viewRect.minY) * scale)
+    }
+
+    private func selectedAnnotation() -> Annotation? {
+        guard let id = model.selectedID else { return nil }
+        return model.annotations.first { $0.id == id }
+    }
+
+    private func hitSelectionHandle(_ p: CGPoint, in annotation: Annotation) -> SelectionHandle? {
+        let tolerance = SelectionGeometry.viewHandleHitTolerance / max(scale, 0.0001)
+        return SelectionGeometry.hitHandle(at: p, in: annotation, tolerance: tolerance)
+    }
+
+    private func snapshotGestureIfNeeded() {
+        guard !gestureSnapshotTaken else { return }
+        model.snapshot()
+        gestureSnapshotTaken = true
+    }
 
     private func makeAnnotation(kind: Annotation.Kind, at p: CGPoint, text: String = "") -> Annotation {
         Annotation(

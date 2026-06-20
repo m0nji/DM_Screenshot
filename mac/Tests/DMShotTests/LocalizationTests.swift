@@ -14,7 +14,7 @@ final class LocalizationTests: XCTestCase {
 
     func testGermanDiffersFromEnglishForTranslatableKeys() {
         // Intentionally identical across both languages.
-        let identical: Set<L> = [.ok, .hex, .pixelsSuffix, .toolText, .toolEllipse, .sectionUpdates, .version, .startLabel]
+        let identical: Set<L> = [.ok, .hex, .pixelsSuffix, .toolText, .toolEllipse, .sectionUpdates, .version, .startLabel, .gifViewerTitle]
         let loc = Localizer(language: .english)
         for key in L.allCases where !identical.contains(key) {
             loc.language = .english; let en = loc.string(key)
@@ -28,5 +28,17 @@ final class LocalizationTests: XCTestCase {
         XCTAssertEqual(tr(.cancel), "Abbrechen")
         Localizer.shared.language = .english
         XCTAssertEqual(tr(.cancel), "Cancel")
+    }
+
+    func testPreviewAndZoomStringsAreLocalized() {
+        let loc = Localizer(language: .english)
+        XCTAssertEqual(loc.string(.resetZoomToFit), "Reset zoom to fit")
+        XCTAssertEqual(loc.string(.estimatedGIFSize), "Estimated GIF size: %@")
+        XCTAssertEqual(loc.string(.gifViewerTitle), "DM_Screenshot — GIF")
+
+        loc.language = .german
+        XCTAssertEqual(loc.string(.resetZoomToFit), "Zoom auf Fenstergröße zurücksetzen")
+        XCTAssertEqual(loc.string(.estimatedGIFSize), "Geschätzte GIF-Größe: %@")
+        XCTAssertEqual(loc.string(.gifViewerTitle), "DM_Screenshot — GIF")
     }
 }

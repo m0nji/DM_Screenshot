@@ -200,7 +200,7 @@ public partial class App : Application
             name => File.Exists(Path.Combine(dir, name)));
         var dlg = new Microsoft.Win32.SaveFileDialog
         {
-            Filter = "PNG image|*.png",
+            Filter = Loc.Instance["saveDialogPngFilter"],
             InitialDirectory = dir,
             FileName = fileName,
         };
@@ -217,7 +217,7 @@ public partial class App : Application
         // OS-floor guard: WGC requires Windows 10 version 1803 (build 17134)+.
         if (!global::Windows.Graphics.Capture.GraphicsCaptureSession.IsSupported())
         {
-            MessageBox.Show("Video capture requires Windows 10 version 1803 or newer.",
+            MessageBox.Show(Loc.Instance["videoUnsupportedMessage"],
                 "DM_Screenshot", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
@@ -235,7 +235,7 @@ public partial class App : Application
         {
             recorder.Dispose();
             if (ReferenceEquals(_recorder, recorder)) _recorder = null;
-            MessageBox.Show("Could not start recording on this display.", "DM_Screenshot",
+            MessageBox.Show(Loc.Instance["videoStartFailedMessage"], "DM_Screenshot",
                 MessageBoxButton.OK, MessageBoxImage.Warning);
             return;                                                 // no phantom recording (V2)
         }

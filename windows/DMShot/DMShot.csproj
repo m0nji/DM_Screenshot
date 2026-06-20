@@ -4,6 +4,7 @@
     <!-- Compile against the 22621 projection (needed for GraphicsCaptureSession.IsBorderRequired,
          a Windows 11 API) but keep the runtime floor at 19041 so the app still runs on Win10 2004+. -->
     <TargetFramework>net8.0-windows10.0.22621.0</TargetFramework>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <TargetPlatformMinVersion>10.0.19041.0</TargetPlatformMinVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>

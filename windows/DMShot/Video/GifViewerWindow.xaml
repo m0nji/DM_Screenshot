@@ -22,7 +22,7 @@
         </Grid.ColumnDefinitions>
 
         <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-          <TextBlock Foreground="{StaticResource DmTextDim}" FontSize="12" Text="GIF ready"/>
+          <TextBlock Foreground="{StaticResource DmTextDim}" FontSize="12" Text="{loc:Tr gifReady}"/>
         </StackPanel>
 
         <Button x:Name="CopyButton" Grid.Column="1" Content="{loc:Tr copy}"

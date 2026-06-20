@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
+using DMShot.Localization;
 using DMShot.Platform;   // ImageInterop
 namespace DMShot.Video;
 
@@ -40,7 +41,12 @@ public partial class VideoPreviewWindow : Window, IDisposable
         Loaded += (_, _) => _timer.Start();
 
         // V9 / V15 teardown hook — uses base Closed event, NOT a shadowing custom event.
-        Closed += (_, _) => OnWindowClosed();
+        Loc.Instance.LanguageChanged += UpdateLocalizedComputedLabels;
+        Closed += (_, _) =>
+        {
+            Loc.Instance.LanguageChanged -= UpdateLocalizedComputedLabels;
+            OnWindowClosed();
+        };
 
         // Wire up controls.
         Scrub.ValueChanged      += Scrub_ValueChanged;
@@ -149,9 +155,33 @@ public partial class VideoPreviewWindow : Window, IDisposable
     {
         double dur = Math.Max(0.0, _trimEnd - _trimStart);
         DurationLabel.Text = $"{dur:F1} s";
+        EstimatedSizeLabel.Text = string.Format(Loc.Instance["estimatedGifSize"], FormatByteSize(EstimateGifBytes(dur)));
     }
 
-    /// <summary>Disable Create GIF when the trim region is empty (V14 variant: no size estimate).</summary>
+    private void UpdateLocalizedComputedLabels() => UpdateDuration();
+
+    private long EstimateGifBytes(double durationSec)
+    {
+        if (_frames.Count == 0) return 0;
+        var (w, h) = GifPlan.ScaledSize(_frames[0].Image.Width, _frames[0].Image.Height);
+        int frameCount = GifPlan.FrameTimes(durationSec).Length;
+        return GifPlan.EstimatedBytes(frameCount, w, h);
+    }
+
+    private static string FormatByteSize(long bytes)
+    {
+        string[] units = { "B", "KB", "MB", "GB" };
+        double value = bytes;
+        int unit = 0;
+        while (value >= 1024 && unit < units.Length - 1)
+        {
+            value /= 1024;
+            unit++;
+        }
+        return unit == 0 ? $"{bytes} {units[unit]}" : $"{value:0.#} {units[unit]}";
+    }
+
+    /// <summary>Disable Create GIF when the trim region is empty.</summary>
     private void UpdateCreateGifEnabled()
     {
         CreateGifButton.IsEnabled = _trimEnd > _trimStart;
