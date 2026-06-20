@@ -197,6 +197,24 @@
             <TextBlock Text="Selection" Margin="10,0,0,0" VerticalAlignment="Center"/>
           </StackPanel>
         </Button>
+        <Button DockPanel.Dock="Top" Style="{StaticResource SidebarButton}" Click="VideoFullClick" Margin="0,0,0,8">
+          <StackPanel Orientation="Horizontal">
+            <Viewbox Width="16" Height="16"><Canvas Width="24" Height="24">
+              <Path Data="M4,8.5 L4,4 L8.5,4 M15.5,4 L20,4 L20,8.5 M20,15.5 L20,20 L15.5,20 M8.5,20 L4,20 L4,15.5" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/>
+              <Ellipse Canvas.Left="9.5" Canvas.Top="9.5" Width="5" Height="5" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+            </Canvas></Viewbox>
+            <TextBlock Text="Record Screen" Margin="10,0,0,0" VerticalAlignment="Center"/>
+          </StackPanel>
+        </Button>
+        <Button DockPanel.Dock="Top" Style="{StaticResource SidebarButton}" Click="VideoAreaClick" Margin="0,0,0,12">
+          <StackPanel Orientation="Horizontal">
+            <Viewbox Width="16" Height="16"><Canvas Width="24" Height="24">
+              <Path Data="M3.5,7 L3.5,3.5 L7,3.5 M17,3.5 L20.5,3.5 L20.5,7 M20.5,17 L20.5,20.5 L17,20.5 M7,20.5 L3.5,20.5 L3.5,17 M11,3.5 L13,3.5 M11,20.5 L13,20.5 M3.5,11 L3.5,13 M20.5,11 L20.5,13" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+              <Ellipse Canvas.Left="9.5" Canvas.Top="9.5" Width="5" Height="5" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+            </Canvas></Viewbox>
+            <TextBlock Text="Record Area" Margin="10,0,0,0" VerticalAlignment="Center"/>
+          </StackPanel>
+        </Button>
 
         <TextBlock DockPanel.Dock="Top" Text="HISTORY" Foreground="{StaticResource DmTextDim}"
                    FontSize="11" FontWeight="SemiBold" Margin="2,0,0,6"/>

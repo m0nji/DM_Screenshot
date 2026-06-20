@@ -22,6 +22,7 @@
     <PackageReference Include="System.Drawing.Common" Version="8.0.*" />
     <PackageReference Include="Hardcodet.NotifyIcon.Wpf" Version="2.0.*" />
     <PackageReference Include="Velopack" Version="0.0.1298" />
+    <PackageReference Include="Vortice.Direct3D11" Version="3.8.3" />
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Resources\AppIcon.ico" />

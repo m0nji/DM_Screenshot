@@ -13,6 +13,8 @@ public partial class EditorWindow : Window
 
     public Action? OnRequestFullScreen { get; set; }
     public Action? OnRequestArea { get; set; }
+    public Action? OnRequestVideoFull { get; set; }
+    public Action? OnRequestVideoArea { get; set; }
     public Action? OnRequestSettings { get; set; }
     /// <summary>V17: invoked when a video history entry is clicked, instead of loading it as an image.</summary>
     public Action<HistoryEntry>? OnVideoEntryActivated { get; set; }
@@ -183,6 +185,8 @@ public partial class EditorWindow : Window
     // ===== Commands =====
     private void FullScreenClick(object s, RoutedEventArgs e) => OnRequestFullScreen?.Invoke();
     private void AreaClick(object s, RoutedEventArgs e) => OnRequestArea?.Invoke();
+    private void VideoFullClick(object s, RoutedEventArgs e) => OnRequestVideoFull?.Invoke();
+    private void VideoAreaClick(object s, RoutedEventArgs e) => OnRequestVideoArea?.Invoke();
     private void SettingsClick(object s, RoutedEventArgs e) => OnRequestSettings?.Invoke();
 
     private void UndoClick(object s, RoutedEventArgs e) => Canvas.Model.Undo();

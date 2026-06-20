@@ -73,16 +73,23 @@ public partial class SettingsWindow : Window
             Text = "After capture", Foreground = Text, FontSize = 14,
             Margin = new Thickness(0, 18, 0, 4)
         });
-        var afterCombo = new ComboBox { Width = 240, HorizontalAlignment = HorizontalAlignment.Left };
-        afterCombo.Items.Add("Open main window");
-        afterCombo.Items.Add("Show Quick-Edit overlay");
-        afterCombo.SelectedIndex = _settings.AfterCapture == AfterCaptureMode.QuickEdit ? 1 : 0;
-        afterCombo.SelectionChanged += (_, _) =>
+        // Two radio buttons rather than a ComboBox: a default WPF ComboBox dropdown renders
+        // with the system (light) popup theme — unreadable on this dark pane. Radio buttons
+        // inherit the same Foreground=Text styling as the launch-at-login checkbox.
+        var rbMain = new RadioButton
         {
-            _settings.AfterCapture = afterCombo.SelectedIndex == 1 ? AfterCaptureMode.QuickEdit : AfterCaptureMode.MainWindow;
-            Commit();
+            Content = "Open main window", Foreground = Text, FontSize = 14, GroupName = "afterCapture",
+            Margin = new Thickness(0, 0, 0, 6), IsChecked = _settings.AfterCapture != AfterCaptureMode.QuickEdit
         };
-        Pane.Children.Add(afterCombo);
+        var rbQuick = new RadioButton
+        {
+            Content = "Show Quick-Edit overlay", Foreground = Text, FontSize = 14, GroupName = "afterCapture",
+            IsChecked = _settings.AfterCapture == AfterCaptureMode.QuickEdit
+        };
+        rbMain.Checked += (_, _) => { _settings.AfterCapture = AfterCaptureMode.MainWindow; Commit(); };
+        rbQuick.Checked += (_, _) => { _settings.AfterCapture = AfterCaptureMode.QuickEdit; Commit(); };
+        Pane.Children.Add(rbMain);
+        Pane.Children.Add(rbQuick);
     }
 
     private void ShowShortcuts()

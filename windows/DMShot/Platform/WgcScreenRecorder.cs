@@ -5,7 +5,9 @@ using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using DMShot.Capture;
 using DMShot.Video;
-using Windows.Graphics;
+using Vortice.Direct3D;
+using Vortice.Direct3D11;
+using Vortice.DXGI;
 using Windows.Graphics.Capture;
 using Windows.Graphics.DirectX;
 using Windows.Graphics.DirectX.Direct3D11;
@@ -15,21 +17,18 @@ namespace DMShot.Platform;
 
 /// <summary>
 /// Captures a display via Windows.Graphics.Capture (WGC) into a buffer of <see cref="RecordedFrame"/>s.
+/// The D3D11 device and the per-frame staging copy use the Vortice.Windows bindings (no hand-rolled
+/// COM vtables). The frame pool is free-threaded so FrameArrived is delivered on a pool thread
+/// (the WPF UI thread has no WinRT DispatcherQueue).
 ///
 /// Lifecycle behavior maps 1:1 onto the macOS recorder fixes:
-///  - V1  60s hard cap: the timer drives <see cref="ElapsedSec"/>; at 60s it is disposed *first*,
-///        then <see cref="AutoStopped"/> is raised exactly once (guarded atomically by <c>_autoStopRaisedFlag</c>).
-///  - V5  append only valid frames: <c>FrameArrived</c> skips null frames and null bitmaps so a
-///        static (no-change) region still records successfully.
-///  - V3  <see cref="Stop"/> stops the session/pool first, then drains any in-flight callback under
-///        <c>_gate</c> before returning the buffer.
+///  - V1  60s hard cap: timer disposed first, then <see cref="AutoStopped"/> raised exactly once
+///        (atomic via <c>_autoStopRaisedFlag</c>).
+///  - V5  append only valid frames: <c>FrameArrived</c> skips null frames / null bitmaps.
+///  - V3  <see cref="Stop"/> stops the session/pool first, then drains in-flight callbacks under <c>_gate</c>.
 ///  - V4  <see cref="Cancel"/> fast path: stop capture, dispose+clear frames, no finalize.
-///  - V2  <see cref="StartAsync"/> catches start failure (no capture item / unsupported), logs, and
-///        rethrows so the caller aborts cleanly (no phantom recording).
-///  - V15 <see cref="Dispose"/> deterministic teardown (frame pool, session, D3D device, timer);
-///        <see cref="Dispose"/> calls <see cref="Cancel"/>.
-///
-/// This class is platform-specific and is verified manually on-device (Task 12); it has no unit tests.
+///  - V2  <see cref="StartAsync"/> catches start failure, tears down, and rethrows (no phantom recording).
+///  - V15 <see cref="Dispose"/> deterministic teardown; it calls <see cref="Cancel"/>.
 /// </summary>
 public sealed class WgcScreenRecorder : IScreenRecorder
 {
@@ -38,16 +37,16 @@ public sealed class WgcScreenRecorder : IScreenRecorder
     private GraphicsCaptureItem? _item;
     private Direct3D11CaptureFramePool? _pool;
     private GraphicsCaptureSession? _session;
-    private IDirect3DDevice? _device;          // WinRT D3D device wrapping the DXGI device
-    private nint _d3dDevicePtr;                 // raw ID3D11Device* (released in teardown)
-    private nint _d3dContextPtr;                // raw ID3D11DeviceContext* (released in teardown)
+    private IDirect3DDevice? _device;          // WinRT D3D device the frame pool needs
+    private ID3D11Device? _vdevice;            // Vortice D3D11 device
+    private ID3D11DeviceContext? _vcontext;    // Vortice immediate context
 
     private readonly List<RecordedFrame> _frames = new();
     private readonly object _gate = new();      // guards _frames; drains in-flight on Stop (V3)
     private readonly Stopwatch _clock = new();
     private System.Threading.Timer? _timer;
     private PixelRect? _crop;
-    private int _autoStopRaisedFlag;            // 0/1; atomic exactly-once guard via Interlocked
+    private int _autoStopRaisedFlag;            // 0/1; atomic exactly-once guard
     private bool _disposed;
 
     public event Action? AutoStopped;
@@ -59,8 +58,8 @@ public sealed class WgcScreenRecorder : IScreenRecorder
         {
             _crop = cropPx;
 
-            // 1. Create a D3D11 device + the WinRT IDirect3DDevice that the frame pool needs.
-            CreateD3DDevice(out _d3dDevicePtr, out _d3dContextPtr, out _device);
+            // 1. D3D11 device (Vortice) + the WinRT IDirect3DDevice the frame pool needs.
+            CreateDevice();
 
             // 2. Resolve the HMONITOR for the requested display (point at the bounds centre).
             int cx = display.Bounds.Left + display.Bounds.Width / 2;
@@ -74,8 +73,8 @@ public sealed class WgcScreenRecorder : IScreenRecorder
             if (_item is null)
                 throw new InvalidOperationException("GraphicsCaptureItem.CreateForMonitor returned null.");
 
-            // 4. Frame pool + session.
-            _pool = Direct3D11CaptureFramePool.Create(
+            // 4. Free-threaded frame pool + session (FrameArrived on a pool thread).
+            _pool = Direct3D11CaptureFramePool.CreateFreeThreaded(
                 _device,
                 DirectXPixelFormat.B8G8R8A8UIntNormalized,
                 2,
@@ -92,9 +91,10 @@ public sealed class WgcScreenRecorder : IScreenRecorder
         }
         catch (Exception ex)
         {
-            // V2: surface failure to the caller so it aborts cleanly — no phantom recording.
+            // V2: surface failure so the caller aborts cleanly — no phantom recording.
             Debug.WriteLine($"WGC start failed: {ex}");
             TeardownCaptureGraph();
+            ReleaseDevice();
             _clock.Reset();
             throw;
         }
@@ -109,12 +109,14 @@ public sealed class WgcScreenRecorder : IScreenRecorder
             using var frame = sender.TryGetNextFrame();
             if (frame is null) return;                       // V5: skip empty / no-change frames
 
-            var bmp = CopyToBitmap(frame, _crop);
-            if (bmp is null) return;                          // V5: unreadable surface -> skip
-
+            // Hold _gate across the whole copy: it uses _vdevice/_vcontext, which Stop/Cancel
+            // dispose only after taking _gate and setting _disposed — so the device can never be
+            // torn down while a pool-thread copy is mid-flight (free-threaded FrameArrived race).
             lock (_gate)
             {
-                if (_disposed) { bmp.Dispose(); return; }
+                if (_disposed) return;                        // recorder torn down — drop this frame
+                var bmp = CopyToBitmap(frame, _crop);
+                if (bmp is null) return;                      // V5: unreadable surface -> skip
                 _frames.Add(new RecordedFrame(bmp, _clock.Elapsed.TotalSeconds));
             }
         }
@@ -128,16 +130,15 @@ public sealed class WgcScreenRecorder : IScreenRecorder
     private void OnTick(object? _)
     {
         if (ElapsedSec < MaxDurationSec) return;                                      // only arm at the cap
-        if (System.Threading.Interlocked.Exchange(ref _autoStopRaisedFlag, 1) != 0)   // exactly-once across overlapping ticks
+        if (System.Threading.Interlocked.Exchange(ref _autoStopRaisedFlag, 1) != 0)   // exactly-once
             return;
         _timer?.Dispose(); _timer = null;   // V1: stop the timer BEFORE raising
-        AutoStopped?.Invoke();              // exactly once (atomic guard)
+        AutoStopped?.Invoke();
     }
 
     public IReadOnlyList<RecordedFrame> Stop()
     {
-        // Stop receiving frames first, then drain: once the pool/session are torn down no
-        // new FrameArrived callback can start, and the lock waits out any in-flight one (V3).
+        // Stop receiving frames first, then drain (V3).
         _timer?.Dispose(); _timer = null;
         if (_pool is not null) _pool.FrameArrived -= OnFrameArrived;
         _session?.Dispose(); _session = null;
@@ -145,8 +146,17 @@ public sealed class WgcScreenRecorder : IScreenRecorder
         _item = null;
         _clock.Stop();
 
-        lock (_gate)                        // V3: drain — no append can be mid-flight here
-            return _frames.ToList();
+        List<RecordedFrame> result;
+        lock (_gate)                        // V3: drain — waits out any in-flight copy, then blocks new ones
+        {
+            _disposed = true;              // any FrameArrived now waiting on _gate will drop its frame
+            result = _frames.ToList();
+            _frames.Clear();               // transfer bitmap ownership to the caller; a later Dispose()
+                                           // (-> Cancel) must NOT dispose the frames we just handed out
+        }
+
+        ReleaseDevice();                    // safe: no copy can be using the device past _disposed
+        return result;
     }
 
     public void Cancel()
@@ -163,7 +173,7 @@ public sealed class WgcScreenRecorder : IScreenRecorder
             _frames.Clear();
         }
 
-        ReleaseD3DDevice();
+        ReleaseDevice();
     }
 
     public void Dispose() => Cancel();      // V15: deterministic teardown
@@ -178,69 +188,72 @@ public sealed class WgcScreenRecorder : IScreenRecorder
         _item = null;
     }
 
-    private void ReleaseD3DDevice()
+    private void ReleaseDevice()
     {
         try { (_device as IDisposable)?.Dispose(); } catch { /* best effort */ }
         _device = null;
-        if (_d3dContextPtr != 0) { Marshal.Release(_d3dContextPtr); _d3dContextPtr = 0; }
-        if (_d3dDevicePtr != 0) { Marshal.Release(_d3dDevicePtr); _d3dDevicePtr = 0; }
+        _vcontext?.Dispose(); _vcontext = null;
+        _vdevice?.Dispose(); _vdevice = null;
     }
 
-    // ===== D3D11 / DXGI interop ===============================================================
+    // ===== D3D11 / WGC interop (Vortice for D3D11; small WinRT shims for the rest) =============
 
-    /// <summary>
-    /// Map the WGC frame's <see cref="IDirect3DSurface"/> to a CPU-readable staging texture, read
-    /// the rows into a 32bpp BGRA <see cref="Bitmap"/>, and crop to <paramref name="crop"/> if set.
-    /// Returns null if the surface is unreadable (V5 — caller skips).
-    /// </summary>
+    private void CreateDevice()
+    {
+        var res = D3D11.D3D11CreateDevice(
+            null, DriverType.Hardware, DeviceCreationFlags.BgraSupport, null,
+            out ID3D11Device? device, out ID3D11DeviceContext? context);
+        if (res.Failure || device is null)
+        {
+            // Retry on WARP (headless / RDP / no GPU).
+            res = D3D11.D3D11CreateDevice(
+                null, DriverType.Warp, DeviceCreationFlags.BgraSupport, null,
+                out device, out context);
+        }
+        if (res.Failure || device is null || context is null)
+            throw new InvalidOperationException($"D3D11CreateDevice failed (hr=0x{res.Code:X8}).");
+
+        _vdevice = device;
+        _vcontext = context;
+
+        // Wrap the DXGI device as the WinRT IDirect3DDevice the frame pool requires.
+        using var dxgi = device.QueryInterface<IDXGIDevice>();
+        int hr = CreateDirect3D11DeviceFromDXGIDevice(dxgi.NativePointer, out nint pInspectable);
+        if (hr < 0 || pInspectable == 0)
+            throw new InvalidOperationException($"CreateDirect3D11DeviceFromDXGIDevice failed (hr=0x{hr:X8}).");
+        try { _device = MarshalInterface<IDirect3DDevice>.FromAbi(pInspectable); }
+        finally { Marshal.Release(pInspectable); }
+    }
+
     private System.Drawing.Bitmap? CopyToBitmap(Direct3D11CaptureFrame frame, PixelRect? crop)
     {
-        nint srcTex = 0, staging = 0;
-        // RCWs created via GetObjectForIUnknown — each AddRefs; release deterministically in finally
-        // so we do not leak a native ref per frame (RCW finalization is non-deterministic).
-        ID3D11DeviceContext? ctx = null;
-        ID3D11Device? dev = null;
-        ID3D11Resource? srcRes = null;
-        ID3D11Texture2D? srcTexture = null;
-        ID3D11Resource? stagingRes = null;
-        D3D11_MAPPED_SUBRESOURCE mapped = default;
-        bool mappedOk = false;
+        ID3D11Texture2D? srcTex = null;
+        ID3D11Texture2D? staging = null;
+        bool mapped = false;
         try
         {
-            // 1. Get the ID3D11Texture2D backing the captured surface.
+            // 1. ID3D11Texture2D backing the captured surface.
             var access = frame.Surface.As<IDirect3DDxgiInterfaceAccess>();
-            int hr = access.GetInterface(IID_ID3D11Texture2D, out srcTex);
-            if (hr < 0 || srcTex == 0) return null;
+            int hr = access.GetInterface(typeof(ID3D11Texture2D).GUID, out nint texPtr);
+            if (hr < 0 || texPtr == 0) return null;
+            srcTex = new ID3D11Texture2D(texPtr);
 
-            // 2. Read its description so we can mint a matching CPU-readable staging texture.
-            ctx = (ID3D11DeviceContext)Marshal.GetObjectForIUnknown(_d3dContextPtr);
-            dev = (ID3D11Device)Marshal.GetObjectForIUnknown(_d3dDevicePtr);
-
-            srcRes = (ID3D11Resource)Marshal.GetObjectForIUnknown(srcTex);
-            srcTexture = (ID3D11Texture2D)srcRes;
-            srcTexture.GetDesc(out D3D11_TEXTURE2D_DESC desc);
-
-            int fullW = (int)desc.Width;
-            int fullH = (int)desc.Height;
+            var desc = srcTex.Description;
+            int fullW = (int)desc.Width, fullH = (int)desc.Height;
             if (fullW <= 0 || fullH <= 0) return null;
 
-            var stagingDesc = desc;
-            stagingDesc.Usage = D3D11_USAGE_STAGING;
-            stagingDesc.BindFlags = 0;
-            stagingDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-            stagingDesc.MiscFlags = 0;
+            // 2. CPU-readable staging copy.
+            var sdesc = desc;
+            sdesc.Usage = ResourceUsage.Staging;
+            sdesc.BindFlags = BindFlags.None;
+            sdesc.CPUAccessFlags = CpuAccessFlags.Read;
+            sdesc.MiscFlags = ResourceOptionFlags.None;
+            staging = _vdevice!.CreateTexture2D(sdesc);
 
-            hr = dev.CreateTexture2D(ref stagingDesc, IntPtr.Zero, out staging);
-            if (hr < 0 || staging == 0) return null;
-
-            stagingRes = (ID3D11Resource)Marshal.GetObjectForIUnknown(staging);
-            ctx.CopyResource(stagingRes, srcRes);
-
-            hr = ctx.Map(stagingRes, 0, D3D11_MAP_READ, 0, out mapped);
-            if (hr < 0 || mapped.pData == 0) return null;
-            mappedOk = true;
-
-            return BuildBitmap(mapped.pData, (int)mapped.RowPitch, fullW, fullH, crop);
+            _vcontext!.CopyResource(staging, srcTex);
+            var ms = _vcontext.Map(staging, 0, MapMode.Read, Vortice.Direct3D11.MapFlags.None);
+            mapped = true;
+            return BuildBitmap(ms.DataPointer, (int)ms.RowPitch, fullW, fullH, crop);
         }
         catch (Exception ex)
         {
@@ -249,21 +262,9 @@ public sealed class WgcScreenRecorder : IScreenRecorder
         }
         finally
         {
-            // Unmap first (must happen before releasing the staging RCW / raw ptr).
-            if (mappedOk && ctx != null && stagingRes != null) ctx.Unmap(stagingRes, 0);
-
-            // Raw-pointer refs from GetInterface / CreateTexture2D.
-            if (staging != 0) Marshal.Release(staging);
-            if (srcTex != 0) Marshal.Release(srcTex);
-
-            // RCWs we obtained via GetObjectForIUnknown — release every one deterministically.
-            if (stagingRes != null) Marshal.ReleaseComObject(stagingRes);
-            if (srcTexture != null) Marshal.ReleaseComObject(srcTexture);
-            // srcTexture is the same underlying RCW as srcRes (cast, not a new wrapper); only
-            // release srcRes separately if it is a distinct object to avoid an over-release.
-            if (srcRes != null && !ReferenceEquals(srcRes, srcTexture)) Marshal.ReleaseComObject(srcRes);
-            if (dev != null) Marshal.ReleaseComObject(dev);
-            if (ctx != null) Marshal.ReleaseComObject(ctx);
+            if (mapped && staging is not null) { try { _vcontext!.Unmap(staging, 0); } catch { } }
+            staging?.Dispose();
+            srcTex?.Dispose();
         }
     }
 
@@ -301,85 +302,21 @@ public sealed class WgcScreenRecorder : IScreenRecorder
         return bmp;
     }
 
-    // ----- device creation -------------------------------------------------------------------
-
-    private static void CreateD3DDevice(out nint devicePtr, out nint contextPtr, out IDirect3DDevice winrtDevice)
-    {
-        int hr = D3D11CreateDevice(
-            IntPtr.Zero,
-            D3D_DRIVER_TYPE_HARDWARE,
-            IntPtr.Zero,
-            D3D11_CREATE_DEVICE_BGRA_SUPPORT,
-            IntPtr.Zero, 0,
-            D3D11_SDK_VERSION,
-            out devicePtr,
-            out _,
-            out contextPtr);
-
-        if (hr < 0 || devicePtr == 0)
-        {
-            // Retry on the WARP software rasteriser (e.g. headless / RDP / no GPU).
-            hr = D3D11CreateDevice(
-                IntPtr.Zero,
-                D3D_DRIVER_TYPE_WARP,
-                IntPtr.Zero,
-                D3D11_CREATE_DEVICE_BGRA_SUPPORT,
-                IntPtr.Zero, 0,
-                D3D11_SDK_VERSION,
-                out devicePtr,
-                out _,
-                out contextPtr);
-        }
-        if (hr < 0 || devicePtr == 0)
-            throw new InvalidOperationException($"D3D11CreateDevice failed (hr=0x{hr:X8}).");
-
-        var dxgiDevice = (ID3D11Device)Marshal.GetObjectForIUnknown(devicePtr);
-        nint dxgiUnknown = 0;
-        try
-        {
-            // Query for IDXGIDevice then hand it to CreateDirect3D11DeviceFromDXGIDevice.
-            var dxgi = (IDXGIDevice)dxgiDevice;
-            dxgiUnknown = Marshal.GetIUnknownForObject(dxgi);
-            int chr = CreateDirect3D11DeviceFromDXGIDevice(dxgiUnknown, out nint inspectable);
-            if (chr < 0 || inspectable == 0)
-                throw new InvalidOperationException($"CreateDirect3D11DeviceFromDXGIDevice failed (hr=0x{chr:X8}).");
-            try
-            {
-                winrtDevice = MarshalInterface<IDirect3DDevice>.FromAbi(inspectable);
-            }
-            finally
-            {
-                Marshal.Release(inspectable);
-            }
-        }
-        finally
-        {
-            if (dxgiUnknown != 0) Marshal.Release(dxgiUnknown);
-            Marshal.ReleaseComObject(dxgiDevice);
-        }
-    }
-
     private static GraphicsCaptureItem? CreateItemForMonitor(nint hmon)
     {
         // GraphicsCaptureItem's activation factory implements IGraphicsCaptureItemInterop.
-        var factory = (IGraphicsCaptureItemInterop)WinRT.ActivationFactory.Get(
-            "Windows.Graphics.Capture.GraphicsCaptureItem");
-        var iid = GuidGenerator.CreateIID(typeof(GraphicsCaptureItem));
+        // CsWinRT returns an IObjectReference; marshal it with AsInterface<T>() (a direct cast throws).
+        var factory = WinRT.ActivationFactory.Get(
+            "Windows.Graphics.Capture.GraphicsCaptureItem").AsInterface<IGraphicsCaptureItemInterop>();
+        var iid = IID_IGraphicsCaptureItem;
         nint itemPtr = factory.CreateForMonitor(hmon, ref iid);
         if (itemPtr == 0) return null;
-        try
-        {
-            return MarshalInterface<GraphicsCaptureItem>.FromAbi(itemPtr);
-        }
-        finally
-        {
-            Marshal.Release(itemPtr);
-        }
+        try { return MarshalInterface<GraphicsCaptureItem>.FromAbi(itemPtr); }
+        finally { Marshal.Release(itemPtr); }
     }
 
     private static void TryDisableCaptureCursor(GraphicsCaptureSession session)
     {
-        // IsCursorCaptureEnabled is only present on Windows 10 2004+; ignore if unavailable.
         try { session.IsCursorCaptureEnabled = false; } catch { /* older OS */ }
     }
 
@@ -393,58 +330,10 @@ public sealed class WgcScreenRecorder : IScreenRecorder
     [DllImport("user32.dll")]
     private static extern nint MonitorFromPoint(POINT pt, uint dwFlags);
 
-    private const uint D3D_DRIVER_TYPE_HARDWARE = 1;
-    private const uint D3D_DRIVER_TYPE_WARP = 5;
-    private const uint D3D11_CREATE_DEVICE_BGRA_SUPPORT = 0x20;
-    private const uint D3D11_SDK_VERSION = 7;
-
-    [DllImport("d3d11.dll")]
-    private static extern int D3D11CreateDevice(
-        nint pAdapter,
-        uint driverType,
-        nint software,
-        uint flags,
-        nint pFeatureLevels,
-        uint featureLevels,
-        uint sdkVersion,
-        out nint ppDevice,
-        out uint pFeatureLevel,
-        out nint ppImmediateContext);
-
     [DllImport("d3d11.dll")]
     private static extern int CreateDirect3D11DeviceFromDXGIDevice(nint dxgiDevice, out nint graphicsDevice);
 
-    private static readonly Guid IID_ID3D11Texture2D = new("6f15aaf2-d208-4e89-9ab4-489535d34f9c");
-
-    private const uint D3D11_USAGE_STAGING = 3;
-    private const uint D3D11_CPU_ACCESS_READ = 0x20000;
-    private const uint D3D11_MAP_READ = 1;
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct D3D11_TEXTURE2D_DESC
-    {
-        public uint Width;
-        public uint Height;
-        public uint MipLevels;
-        public uint ArraySize;
-        public uint Format;          // DXGI_FORMAT
-        public uint SampleDescCount;
-        public uint SampleDescQuality;
-        public uint Usage;
-        public uint BindFlags;
-        public uint CPUAccessFlags;
-        public uint MiscFlags;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct D3D11_MAPPED_SUBRESOURCE
-    {
-        public nint pData;
-        public uint RowPitch;
-        public uint DepthPitch;
-    }
-
-    // --- COM interfaces (vtable-order; only the members we call are declared) ---
+    private static readonly Guid IID_IGraphicsCaptureItem = new("79C3F95B-31F7-4EC2-A464-632EF5D30760");
 
     [ComImport, Guid("A9B3D012-3DF2-4EE3-B8D1-8695F457D3C1"),
      InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
@@ -459,65 +348,5 @@ public sealed class WgcScreenRecorder : IScreenRecorder
     {
         nint CreateForWindow(nint window, ref Guid iid);
         nint CreateForMonitor(nint monitor, ref Guid iid);
-    }
-
-    [ComImport, Guid("54ec77fa-1377-44e6-8c32-88fd5f44c84c"),
-     InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-    private interface IDXGIDevice { }
-
-    [ComImport, Guid("c0bfa96c-e089-44fb-8eaf-26f8796190da"),
-     InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-    private interface ID3D11Resource { }
-
-    [ComImport, Guid("db6f6ddb-ac77-4e88-8253-819df9bbf140"),
-     InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-    private interface ID3D11Device
-    {
-        // ID3D11Device vtable (after IUnknown): CreateBuffer, CreateTexture1D, CreateTexture2D, ...
-        // Declare the two preceding slots as placeholders so CreateTexture2D lines up.
-        void _CreateBuffer();
-        void _CreateTexture1D();
-        [PreserveSig] int CreateTexture2D(ref D3D11_TEXTURE2D_DESC desc, nint pInitialData, out nint ppTexture2D);
-    }
-
-    [ComImport, Guid("6f15aaf2-d208-4e89-9ab4-489535d34f9c"),
-     InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-    private interface ID3D11Texture2D
-    {
-        // ID3D11Texture2D : ID3D11Resource : ID3D11DeviceChild.
-        void _GetDevice();
-        void _GetPrivateData();
-        void _SetPrivateData();
-        void _SetPrivateDataInterface();
-        void GetType_();                 // ID3D11Resource::GetType
-        void _SetEvictionPriority();
-        void _GetEvictionPriority();
-        void GetDesc(out D3D11_TEXTURE2D_DESC desc);
-    }
-
-    [ComImport, Guid("c0bfa96c-e089-44fb-8eaf-26f8796190da"),
-     InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-    private interface ID3D11DeviceContext
-    {
-        // ID3D11DeviceContext vtable (0-indexed after IUnknown). We only call Map(7), Unmap(8)
-        // and CopyResource(47); every other slot is a placeholder to keep the offsets correct.
-        void _0_VSSetConstantBuffers();
-        void _1_PSSetShaderResources();
-        void _2_PSSetShader();
-        void _3_PSSetSamplers();
-        void _4_VSSetShader();
-        void _5_DrawIndexed();
-        void _6_Draw();
-        [PreserveSig] int Map(ID3D11Resource resource, uint subresource, uint mapType, uint mapFlags, out D3D11_MAPPED_SUBRESOURCE mapped); // 7
-        void Unmap(ID3D11Resource resource, uint subresource);                                                                              // 8
-        void _9();  void _10(); void _11(); void _12(); void _13();
-        void _14(); void _15(); void _16(); void _17(); void _18();
-        void _19(); void _20(); void _21(); void _22(); void _23();
-        void _24(); void _25(); void _26(); void _27(); void _28();
-        void _29(); void _30(); void _31(); void _32(); void _33();
-        void _34(); void _35(); void _36(); void _37(); void _38();
-        void _39(); void _40(); void _41(); void _42(); void _43();
-        void _44(); void _45(); void _46();
-        void CopyResource(ID3D11Resource dst, ID3D11Resource src);                                                                          // 47
     }
 }

@@ -98,6 +98,8 @@ public partial class App : Application
             Store = _history,
             OnRequestFullScreen = () => _coordinator.CaptureFullScreen(),
             OnRequestArea = () => _coordinator.CaptureArea(),
+            OnRequestVideoFull = () => _coordinator.StartVideoFull(),
+            OnRequestVideoArea = () => _coordinator.StartVideoArea(),
             OnRequestSettings = OpenSettings,
             OnVideoEntryActivated = OpenGifViewerForEntry   // V17
         };
