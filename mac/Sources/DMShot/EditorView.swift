@@ -84,6 +84,13 @@ struct EditorView: View {
 
                 Text("\(Int(model.viewRect.width)) × \(Int(model.viewRect.height)) px")
                     .font(.caption).foregroundStyle(.secondary).fixedSize()
+                Button("\(model.zoomPercent)%") { model.resetZoom() }
+                    .buttonStyle(.plain)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .help("Reset zoom to fit")
+                    .fixedSize()
+                    .disabled(model.image == nil)
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
