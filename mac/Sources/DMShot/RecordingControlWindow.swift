@@ -20,7 +20,7 @@ private struct RecordingControlView: View {
             Button(action: onStop) {
                 HStack(spacing: 4) {
                     Image(systemName: "stop.fill")
-                    Text("Stop")
+                    Text(tr(.stop))
                 }
             }
             .buttonStyle(AccentFilledButtonStyle())

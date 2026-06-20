@@ -18,11 +18,11 @@ final class GIFViewerWindow: NSObject {
         imageView.animates = true   // NSImageView auto-animates animated GIFs
         imageView.translatesAutoresizingMaskIntoConstraints = false
 
-        let saveButton = NSButton(title: "Save…", target: self, action: #selector(saveGIF))
+        let saveButton = NSButton(title: tr(.saveEllipsis), target: self, action: #selector(saveGIF))
         saveButton.bezelStyle = .rounded
         saveButton.translatesAutoresizingMaskIntoConstraints = false
 
-        let copyButton = NSButton(title: "Copy", target: self, action: #selector(copyGIF))
+        let copyButton = NSButton(title: tr(.copy), target: self, action: #selector(copyGIF))
         copyButton.bezelStyle = .rounded
         copyButton.keyEquivalent = "c"
         copyButton.keyEquivalentModifierMask = .command

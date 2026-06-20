@@ -3,20 +3,20 @@ import SwiftUI
 private struct ToolSpec {
     let tool: Tool
     let icon: String
-    let help: String
+    let help: L
 }
 
 private let toolSpecs: [ToolSpec] = [
-    .init(tool: .select, icon: "cursorarrow", help: "Select / Move"),
-    .init(tool: .arrow, icon: "arrow.up.right", help: "Arrow"),
-    .init(tool: .rect, icon: "rectangle", help: "Rectangle"),
-    .init(tool: .ellipse, icon: "circle", help: "Ellipse"),
-    .init(tool: .underline, icon: "underline", help: "Underline"),
-    .init(tool: .highlighter, icon: "highlighter", help: "Highlighter"),
-    .init(tool: .step, icon: "number.circle.fill", help: "Numbered step"),
-    .init(tool: .text, icon: "textformat", help: "Text"),
-    .init(tool: .blur, icon: "circle.grid.3x3.fill", help: "Blur / Pixelate"),
-    .init(tool: .crop, icon: "crop", help: "Crop"),
+    .init(tool: .select, icon: "cursorarrow", help: .toolSelect),
+    .init(tool: .arrow, icon: "arrow.up.right", help: .toolArrow),
+    .init(tool: .rect, icon: "rectangle", help: .toolRect),
+    .init(tool: .ellipse, icon: "circle", help: .toolEllipse),
+    .init(tool: .underline, icon: "underline", help: .toolUnderline),
+    .init(tool: .highlighter, icon: "highlighter", help: .toolHighlighter),
+    .init(tool: .step, icon: "number.circle.fill", help: .toolStep),
+    .init(tool: .text, icon: "textformat", help: .toolText),
+    .init(tool: .blur, icon: "circle.grid.3x3.fill", help: .toolBlur),
+    .init(tool: .crop, icon: "crop", help: .toolCrop),
 ]
 
 struct EditorView: View {
@@ -33,11 +33,13 @@ struct EditorView: View {
     var onOpenSettings: () -> Void
 
     @State private var hoveredHistoryID: String?
+    @ObservedObject private var localizer = Localizer.shared
     @AppStorage("dmSidebarWidth") private var sidebarWidth: Double = 170
     @State private var sidebarDragStart: Double?
     private let sidebarRange: ClosedRange<Double> = 130...460
 
     var body: some View {
+        let _ = localizer.language  // re-render on language change
         VStack(spacing: 0) {
             toolbar
             Divider()
@@ -55,9 +57,9 @@ struct EditorView: View {
     private var toolbar: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 6) {
-                Button(action: onCopy) { Label("Copy", systemImage: "doc.on.doc") }
+                Button(action: onCopy) { Label(tr(.copy), systemImage: "doc.on.doc") }
                     .disabled(model.image == nil)
-                Button(action: onSave) { Label("Save", systemImage: "square.and.arrow.down") }
+                Button(action: onSave) { Label(tr(.save), systemImage: "square.and.arrow.down") }
                     .disabled(model.image == nil)
                 Divider().frame(height: 22)
 
@@ -65,7 +67,7 @@ struct EditorView: View {
                     Button { model.tool = spec.tool } label: {
                         Image(systemName: spec.icon).frame(width: 18)
                     }
-                    .help(spec.help)
+                    .help(tr(spec.help))
                     .buttonStyle(ToolButtonStyle(active: model.tool == spec.tool))
                     .disabled(model.image == nil)
                 }
@@ -77,12 +79,12 @@ struct EditorView: View {
                 Divider().frame(height: 22)
 
                 Button(action: model.undo) { Image(systemName: "arrow.uturn.backward") }
-                    .help("Undo")
+                    .help(tr(.undo))
                 Button(action: model.redo) { Image(systemName: "arrow.uturn.forward") }
-                    .help("Redo")
+                    .help(tr(.redo))
                 Divider().frame(height: 22)
 
-                Text("\(Int(model.viewRect.width)) × \(Int(model.viewRect.height)) px")
+                Text("\(Int(model.viewRect.width)) × \(Int(model.viewRect.height)) \(tr(.pixelsSuffix))")
                     .font(.caption).foregroundStyle(.secondary).fixedSize()
             }
             .padding(.horizontal, 12)
@@ -93,28 +95,28 @@ struct EditorView: View {
     private var sidebar: some View {
         VStack(spacing: 8) {
             Button(action: onCaptureFull) {
-                Label("Full Screen", systemImage: "rectangle.dashed")
+                Label(tr(.editorFullScreen), systemImage: "rectangle.dashed")
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             .buttonStyle(.bordered)
             .controlSize(.large)
             Button(action: onCaptureArea) {
-                Label("Selection", systemImage: "selection.pin.in.out")
+                Label(tr(.editorSelection), systemImage: "selection.pin.in.out")
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             .buttonStyle(.bordered)
             .controlSize(.large)
             Button(action: onVideoFull) {
-                Label("Video Full Screen", systemImage: "video")
+                Label(tr(.editorVideoFullScreen), systemImage: "video")
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             .buttonStyle(.bordered).controlSize(.large)
             Button(action: onVideoArea) {
-                Label("Video Section", systemImage: "video.badge.plus")
+                Label(tr(.editorVideoSection), systemImage: "video.badge.plus")
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             .buttonStyle(.bordered).controlSize(.large)
-            Text("HISTORY").font(.caption2).foregroundStyle(.secondary)
+            Text(tr(.historyHeader)).font(.caption2).foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
             ScrollView {
                 VStack(spacing: 8) {
@@ -127,7 +129,7 @@ struct EditorView: View {
             }
             Divider()
             Button(action: onOpenSettings) {
-                Label("Settings", systemImage: "gearshape")
+                Label(tr(.settings), systemImage: "gearshape")
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             .buttonStyle(.bordered)

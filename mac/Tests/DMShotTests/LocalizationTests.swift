@@ -14,7 +14,7 @@ final class LocalizationTests: XCTestCase {
 
     func testGermanDiffersFromEnglishForTranslatableKeys() {
         // Intentionally identical across both languages.
-        let identical: Set<L> = [.ok, .hex, .pixelsSuffix, .toolText, .toolEllipse, .sectionUpdates, .version]
+        let identical: Set<L> = [.ok, .hex, .pixelsSuffix, .toolText, .toolEllipse, .sectionUpdates, .version, .startLabel]
         let loc = Localizer(language: .english)
         for key in L.allCases where !identical.contains(key) {
             loc.language = .english; let en = loc.string(key)

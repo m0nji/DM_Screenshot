@@ -31,6 +31,8 @@ enum L: CaseIterable {
     case toolStep, toolText, toolBlur, toolCrop
     case color, sizeBlur, editInMainWindow, close
     case blur, size, custom, hex, stop, pixelsSuffix
+    // Video preview / trim + GIF viewer
+    case previewTrimTitle, startLabel, endLabel, discard, createGIF
     // Text prompt
     case enterText, ok, cancel
 }
@@ -146,6 +148,11 @@ final class Localizer: ObservableObject {
         case .hex:                  return ("Hex", "Hex")
         case .stop:                 return ("Stop", "Stopp")
         case .pixelsSuffix:         return ("px", "px")
+        case .previewTrimTitle:     return ("Preview & Trim", "Vorschau & Zuschneiden")
+        case .startLabel:           return ("Start", "Start")
+        case .endLabel:             return ("End", "Ende")
+        case .discard:              return ("Discard", "Verwerfen")
+        case .createGIF:            return ("Create GIF", "GIF erstellen")
         case .enterText:            return ("Enter text", "Text eingeben")
         case .ok:                   return ("OK", "OK")
         case .cancel:               return ("Cancel", "Abbrechen")
