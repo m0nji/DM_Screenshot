@@ -131,5 +131,13 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.3.0/DM_Screenshot-v0.3.0.dmg" type="application/octet-stream" sparkle:edSignature="oM2rqfSddBluacGeemNMiPnvbNkNMEppT7zHehq+NCGxZqw3QxJl5T0/0SPDdg12s6pwBWOZ3EoMI1RO6BAiCw==" length="1966098" />
 </item>
 
+<item>
+  <title>Version 0.3.1</title>
+  <description><![CDATA[<ul><li>fix: The editor sidebar capture buttons (Full Screen / Selection / Video Full Screen / Video Section) now show the orange hover border on mouse-over, matching the Settings sidebar (macOS; Windows already had it)</li></ul>]]></description>
+  <sparkle:version>0.3.1</sparkle:version>
+  <sparkle:shortVersionString>0.3.1</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.3.1/DM_Screenshot-v0.3.1.dmg" type="application/octet-stream" sparkle:edSignature="gFyHMcCw2ku0dFfoKodLGiXC0JrGxsQSFPG3e3EtOUP+YWlo1+hmQyFs2pymxTeiYRuoRpZpkDn0rPjx1e57Bw==" length="1969671" />
+</item>
+
 </channel>
 </rss>
