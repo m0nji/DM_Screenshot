@@ -9,7 +9,9 @@
   <SolidColorBrush x:Key="DmSurfaceLight" Color="#2E2E36"/>
   <SolidColorBrush x:Key="DmAccent" Color="#C97B4A"/>
   <SolidColorBrush x:Key="DmAccentTint" Color="#FF8A4C" Opacity="0.14"/>
-  <SolidColorBrush x:Key="DmOnAccent" Color="#1A1A1A"/>
+  <!-- Label/icon colour on top of an accent fill. White (never near-black) — a dark
+       label on the muted orange reads as muted/disabled; white keeps active states crisp. -->
+  <SolidColorBrush x:Key="DmOnAccent" Color="#FFFFFF"/>
   <SolidColorBrush x:Key="DmText" Color="#EDEDED"/>
   <SolidColorBrush x:Key="DmTextDim" Color="#9A9AA2"/>
   <SolidColorBrush x:Key="DmBorder" Color="#3A3A42"/>
@@ -199,15 +201,18 @@
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="ListBoxItem">
-          <Border x:Name="Bd" Background="Transparent" CornerRadius="8" Padding="12,9">
+          <Border x:Name="Bd" Background="Transparent" CornerRadius="8" Padding="12,9"
+                  BorderThickness="1" BorderBrush="Transparent">
             <ContentPresenter VerticalAlignment="Center"/>
           </Border>
           <ControlTemplate.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
               <Setter TargetName="Bd" Property="Background" Value="{StaticResource DmSurfaceLight}"/>
+              <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource DmAccent}"/>
             </Trigger>
             <Trigger Property="IsSelected" Value="True">
               <Setter TargetName="Bd" Property="Background" Value="{StaticResource DmAccent}"/>
+              <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource DmAccent}"/>
               <Setter Property="Foreground" Value="{StaticResource DmOnAccent}"/>
             </Trigger>
           </ControlTemplate.Triggers>
@@ -216,9 +221,125 @@
     </Setter>
   </Style>
 
-  <!-- ===== Slider: orange accent ===== -->
+  <!-- ===== Slider: dark track, orange fill, light knob (default WPF slider is light) ===== -->
+  <Style x:Key="SliderThumb" TargetType="Thumb">
+    <Setter Property="OverridesDefaultStyle" Value="True"/>
+    <Setter Property="Cursor" Value="Hand"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="Thumb">
+          <Ellipse Width="15" Height="15" Fill="#F2F2F4" Stroke="{StaticResource DmAccent}" StrokeThickness="2"/>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
   <Style TargetType="Slider">
     <Setter Property="Foreground" Value="{StaticResource DmAccent}"/>
+    <Setter Property="Height" Value="22"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="Slider">
+          <Grid VerticalAlignment="Center">
+            <Border Height="4" CornerRadius="2" Background="{StaticResource DmSurfaceLight}" VerticalAlignment="Center"/>
+            <Track x:Name="PART_Track">
+              <Track.DecreaseRepeatButton>
+                <RepeatButton Command="Slider.DecreaseLarge" Focusable="False" IsTabStop="False">
+                  <RepeatButton.Template>
+                    <ControlTemplate TargetType="RepeatButton">
+                      <Border Height="4" CornerRadius="2" Background="{StaticResource DmAccent}" VerticalAlignment="Center"/>
+                    </ControlTemplate>
+                  </RepeatButton.Template>
+                </RepeatButton>
+              </Track.DecreaseRepeatButton>
+              <Track.IncreaseRepeatButton>
+                <RepeatButton Command="Slider.IncreaseLarge" Focusable="False" IsTabStop="False">
+                  <RepeatButton.Template>
+                    <ControlTemplate TargetType="RepeatButton"><Border Background="Transparent"/></ControlTemplate>
+                  </RepeatButton.Template>
+                </RepeatButton>
+              </Track.IncreaseRepeatButton>
+              <Track.Thumb>
+                <Thumb Style="{StaticResource SliderThumb}"/>
+              </Track.Thumb>
+            </Track>
+          </Grid>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsEnabled" Value="False">
+              <Setter Property="Opacity" Value="0.4"/>
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- ===== Checkbox: dark box, orange fill + white tick when checked ===== -->
+  <Style TargetType="CheckBox">
+    <Setter Property="Foreground" Value="{StaticResource DmText}"/>
+    <Setter Property="Cursor" Value="Hand"/>
+    <Setter Property="FontSize" Value="14"/>
+    <Setter Property="VerticalContentAlignment" Value="Center"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="CheckBox">
+          <StackPanel Orientation="Horizontal" Background="Transparent">
+            <Border x:Name="box" Width="18" Height="18" CornerRadius="4" VerticalAlignment="Center"
+                    Background="{StaticResource DmSurfaceAlt}" BorderBrush="{StaticResource DmBorder}" BorderThickness="1">
+              <Path x:Name="tick" Data="M4,9.5 L8,13.5 L14.5,5.5" Stroke="{StaticResource DmOnAccent}" StrokeThickness="2"
+                    StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                    Stretch="Uniform" Margin="3.5" Visibility="Collapsed"/>
+            </Border>
+            <ContentPresenter Margin="9,0,0,0" VerticalAlignment="Center"/>
+          </StackPanel>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsChecked" Value="True">
+              <Setter TargetName="box" Property="Background" Value="{StaticResource DmAccent}"/>
+              <Setter TargetName="box" Property="BorderBrush" Value="{StaticResource DmAccent}"/>
+              <Setter TargetName="tick" Property="Visibility" Value="Visible"/>
+            </Trigger>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="box" Property="BorderBrush" Value="{StaticResource DmAccent}"/>
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+              <Setter Property="Opacity" Value="0.4"/>
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- ===== Radio button: dark ring, orange ring + dot when checked ===== -->
+  <Style TargetType="RadioButton">
+    <Setter Property="Foreground" Value="{StaticResource DmText}"/>
+    <Setter Property="Cursor" Value="Hand"/>
+    <Setter Property="FontSize" Value="14"/>
+    <Setter Property="VerticalContentAlignment" Value="Center"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="RadioButton">
+          <StackPanel Orientation="Horizontal" Background="Transparent">
+            <Grid Width="18" Height="18" VerticalAlignment="Center">
+              <Ellipse x:Name="ring" Fill="{StaticResource DmSurfaceAlt}" Stroke="{StaticResource DmBorder}" StrokeThickness="1"/>
+              <Ellipse x:Name="dot" Width="8" Height="8" Fill="{StaticResource DmAccent}" Visibility="Collapsed"/>
+            </Grid>
+            <ContentPresenter Margin="9,0,0,0" VerticalAlignment="Center"/>
+          </StackPanel>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsChecked" Value="True">
+              <Setter TargetName="ring" Property="Stroke" Value="{StaticResource DmAccent}"/>
+              <Setter TargetName="dot" Property="Visibility" Value="Visible"/>
+            </Trigger>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="ring" Property="Stroke" Value="{StaticResource DmAccent}"/>
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+              <Setter Property="Opacity" Value="0.4"/>
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
   </Style>
 
   <!-- ===== Dark text box (hex / shortcut recorder) ===== -->

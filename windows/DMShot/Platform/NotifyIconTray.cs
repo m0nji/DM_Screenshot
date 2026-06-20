@@ -11,6 +11,8 @@ public sealed class NotifyIconTray : ITrayIcon
     public event Action? OpenRequested;
     public event Action? FullScreenRequested;
     public event Action? AreaRequested;
+    public event Action? VideoFullRequested;
+    public event Action? VideoAreaRequested;
     public event Action? SettingsRequested;
     public event Action? QuitRequested;
 
@@ -28,6 +30,9 @@ public sealed class NotifyIconTray : ITrayIcon
         menu.Resources.Add(MenuItem.SeparatorStyleKey, SeparatorStyle);
         menu.Items.Add(Item("New Fullscreen Shot", () => FullScreenRequested?.Invoke()));
         menu.Items.Add(Item("New Area Shot", () => AreaRequested?.Invoke()));
+        menu.Items.Add(Item("New Video (Full Screen)", () => VideoFullRequested?.Invoke()));
+        menu.Items.Add(Item("New Video (Area)", () => VideoAreaRequested?.Invoke()));
+        menu.Items.Add(new Separator());
         menu.Items.Add(Item("Open Editor", () => OpenRequested?.Invoke()));
         menu.Items.Add(Item("Settings…", () => SettingsRequested?.Invoke()));
         menu.Items.Add(new Separator());

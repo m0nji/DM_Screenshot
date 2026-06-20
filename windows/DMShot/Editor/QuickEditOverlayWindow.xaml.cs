@@ -209,7 +209,7 @@ public partial class QuickEditOverlayWindow : Window
       </Border>
       <ControlTemplate.Triggers>
         <Trigger Property='IsMouseOver' Value='True'><Setter TargetName='b' Property='Background' Value='#34343C'/></Trigger>
-        <Trigger Property='IsChecked' Value='True'><Setter TargetName='b' Property='Background' Value='#C97B4A'/><Setter Property='Foreground' Value='#1A1A1A'/></Trigger>
+        <Trigger Property='IsChecked' Value='True'><Setter TargetName='b' Property='Background' Value='#C97B4A'/><Setter Property='Foreground' Value='#FFFFFF'/></Trigger>
       </ControlTemplate.Triggers>
     </ControlTemplate>
   </Setter.Value></Setter>
