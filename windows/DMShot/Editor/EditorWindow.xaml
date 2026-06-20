@@ -273,9 +273,9 @@
                   ResizeBehavior="PreviousAndNext" ResizeDirection="Columns"/>
 
     <!-- ===================== Canvas ===================== -->
-    <ScrollViewer Grid.Column="2" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" Background="#141418">
-      <ed:CanvasControl x:Name="Canvas" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="24"/>
-    </ScrollViewer>
+    <Border Grid.Column="2" Background="#141418" ClipToBounds="True">
+      <ed:CanvasControl x:Name="Canvas" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+    </Border>
     </Grid>
   </DockPanel>
 </Window>

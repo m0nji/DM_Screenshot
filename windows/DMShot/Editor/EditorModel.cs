@@ -25,6 +25,8 @@ public sealed class EditorModel
 
     public Annotation CreateStep() => new() { Kind = ToolKind.Step, StepNumber = ++_stepCounter };
 
+    public void RaiseZoomChanged() => ZoomChanged?.Invoke();
+
     public void ResetZoom()
     {
         IsFitMode = true;
