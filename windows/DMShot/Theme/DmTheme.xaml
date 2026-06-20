@@ -342,6 +342,69 @@
     </Setter>
   </Style>
 
+  <!-- ===== Dark combo box (the default WPF dropdown is light/white) ===== -->
+  <ControlTemplate x:Key="DmComboToggle" TargetType="ToggleButton">
+    <Border x:Name="bd" CornerRadius="6" Background="{StaticResource DmSurfaceAlt}"
+            BorderBrush="{StaticResource DmBorder}" BorderThickness="1">
+      <Path HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0"
+            Data="M0,0 L4,4 L8,0" Stroke="{StaticResource DmText}" StrokeThickness="1.6"
+            StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+    </Border>
+    <ControlTemplate.Triggers>
+      <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource DmAccent}"/></Trigger>
+      <Trigger Property="IsChecked" Value="True"><Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource DmAccent}"/></Trigger>
+    </ControlTemplate.Triggers>
+  </ControlTemplate>
+  <Style TargetType="ComboBox">
+    <Setter Property="Foreground" Value="{StaticResource DmText}"/>
+    <Setter Property="FontSize" Value="13"/>
+    <Setter Property="Height" Value="32"/>
+    <Setter Property="Cursor" Value="Hand"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ComboBox">
+          <Grid>
+            <ToggleButton Template="{StaticResource DmComboToggle}" Focusable="False" ClickMode="Press"
+                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"/>
+            <ContentPresenter Margin="10,0,28,0" VerticalAlignment="Center" HorizontalAlignment="Left"
+                              IsHitTestVisible="False"
+                              Content="{TemplateBinding SelectionBoxItem}"
+                              ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"/>
+            <Popup x:Name="PART_Popup" Placement="Bottom" Focusable="False" AllowsTransparency="True"
+                   IsOpen="{TemplateBinding IsDropDownOpen}" PopupAnimation="Slide">
+              <Border Background="{StaticResource DmSurface}" BorderBrush="{StaticResource DmBorder}"
+                      BorderThickness="1" CornerRadius="6" Margin="0,4,0,0" Padding="2"
+                      MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}">
+                <ScrollViewer MaxHeight="260"><ItemsPresenter/></ScrollViewer>
+              </Border>
+            </Popup>
+          </Grid>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+  <Style TargetType="ComboBoxItem">
+    <Setter Property="Foreground" Value="{StaticResource DmText}"/>
+    <Setter Property="FontSize" Value="13"/>
+    <Setter Property="Cursor" Value="Hand"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ComboBoxItem">
+          <Border x:Name="bd" Background="Transparent" CornerRadius="5" Margin="2,1" Padding="9,7">
+            <ContentPresenter/>
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsHighlighted" Value="True"><Setter TargetName="bd" Property="Background" Value="{StaticResource DmSurfaceLight}"/></Trigger>
+            <Trigger Property="IsSelected" Value="True">
+              <Setter TargetName="bd" Property="Background" Value="{StaticResource DmAccent}"/>
+              <Setter Property="Foreground" Value="{StaticResource DmOnAccent}"/>
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
   <!-- ===== Dark text box (hex / shortcut recorder) ===== -->
   <Style x:Key="DmTextBox" TargetType="TextBox">
     <Setter Property="Foreground" Value="{StaticResource DmText}"/>
@@ -365,6 +428,8 @@
       </Setter.Value>
     </Setter>
   </Style>
+  <!-- Make every un-keyed TextBox dark too, so a newly-added field is never light. -->
+  <Style TargetType="TextBox" BasedOn="{StaticResource DmTextBox}"/>
 
   <!-- ===== Dark, slim scrollbars ===== -->
   <Style x:Key="SbThumb" TargetType="Thumb">

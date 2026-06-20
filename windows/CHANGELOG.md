@@ -4,6 +4,10 @@ All notable changes to DM_Screenshot for Windows. Newest version first. Always w
 
 ## [Unreleased]
 
+## 0.2.8 – 2026-06-20
+- feat: DM_Screenshot is now available in German as well as English — switch live (no restart) under Settings → Language; English stays the default (Windows)
+- fix: The Settings → Language dropdown is dark-themed instead of the light system dropdown; combo boxes and text fields are now dark by default (Windows)
+
 ## 0.2.7 – 2026-06-20
 - fix: Active/selected controls use white labels and icons on the orange accent instead of near-black (Windows)
 - fix: Sliders, checkboxes and radio buttons are now dark-themed instead of light system chrome (Windows)
