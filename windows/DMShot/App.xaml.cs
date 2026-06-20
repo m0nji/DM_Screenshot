@@ -277,13 +277,21 @@ public partial class App : Application
 
     private void DeliverGif(IReadOnlyList<RecordedFrame> frames, double start, double end)
     {
-        var (gif, thumb) = GifRenderer.Render(frames, start, end);
-        HistoryEntry entry;
-        using (thumb) { entry = _history.AddVideo(thumb, gif, DateTime.UtcNow); }
-        _clipboard.SetGif(gif, entry.GifPath);                     // auto-copy the GIF
-        var viewer = new GifViewerWindow(gif, entry.GifPath, _clipboard);
-        viewer.Show(); viewer.Activate();                          // V20
-        _editor?.RefreshHistory();
+        try
+        {
+            var (gif, thumb) = GifRenderer.Render(frames, start, end);
+            if (gif.Length == 0) { thumb.Dispose(); return; }     // I2: guard empty GIF before AddVideo
+            HistoryEntry entry;
+            using (thumb) { entry = _history.AddVideo(thumb, gif, DateTime.UtcNow); }
+            _clipboard.SetGif(gif, entry.GifPath);                 // auto-copy the GIF
+            var viewer = new GifViewerWindow(gif, entry.GifPath, _clipboard);
+            viewer.Show(); viewer.Activate();                      // V20
+            _editor?.RefreshHistory();
+        }
+        finally
+        {
+            foreach (var f in frames) f.Image.Dispose();           // I1: dispose frame buffers on all paths
+        }
     }
 
     /// <summary>V17: re-copy a stored GIF and open it in the viewer (instead of editing as an image).</summary>
