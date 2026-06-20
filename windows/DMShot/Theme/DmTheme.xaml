@@ -20,6 +20,26 @@
     <Setter Property="TextOptions.TextFormattingMode" Value="Ideal"/>
   </Style>
 
+  <!-- ===== Tooltip ===== -->
+  <!-- The default WPF tooltip has a light background; combined with the global light
+       TextBlock foreground above that gives white-on-white. Theme it dark app-wide. -->
+  <Style TargetType="ToolTip">
+    <Setter Property="Foreground" Value="{StaticResource DmText}"/>
+    <Setter Property="Background" Value="{StaticResource DmSurfaceLight}"/>
+    <Setter Property="BorderBrush" Value="{StaticResource DmBorder}"/>
+    <Setter Property="FontSize" Value="12"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ToolTip">
+          <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                  BorderThickness="1" CornerRadius="6" Padding="8,4">
+            <ContentPresenter/>
+          </Border>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
   <!-- ===== Default (neutral) button ===== -->
   <Style TargetType="Button">
     <Setter Property="Foreground" Value="{StaticResource DmText}"/>
