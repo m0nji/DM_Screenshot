@@ -3,6 +3,9 @@
 All notable changes to DM_Screenshot. Newest version first. Always written in English.
 
 ## [Unreleased]
+
+## 0.2.8 – 2026-06-20
+- feat: DM_Screenshot is now available in German as well as English. Switch live (no restart) under Settings → Language; English stays the default. Menus, tooltips, settings, dialogs and the editor are all translated (macOS + Windows)
 - fix: Sidebar capture-button labels (Full Screen / Selection / Video Full Screen / Video Section) now line up consistently, instead of "Selection" sitting slightly off (macOS)
 
 ## 0.2.7 – 2026-06-20
