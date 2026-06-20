@@ -206,6 +206,14 @@ public partial class App : Application
     {
         if (_recorder is not null) { FinishRecording(); return; }   // V8: re-trigger = stop
 
+        // OS-floor guard: WGC requires Windows 10 version 1803 (build 17134)+.
+        if (!global::Windows.Graphics.Capture.GraphicsCaptureSession.IsSupported())
+        {
+            MessageBox.Show("Video capture requires Windows 10 version 1803 or newer.",
+                "DM_Screenshot", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
         var recorder = new WgcScreenRecorder();
         _recorder = recorder;
         recorder.AutoStopped += () => Dispatcher.Invoke(FinishRecording);   // marshal to UI thread
