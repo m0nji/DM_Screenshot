@@ -98,5 +98,16 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.2.6/DM_Screenshot-v0.2.6.dmg" type="application/octet-stream" sparkle:edSignature="mz+Q0r5N+QmO/ZWPMb1BvUHBzCHbGHhcSA5uLA2WRTX/G/aMMzd4mI/uw5QaAnoHGHOFGnjUmE5+hqHuRaJDBg==" length="2224586" />
 </item>
 
+<item>
+  <title>Version 0.2.7</title>
+  <description><![CDATA[<ul><li>fix: Active/selected controls now use white labels and icons on the orange accent instead of near-black, which read as muted (macOS + Windows)</li>
+<li>fix: Settings sidebar entries show an orange border on hover (macOS + Windows)</li>
+<li>fix: Sliders, checkboxes and radio buttons are now properly dark-themed instead of the light system chrome (Windows)</li>
+<li>feat: The tray menu now has "New Video (Full Screen)" and "New Video (Area)" entries, matching the macOS menu (Windows)</li></ul>]]></description>
+  <sparkle:version>0.2.7</sparkle:version>
+  <sparkle:shortVersionString>0.2.7</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.2.7/DM_Screenshot-v0.2.7.dmg" type="application/octet-stream" sparkle:edSignature="jpSL/tNWdAd2TxPuAdZvI2rORLDX+Zzo2nNrM5Qk2JhyCUsGfRnwUgrzQbpZ4LvqMT+RBSg2tx0qHqZW8UWNBw==" length="2225544" />
+</item>
+
 </channel>
 </rss>
