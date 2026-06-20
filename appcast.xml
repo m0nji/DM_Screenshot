@@ -71,5 +71,13 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.2.3/DM_Screenshot-v0.2.3.dmg" type="application/octet-stream" sparkle:edSignature="DwEjeO0OMmZnObIDXx9rdLrn53YKvddBfC5+HZyuci2oFIJ8X/IvWv9MithFC+lxX9JYdF5KL1eysHyWFxlEDQ==" length="2221195" />
 </item>
 
+<item>
+  <title>Version 0.2.4</title>
+  <description><![CDATA[<ul><li>fix: A zoomed-in screenshot now stays inside the editor canvas instead of painting out over the sidebar and the rest of the window (macOS; Windows hardening)</li></ul>]]></description>
+  <sparkle:version>0.2.4</sparkle:version>
+  <sparkle:shortVersionString>0.2.4</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.2.4/DM_Screenshot-v0.2.4.dmg" type="application/octet-stream" sparkle:edSignature="jzKi48BI+e/1S+jdvopCnraCnn34Zh1imPJru6LTZorqR3LaSlscn/xLrxKuVApZRCh5+oLGk3mlC6/UoPPyCA==" length="2223901" />
+</item>
+
 </channel>
 </rss>
