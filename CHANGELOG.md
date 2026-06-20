@@ -4,6 +4,9 @@ All notable changes to DM_Screenshot. Newest version first. Always written in En
 
 ## [Unreleased]
 
+## 0.3.1 – 2026-06-20
+- fix: The editor sidebar capture buttons (Full Screen / Selection / Video Full Screen / Video Section) now show the orange hover border on mouse-over, matching the Settings sidebar (macOS; Windows already had it)
+
 ## 0.3.0 – 2026-06-20
 - feat: New black-and-white app icon — a camera-in-viewfinder on a dark squircle, matching the DM family look. The menu-bar / tray icon uses the same motif, sized to fill (macOS + Windows)
 - feat: Launch DM_Screenshot automatically at login, from a toggle under Settings (macOS)

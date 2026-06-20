@@ -99,26 +99,40 @@ struct EditorView: View {
         }
     }
 
-    // A sidebar capture button with a fixed-width icon column, so every label
-    // lines up regardless of each SF Symbol's intrinsic width.
-    private func captureButton(_ title: String, icon: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            HStack(spacing: 8) {
-                Image(systemName: icon).frame(width: 22)
-                Text(title)
+    // A sidebar capture button with a fixed-width icon column (so every label lines
+    // up regardless of each SF Symbol's width) and an orange hover border matching
+    // the Settings sidebar rows.
+    private struct CaptureButton: View {
+        let title: String
+        let icon: String
+        let action: () -> Void
+        @State private var hovered = false
+
+        var body: some View {
+            Button(action: action) {
+                HStack(spacing: 8) {
+                    Image(systemName: icon).frame(width: 22)
+                    Text(title)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .buttonStyle(.bordered)
+            .controlSize(.large)
+            .overlay(
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .stroke(Color.dmAccent, lineWidth: 1)
+                    .opacity(hovered ? 1 : 0)
+            )
+            .onHover { hovered = $0 }
         }
-        .buttonStyle(.bordered)
-        .controlSize(.large)
     }
 
     private var sidebar: some View {
         VStack(spacing: 8) {
-            captureButton(tr(.editorFullScreen), icon: "rectangle.dashed", action: onCaptureFull)
-            captureButton(tr(.editorSelection), icon: "selection.pin.in.out", action: onCaptureArea)
-            captureButton(tr(.editorVideoFullScreen), icon: "video", action: onVideoFull)
-            captureButton(tr(.editorVideoSection), icon: "video.badge.plus", action: onVideoArea)
+            CaptureButton(title: tr(.editorFullScreen), icon: "rectangle.dashed", action: onCaptureFull)
+            CaptureButton(title: tr(.editorSelection), icon: "selection.pin.in.out", action: onCaptureArea)
+            CaptureButton(title: tr(.editorVideoFullScreen), icon: "video", action: onVideoFull)
+            CaptureButton(title: tr(.editorVideoSection), icon: "video.badge.plus", action: onVideoArea)
             Text(tr(.historyHeader)).font(.caption2).foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
             ScrollView {
