@@ -34,6 +34,17 @@ Every user-facing behavior change must land on **both** `mac/` and `windows/` in
 the same change, or be explicitly deferred with a TODO referencing
 `docs/PARITY.md`. macOS is the source of truth; Windows mirrors it.
 
+## Localization
+
+The app ships **English (default)** and **German**. **No user-facing string literal
+may live directly in a view / menu / tooltip / alert** — route it through `L`/`tr`
+(macOS, `mac/Sources/DMShot/Localization.swift`) or `Loc`/`{loc:Tr}` (Windows,
+`windows/DMShot/Localization/Loc.cs`). Every new string must add **both** languages:
+macOS enforces this at compile time (non-exhaustive `switch` in `Localizer`), Windows
+via the `LocTests` key-parity test. Language display names (`English` / `Deutsch`) are
+never translated. First-run default is always English regardless of OS language.
+Switching is live (no restart).
+
 ## Repo & docs
 
 - Source-of-truth repo: self-hosted **GitLab** (`origin`). Access token lives in

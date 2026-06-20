@@ -91,17 +91,17 @@ private struct PreviewView: View {
         VStack(spacing: 12) {
             PlayerView(player: player).frame(minWidth: 480, minHeight: 300)
             HStack {
-                Text("Start \(String(format: "%.1f", state.start))s")
+                Text("\(tr(.startLabel)) \(String(format: "%.1f", state.start))s")
                 Slider(value: $state.start, in: 0...state.duration)
-                Text("End \(String(format: "%.1f", state.end))s")
+                Text("\(tr(.endLabel)) \(String(format: "%.1f", state.end))s")
                 Slider(value: $state.end, in: 0...state.duration)
             }.font(.caption)
             HStack {
                 Text("\(String(format: "%.1f", max(0, state.end - state.start)))s")
                     .font(.caption).foregroundStyle(.secondary)
                 Spacer()
-                Button("Discard", action: onDiscard)
-                Button("Create GIF", action: onCreate)
+                Button(tr(.discard), action: onDiscard)
+                Button(tr(.createGIF), action: onCreate)
                     .buttonStyle(AccentFilledButtonStyle())
                     .disabled(state.rendering || state.end <= state.start)
             }
@@ -174,7 +174,7 @@ final class VideoPreviewWindow: NSObject, NSWindowDelegate {
 
             let win = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 560, height: 460),
                                styleMask: [.titled, .closable], backing: .buffered, defer: false)
-            win.title = "Preview & Trim"
+            win.title = tr(.previewTrimTitle)
             win.contentView = NSHostingView(rootView: view)
             win.delegate = self
             win.center()

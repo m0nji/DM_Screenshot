@@ -17,6 +17,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     private var fullMenuItem: NSMenuItem?
     private var areaMenuItem: NSMenuItem?
+    private var openMenuItem: NSMenuItem?
+    private var settingsMenuItem: NSMenuItem?
+    private var quitMenuItem: NSMenuItem?
 
     private let recorder = VideoRecorder()
     private var recordingControl: RecordingControlWindow?
@@ -32,6 +35,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         setupStatusItem()
         setupHotkeys()
         setupPersistence()
+        // Seed the shared localizer from the persisted setting, then rebuild the
+        // AppKit menu + window titles live whenever the language changes.
+        Localizer.shared.language = appSettings.language
+        Localizer.shared.$language
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                self?.updateMenuTitles()
+                self?.settingsWindow?.title = tr(.settingsTitle)
+            }
+            .store(in: &cancellables)
         overlay.onComplete = { [weak self] image, frame in self?.deliver(image, at: frame) }
         showEditor()
         updater.start()
@@ -51,23 +64,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             button.image = icon
         }
         let menu = NSMenu()
-        let fullItem = NSMenuItem(title: "New Full Screen", action: #selector(captureFull), keyEquivalent: "")
-        let areaItem = NSMenuItem(title: "New Selection", action: #selector(captureArea), keyEquivalent: "")
+        let fullItem = NSMenuItem(title: tr(.menuNewFullScreen), action: #selector(captureFull), keyEquivalent: "")
+        let areaItem = NSMenuItem(title: tr(.menuNewSelection), action: #selector(captureArea), keyEquivalent: "")
         menu.addItem(fullItem)
         menu.addItem(areaItem)
         fullMenuItem = fullItem
         areaMenuItem = areaItem
-        let videoFullItem = NSMenuItem(title: "New Video (Full Screen)", action: #selector(captureVideoFull), keyEquivalent: "")
-        let videoAreaItem = NSMenuItem(title: "New Video (Selection)", action: #selector(captureVideoArea), keyEquivalent: "")
+        let videoFullItem = NSMenuItem(title: tr(.menuNewVideoFull), action: #selector(captureVideoFull), keyEquivalent: "")
+        let videoAreaItem = NSMenuItem(title: tr(.menuNewVideoSelection), action: #selector(captureVideoArea), keyEquivalent: "")
         menu.addItem(videoFullItem)
         menu.addItem(videoAreaItem)
         videoFullMenuItem = videoFullItem
         videoAreaMenuItem = videoAreaItem
         menu.addItem(.separator())
-        menu.addItem(NSMenuItem(title: "Open Window", action: #selector(showEditor), keyEquivalent: ""))
-        menu.addItem(NSMenuItem(title: "Settings…", action: #selector(openSettings), keyEquivalent: ""))
+        let openItem = NSMenuItem(title: tr(.menuOpenWindow), action: #selector(showEditor), keyEquivalent: "")
+        let settingsItem = NSMenuItem(title: tr(.menuSettings), action: #selector(openSettings), keyEquivalent: "")
+        menu.addItem(openItem)
+        menu.addItem(settingsItem)
+        openMenuItem = openItem
+        settingsMenuItem = settingsItem
         menu.addItem(.separator())
-        menu.addItem(NSMenuItem(title: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: ""))
+        let quitItem = NSMenuItem(title: tr(.menuQuit), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "")
+        menu.addItem(quitItem)
+        quitMenuItem = quitItem
         item.menu = menu
         statusItem = item
     }
@@ -105,12 +124,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private func updateMenuTitles() {
         let full = shortcutStore.shortcuts[.fullScreen] ?? ShortcutAction.fullScreen.defaultShortcut
         let area = shortcutStore.shortcuts[.areaSelection] ?? ShortcutAction.areaSelection.defaultShortcut
-        fullMenuItem?.title = "New Full Screen  (\(full.display))"
-        areaMenuItem?.title = "New Selection  (\(area.display))"
+        fullMenuItem?.title = "\(tr(.menuNewFullScreen))  (\(full.display))"
+        areaMenuItem?.title = "\(tr(.menuNewSelection))  (\(area.display))"
         let vFull = shortcutStore.shortcuts[.videoFullScreen] ?? ShortcutAction.videoFullScreen.defaultShortcut
         let vArea = shortcutStore.shortcuts[.videoAreaSelection] ?? ShortcutAction.videoAreaSelection.defaultShortcut
-        videoFullMenuItem?.title = "New Video (Full Screen)  (\(vFull.display))"
-        videoAreaMenuItem?.title = "New Video (Selection)  (\(vArea.display))"
+        videoFullMenuItem?.title = "\(tr(.menuNewVideoFull))  (\(vFull.display))"
+        videoAreaMenuItem?.title = "\(tr(.menuNewVideoSelection))  (\(vArea.display))"
+        openMenuItem?.title = tr(.menuOpenWindow)
+        settingsMenuItem?.title = tr(.menuSettings)
+        quitMenuItem?.title = tr(.menuQuit)
     }
 
     private func setupPersistence() {
@@ -354,7 +376,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             let win = NSWindow(
                 contentRect: NSRect(x: 0, y: 0, width: 640, height: 420),
                 styleMask: [.titled, .closable], backing: .buffered, defer: false)
-            win.title = "Settings"
+            win.title = tr(.settingsTitle)
             win.contentView = NSHostingView(rootView: SettingsView(
                 store: shortcutStore, settings: appSettings, appVersion: version, updater: updater))
             win.delegate = self
@@ -427,14 +449,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     private func showPermissionOnboarding() {
         let alert = NSAlert()
-        alert.messageText = "Screen Recording Required"
-        alert.informativeText =
-            "Allow DM_Screenshot under System Settings → Privacy & Security → "
-            + "Screen Recording. macOS only applies a newly granted permission "
-            + "after a restart — if you have already allowed it, relaunch now."
-        alert.addButton(withTitle: "Relaunch Now")
-        alert.addButton(withTitle: "Open System Settings")
-        alert.addButton(withTitle: "Cancel")
+        alert.messageText = tr(.permTitle)
+        alert.informativeText = tr(.permBody)
+        alert.addButton(withTitle: tr(.relaunchNow))
+        alert.addButton(withTitle: tr(.openSystemSettings))
+        alert.addButton(withTitle: tr(.cancel))
         switch alert.runModal() {
         case .alertFirstButtonReturn:
             relaunchApp()

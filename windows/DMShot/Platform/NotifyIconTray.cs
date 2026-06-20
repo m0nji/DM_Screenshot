@@ -3,6 +3,7 @@ using System.Windows.Markup;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Hardcodet.Wpf.TaskbarNotification;
+using DMShot.Localization;
 namespace DMShot.Platform;
 
 public sealed class NotifyIconTray : ITrayIcon
@@ -18,20 +19,27 @@ public sealed class NotifyIconTray : ITrayIcon
     {
         _icon = new TaskbarIcon
         {
-            ToolTipText = "DM_Screenshot",
+            ToolTipText = Loc.Instance["trayTooltip"],
             IconSource = LoadIcon()
         };
+        BuildMenu();
+        _icon.TrayMouseDoubleClick += (_, _) => OpenRequested?.Invoke();
+        Loc.Instance.LanguageChanged += BuildMenu;
+    }
+
+    // Rebuilt on language change so the tray menu follows the active language.
+    private void BuildMenu()
+    {
         var menu = new ContextMenu { Style = MenuStyle };
         menu.Resources.Add(typeof(MenuItem), MenuItemStyle);
         menu.Resources.Add(typeof(Separator), SeparatorStyle);
-        menu.Items.Add(Item("New Fullscreen Shot", () => FullScreenRequested?.Invoke()));
-        menu.Items.Add(Item("New Area Shot", () => AreaRequested?.Invoke()));
-        menu.Items.Add(Item("Open Editor", () => OpenRequested?.Invoke()));
-        menu.Items.Add(Item("Settings…", () => SettingsRequested?.Invoke()));
+        menu.Items.Add(Item(Loc.Instance["menuNewFullScreen"], () => FullScreenRequested?.Invoke()));
+        menu.Items.Add(Item(Loc.Instance["menuNewSelection"], () => AreaRequested?.Invoke()));
+        menu.Items.Add(Item(Loc.Instance["menuOpenWindow"], () => OpenRequested?.Invoke()));
+        menu.Items.Add(Item(Loc.Instance["menuSettings"], () => SettingsRequested?.Invoke()));
         menu.Items.Add(new Separator());
-        menu.Items.Add(Item("Quit", () => QuitRequested?.Invoke()));
+        menu.Items.Add(Item(Loc.Instance["menuQuit"], () => QuitRequested?.Invoke()));
         _icon.ContextMenu = menu;
-        _icon.TrayMouseDoubleClick += (_, _) => OpenRequested?.Invoke();
     }
 
     // Tries the bundled .ico (added in Task 17); falls back to a generated orange
@@ -105,5 +113,5 @@ public sealed class NotifyIconTray : ITrayIcon
 </Style>");
 
     public void Show() => _icon.Visibility = System.Windows.Visibility.Visible;
-    public void Dispose() => _icon.Dispose();
+    public void Dispose() { Loc.Instance.LanguageChanged -= BuildMenu; _icon.Dispose(); }
 }

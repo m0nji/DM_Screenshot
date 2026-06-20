@@ -14,6 +14,14 @@ enum SettingsSection: String, CaseIterable, Identifiable {
         case .updates: return "arrow.triangle.2.circlepath"
         }
     }
+    var titleKey: L {
+        switch self {
+        case .general: return .sectionGeneral
+        case .shortcuts: return .sectionShortcuts
+        case .language: return .sectionLanguage
+        case .updates: return .sectionUpdates
+        }
+    }
 }
 
 struct SettingsView: View {
@@ -21,10 +29,12 @@ struct SettingsView: View {
     @ObservedObject var settings: AppSettingsStore
     let appVersion: String
     @ObservedObject var updater: Updater
+    @ObservedObject private var localizer = Localizer.shared
     @State private var section: SettingsSection = .general
     @State private var showWhatsNew = false
 
     var body: some View {
+        let _ = localizer.language  // re-render when the interface language changes
         HStack(spacing: 0) {
             // Nav
             VStack(alignment: .leading, spacing: 2) {
@@ -42,7 +52,7 @@ struct SettingsView: View {
             // Detail
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    Text(section.rawValue).font(.title2).bold()
+                    Text(tr(section.titleKey)).font(.title2).bold()
                     detail
                     Spacer()
                 }
@@ -61,7 +71,7 @@ struct SettingsView: View {
         return Button {
             section = s
         } label: {
-            Label(s.rawValue, systemImage: s.icon)
+            Label(tr(s.titleKey), systemImage: s.icon)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 7)
@@ -74,10 +84,10 @@ struct SettingsView: View {
     @ViewBuilder private var detail: some View {
         switch section {
         case .general:
-            settingRow("Launch at login", "Start DM_Screenshot automatically when you log in.") {
-                Text("Coming soon").foregroundStyle(.secondary)
+            settingRow(tr(.launchAtLogin), tr(.launchAtLoginHelp)) {
+                Text(tr(.comingSoon)).foregroundStyle(.secondary)
             }
-            settingRow("After capture", "What happens right after a screenshot is taken.") {
+            settingRow(tr(.afterCapture), tr(.afterCaptureHelp)) {
                 Picker("", selection: $settings.afterCapture) {
                     ForEach(AfterCapture.allCases) { mode in
                         Text(mode.title).tag(mode)
@@ -89,21 +99,29 @@ struct SettingsView: View {
         case .shortcuts:
             shortcutsDetail
         case .language:
-            settingRow("Language", "Interface language.") {
-                Text("English").foregroundStyle(.secondary)
+            settingRow(tr(.languageLabel), tr(.languageHelp)) {
+                Picker("", selection: $settings.language) {
+                    ForEach(Language.allCases) { lang in
+                        Text(lang.displayName).tag(lang)
+                    }
+                }
+                .labelsHidden()
+                .frame(width: 220)
+                .onChange(of: settings.language) { _, newValue in
+                    Localizer.shared.language = newValue
+                }
             }
-            Text("More languages will be added later.").font(.caption).foregroundStyle(.secondary)
         case .updates:
-            settingRow("Version", "Installed version.") {
+            settingRow(tr(.version), tr(.versionHelp)) {
                 Button(appVersion) { showWhatsNew = true }
                     .buttonStyle(.plain).foregroundStyle(.secondary)
             }
             updateStatusRow
-            Button("Check for Updates") { updater.check() }
+            Button(tr(.checkForUpdates)) { updater.check() }
                 .buttonStyle(AccentFilledButtonStyle())
                 .disabled(updater.state == .checking)
             if case .disabled = updater.state {
-                Text("Updates are available only in the installed app.")
+                Text(tr(.updatesInstalledOnly))
                     .font(.caption).foregroundStyle(.secondary)
             }
         }
@@ -112,41 +130,41 @@ struct SettingsView: View {
     @ViewBuilder private var updateStatusRow: some View {
         switch updater.state {
         case .checking:
-            Label("Checking for updates…", systemImage: "arrow.triangle.2.circlepath")
+            Label(tr(.checkingForUpdates), systemImage: "arrow.triangle.2.circlepath")
                 .font(.callout).foregroundStyle(.secondary)
         case .upToDate:
-            Label("You're up to date.", systemImage: "checkmark.circle")
+            Label(tr(.upToDate), systemImage: "checkmark.circle")
                 .font(.callout).foregroundStyle(.secondary)
         case let .available(version, notes):
             VStack(alignment: .leading, spacing: 8) {
-                Text("Update available — v\(version)")
+                Text(String(format: tr(.updateAvailable), version))
                     .font(.callout.weight(.semibold)).foregroundStyle(Color.dmAccent)
                 if let latest = notes.first {
                     ForEach(Array(latest.entries.prefix(3).enumerated()), id: \.offset) { _, e in
                         Text("• \(e.text)").font(.caption).foregroundStyle(.secondary)
                     }
-                    Button("What's new") { showWhatsNew = true }.buttonStyle(.plain)
+                    Button(tr(.whatsNew)) { showWhatsNew = true }.buttonStyle(.plain)
                         .font(.caption).foregroundStyle(Color.dmAccent)
                 }
-                Button("Update now") { updater.installNow() }
+                Button(tr(.updateNow)) { updater.installNow() }
                     .buttonStyle(AccentFilledButtonStyle())
             }
         case let .downloading(percent):
             VStack(alignment: .leading, spacing: 4) {
                 ProgressView(value: Double(percent), total: 100)
-                Text("Downloading… \(percent)%").font(.caption).foregroundStyle(.secondary)
+                Text(String(format: tr(.downloading), percent)).font(.caption).foregroundStyle(.secondary)
             }
         case .extracting:
-            Label("Preparing…", systemImage: "shippingbox").font(.callout).foregroundStyle(.secondary)
+            Label(tr(.preparing), systemImage: "shippingbox").font(.callout).foregroundStyle(.secondary)
         case let .readyToInstall(version):
             VStack(alignment: .leading, spacing: 8) {
-                Text("Ready to install — v\(version)").font(.callout).foregroundStyle(.secondary)
-                Button("Restart to install") { updater.relaunch() }
+                Text(String(format: tr(.readyToInstall), version)).font(.callout).foregroundStyle(.secondary)
+                Button(tr(.restartToInstall)) { updater.relaunch() }
                     .buttonStyle(AccentFilledButtonStyle())
             }
         case let .error(message):
             VStack(alignment: .leading, spacing: 4) {
-                Label("Couldn't check for updates", systemImage: "exclamationmark.triangle")
+                Label(tr(.couldntCheckUpdates), systemImage: "exclamationmark.triangle")
                     .font(.callout).foregroundStyle(.secondary)
                 Text(message).font(.caption2).foregroundStyle(.secondary)
             }
@@ -179,9 +197,10 @@ struct SettingsView: View {
             .padding(.vertical, 6)
         }
 
-        Button("Reset to defaults") { store.reset(); lastError = [:] }
+        Button(tr(.resetToDefaults)) { store.reset(); lastError = [:] }
             .buttonStyle(.bordered)
             .padding(.top, 4)
+        Text(tr(.shortcutsHint)).font(.caption).foregroundStyle(.secondary).padding(.top, 2)
     }
 
     @State private var lastError: [ShortcutAction: String] = [:]
@@ -191,15 +210,15 @@ struct SettingsView: View {
         case .ok:
             lastError[action] = nil
         case .needsModifier:
-            lastError[action] = "Use at least one modifier (⌘, ⌥, ⌃ or ⇧)."
+            lastError[action] = tr(.needsModifier)
         case .conflict(let other):
-            lastError[action] = "Already used by \"\(other.title)\"."
+            lastError[action] = String(format: tr(.alreadyUsedBy), other.title)
         }
     }
 
     private func errorMessage(for action: ShortcutAction) -> String? {
         if store.registrationFailure == action {
-            return "This combination is already in use by the system."
+            return tr(.systemInUse)
         }
         return lastError[action]
     }
@@ -226,15 +245,15 @@ struct WhatsNewSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text("What's new").font(.title3.weight(.semibold))
+                Text(tr(.whatsNew)).font(.title3.weight(.semibold))
                 Spacer()
-                Button("Done", action: onClose).buttonStyle(AccentFilledButtonStyle())
+                Button(tr(.done), action: onClose).buttonStyle(AccentFilledButtonStyle())
             }.padding()
             Divider()
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     if versions.isEmpty {
-                        Text("No changelog available.").foregroundStyle(.secondary)
+                        Text(tr(.noChangelog)).foregroundStyle(.secondary)
                     }
                     ForEach(Array(versions.enumerated()), id: \.offset) { _, v in
                         VStack(alignment: .leading, spacing: 6) {

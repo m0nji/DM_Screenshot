@@ -9,9 +9,11 @@ let editorPalette = [
 /// dismiss its container (popover in the main editor, inline flyout in the bar).
 struct EditorColorPalette: View {
     @ObservedObject var model: EditorModel
+    @ObservedObject private var localizer = Localizer.shared
     var onPick: () -> Void = {}
 
     var body: some View {
+        let _ = localizer.language  // re-render on language change
         VStack(alignment: .leading, spacing: 10) {
             let columns = Array(repeating: GridItem(.fixed(24), spacing: 8), count: 4)
             LazyVGrid(columns: columns, spacing: 8) {
@@ -29,7 +31,7 @@ struct EditorColorPalette: View {
                 }
             }
             Divider()
-            ColorPicker("Custom", selection: Binding(
+            ColorPicker(tr(.custom), selection: Binding(
                 get: { Color(nsColor: NSColor(hex: model.colorHex)) },
                 set: { newColor in
                     let hex = Self.hexString(from: newColor)
@@ -68,7 +70,7 @@ struct EditorColorPicker: View {
                 .overlay(Circle().stroke(.secondary, lineWidth: 1))
         }
         .buttonStyle(.plain)
-        .help("Color")
+        .help(tr(.color))
         .popover(isPresented: $open) {
             EditorColorPalette(model: model, onPick: { open = false })
         }
@@ -78,6 +80,7 @@ struct EditorColorPicker: View {
 /// Size (stroke width) OR blur strength slider depending on the active tool/selection.
 struct EditorContextualSlider: View {
     @ObservedObject var model: EditorModel
+    @ObservedObject private var localizer = Localizer.shared
 
     private var blurContext: Bool {
         model.tool == .blur
@@ -85,9 +88,10 @@ struct EditorContextualSlider: View {
     }
 
     var body: some View {
+        let _ = localizer.language  // re-render on language change
         if blurContext {
             HStack(spacing: 6) {
-                Text("Blur").font(.caption).foregroundStyle(.secondary).fixedSize()
+                Text(tr(.blur)).font(.caption).foregroundStyle(.secondary).fixedSize()
                 Slider(value: $model.blurStrength, in: 2...60).frame(width: 90)
                     .tint(.dmAccent)
                     .onChange(of: model.blurStrength) { _, v in applyBlur(v) }
@@ -95,11 +99,11 @@ struct EditorContextualSlider: View {
             }
         } else {
             HStack(spacing: 6) {
-                Text("Size").font(.caption).foregroundStyle(.secondary).fixedSize()
+                Text(tr(.size)).font(.caption).foregroundStyle(.secondary).fixedSize()
                 Slider(value: $model.strokeWidth, in: 1...20).frame(width: 90)
                     .tint(.dmAccent)
                     .onChange(of: model.strokeWidth) { _, v in applyStroke(v) }
-                Text("\(Int(model.strokeWidth))px").font(.caption).monospacedDigit().fixedSize()
+                Text("\(Int(model.strokeWidth))\(tr(.pixelsSuffix))").font(.caption).monospacedDigit().fixedSize()
             }
         }
     }

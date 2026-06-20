@@ -333,11 +333,11 @@ final class CanvasNSView: NSView {
 
     static func promptText() -> String? {
         let alert = NSAlert()
-        alert.messageText = "Text eingeben"
+        alert.messageText = tr(.enterText)
         let field = NSTextField(frame: NSRect(x: 0, y: 0, width: 240, height: 24))
         alert.accessoryView = field
-        alert.addButton(withTitle: "OK")
-        alert.addButton(withTitle: "Abbrechen")
+        alert.addButton(withTitle: tr(.ok))
+        alert.addButton(withTitle: tr(.cancel))
         let response = alert.runModal()
         return response == .alertFirstButtonReturn ? field.stringValue : nil
     }
