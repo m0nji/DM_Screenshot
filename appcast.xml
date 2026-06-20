@@ -52,5 +52,16 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.2.1/DM_Screenshot-v0.2.1.dmg" type="application/octet-stream" sparkle:edSignature="4JQf+eoraH6ipapZlkyyCNqZ3j+4prjrgnApEc4J2I6aY8Oq1S59RfDpmfJ38LKZDQenjFdw6wLWVn0r7/fBAA==" length="2212761" />
 </item>
 
+<item>
+  <title>Version 0.2.2</title>
+  <description><![CDATA[<ul><li>feat: Quick-Edit in-place markup overlay is now on Windows — a capture appears framed over a dimmed backdrop with a compact floating toolbar so you can mark it up in place; enable via Settings → General → After capture, with the same reduced tools, color/size flyouts, undo, and one-click "Edit in main window" that carries annotations over (Windows)</li>
+<li>feat: Video/GIF capture is now on Windows — record the full screen or a section (Ctrl+Alt+1 / Ctrl+Alt+2), trim the clip, and copy an optimized animated GIF (≤1000px, 10fps, max 60s) that pastes into Teams/Outlook; clips are kept in history and can be re-copied or saved (Windows)</li>
+<li>feat: Record full-screen / section buttons added to the editor sidebar alongside the image-capture buttons (Windows)</li>
+<li>fix: Windows theming polish — dark title bars on the preview and GIF windows, a readable dark tray menu and dark tooltips, and a restyled Quick-Edit toolbar with proper icons and buttons; the preview/GIF action buttons are no longer clipped at the default window size (Windows)</li></ul>]]></description>
+  <sparkle:version>0.2.2</sparkle:version>
+  <sparkle:shortVersionString>0.2.2</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.2.2/DM_Screenshot-v0.2.2.dmg" type="application/octet-stream" sparkle:edSignature="1q14qiX3RyAuY+cPt27F59/lKe2acRP3+gOlNRR3w7ayeJdUQnPh0XTxsiBCVpHbR6Z2BTMC5+w/sQ8kfIWcBQ==" length="2212444" />
+</item>
+
 </channel>
 </rss>
