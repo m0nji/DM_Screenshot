@@ -83,6 +83,7 @@ public sealed class WgcScreenRecorder : IScreenRecorder
 
             _session = _pool.CreateCaptureSession(_item);
             TryDisableCaptureCursor(_session);
+            TryDisableCaptureBorder(_session);
 
             _clock.Restart();
             _timer = new System.Threading.Timer(OnTick, null, 100, 100);
@@ -318,6 +319,15 @@ public sealed class WgcScreenRecorder : IScreenRecorder
     private static void TryDisableCaptureCursor(GraphicsCaptureSession session)
     {
         try { session.IsCursorCaptureEnabled = false; } catch { /* older OS */ }
+    }
+
+    private static void TryDisableCaptureBorder(GraphicsCaptureSession session)
+    {
+        // Windows draws a coloured "capture is active" border around the captured item.
+        // We capture the whole monitor and crop in software, so that border frames the
+        // ENTIRE screen — disable it. IsBorderRequired is Windows 11 (build 22000)+;
+        // it throws on older OS, which we ignore (the border simply stays there).
+        try { session.IsBorderRequired = false; } catch { /* older OS / not permitted */ }
     }
 
     // ===== native interop declarations ========================================================
