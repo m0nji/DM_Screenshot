@@ -20,6 +20,7 @@ public partial class GifViewerWindow : Window
     public GifViewerWindow(byte[] gifBytes, string gifPath, IClipboardService clipboard)
     {
         InitializeComponent();
+        DMShot.Platform.DarkTitleBar.Apply(this);
 
         _gifBytes  = gifBytes;
         _gifPath   = gifPath;

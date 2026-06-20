@@ -20,6 +20,7 @@ public partial class VideoPreviewWindow : Window, IDisposable
     public VideoPreviewWindow(IReadOnlyList<RecordedFrame> frames)
     {
         InitializeComponent();
+        DMShot.Platform.DarkTitleBar.Apply(this);
         _frames = frames;
         _trimStart = 0;
         _trimEnd = frames.Count > 0 ? frames[^1].TimeSec : 0;

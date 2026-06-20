@@ -94,74 +94,170 @@ public partial class QuickEditOverlayWindow : Window
 
     // ===== Toolbar =====
 
-    private static readonly (ToolKind kind, string glyph)[] QuickTools =
+    // Reduced toolset, each with a vector icon (geometry, fill?) reused from the main editor so
+    // the overlay reads identically. The active tool is shown with an accent-filled chip.
+    private static readonly (ToolKind kind, string geo, bool fill)[] QuickTools =
     {
-        (ToolKind.Select,      ""), // pointer
-        (ToolKind.Arrow,       ""), // arrow
-        (ToolKind.Rectangle,   ""), // rectangle
-        (ToolKind.Highlighter, ""), // highlighter
-        (ToolKind.Text,        ""), // text
-        (ToolKind.Blur,        ""), // blur
+        (ToolKind.Select,      "M6,3 L6,19.5 L10.2,15.3 L13.2,21.5 L15.6,20.4 L12.6,14.4 L18.5,14.4 Z", true),
+        (ToolKind.Arrow,       "M5.5,18.5 L18.5,5.5 M18.5,5.5 L11.5,5.5 M18.5,5.5 L18.5,12.5", false),
+        (ToolKind.Rectangle,   "M4.5,6.5 L19.5,6.5 L19.5,17.5 L4.5,17.5 Z", false),
+        (ToolKind.Highlighter, "M3.5,20.6 L3.5,16.9 L13.4,7 L17.3,10.9 L7.4,20.8 Z M13.7,6.7 L16.5,3.9 L20.4,7.8 L17.6,10.6 Z", true),
+        (ToolKind.Text,        "M5,5 L19,5 M12,5 L12,19.5 M9,19.5 L15,19.5", false),
+        (ToolKind.Blur,        "M5,5 L8,5 L8,8 L5,8 Z M10.5,5 L13.5,5 L13.5,8 L10.5,8 Z M16,5 L19,5 L19,8 L16,8 Z M5,10.5 L8,10.5 L8,13.5 L5,13.5 Z M10.5,10.5 L13.5,10.5 L13.5,13.5 L10.5,13.5 Z M16,10.5 L19,10.5 L19,13.5 L16,13.5 Z M5,16 L8,16 L8,19 L5,19 Z M10.5,16 L13.5,16 L13.5,19 L10.5,19 Z M16,16 L19,16 L19,19 L16,19 Z", true),
     };
+
+    private const string ColorGeo = "M12,4 C16.4,4 20,7.6 20,12 C20,16.4 16.4,20 12,20 C7.6,20 4,16.4 4,12 C4,7.6 7.6,4 12,4 Z";
+    private const string SizeGeo  = "M4,8 L20,8 L20,9.4 L4,9.4 Z M4,13 L20,13 L20,16 L4,16 Z";
+    private const string UndoGeo  = "M9,6 L5,9.5 L9,13 M5,9.5 L14,9.5 C17,9.5 19,11.6 19,14.2 C19,16.8 17,18.5 14.3,18.5 L11,18.5";
+    private const string CloseGeo = "M6.5,6.5 L17.5,17.5 M17.5,6.5 L6.5,17.5";
 
     private Border BuildToolbar()
     {
-        var row = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(6) };
+        var row = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(7, 5, 7, 5), VerticalAlignment = VerticalAlignment.Center };
 
-        foreach (var (kind, glyph) in QuickTools)
+        foreach (var (kind, geo, fill) in QuickTools)
         {
-            var b = ToolButton(glyph, kind.ToString());
-            b.Click += (_, _) => { Canvas.ActiveTool = kind; };
-            row.Children.Add(b);
+            var tb = new RadioButton
+            {
+                Style = ToolToggleStyle, GroupName = "qetools",
+                Content = Icon(geo, fill), ToolTip = kind.ToString(),
+                IsChecked = kind == Canvas.ActiveTool,
+            };
+            var k = kind;
+            tb.Checked += (_, _) => { Canvas.ActiveTool = k; };
+            row.Children.Add(tb);
         }
         row.Children.Add(Divider());
-        // Color flyout
-        var color = ToolButton("", "Color");
-        color.Click += (_, _) => ToggleColorFlyout();
-        row.Children.Add(color);
-        // Size/Blur flyout
-        var size = ToolButton("", "Size");
-        size.Click += (_, _) => ToggleSizeFlyout();
-        row.Children.Add(size);
-        // Undo
-        var undo = ToolButton("", "Undo");
-        undo.Click += (_, _) => Canvas.Model.Undo();
-        row.Children.Add(undo);
+        row.Children.Add(IconAction(Icon(ColorGeo, true), "Color", ToggleColorFlyout));
+        row.Children.Add(IconAction(Icon(SizeGeo, true), "Size / blur strength", ToggleSizeFlyout));
+        row.Children.Add(IconAction(Icon(UndoGeo, false), "Undo", () => Canvas.Model.Undo()));
         row.Children.Add(Divider());
-        // Copy / Save / Edit-in-main / Close
-        var copy = TextButton("Copy"); copy.Click += (_, _) => CopyRequested?.Invoke(); row.Children.Add(copy);
-        var save = TextButton("Save"); save.Click += (_, _) => SaveRequested?.Invoke(); row.Children.Add(save);
-        var edit = TextButton("Edit in main"); edit.Click += (_, _) => EditInMainRequested?.Invoke(); row.Children.Add(edit);
-        var close = ToolButton("", "Close"); close.Click += (_, _) => CloseOverlay(); row.Children.Add(close);
+        row.Children.Add(ActionButton("Copy", primary: true, () => CopyRequested?.Invoke()));
+        row.Children.Add(ActionButton("Save", primary: false, () => SaveRequested?.Invoke()));
+        row.Children.Add(ActionButton("Edit in main", primary: false, () => EditInMainRequested?.Invoke()));
+        row.Children.Add(IconAction(Icon(CloseGeo, false), "Close", CloseOverlay));
 
         return new Border
         {
-            Background = new SolidColorBrush(WColor.FromArgb(0xF2, 0x20, 0x20, 0x20)),
-            CornerRadius = new CornerRadius(12),
-            BorderBrush = new SolidColorBrush(WColor.FromArgb(0x1F, 0xFF, 0xFF, 0xFF)),
+            Background = new SolidColorBrush(WColor.FromArgb(0xF7, 0x1E, 0x1E, 0x22)),
+            CornerRadius = new CornerRadius(14),
+            BorderBrush = new SolidColorBrush(WColor.FromArgb(0x26, 0xFF, 0xFF, 0xFF)),
             BorderThickness = new Thickness(1),
             Child = row,
         };
     }
 
-    private Button ToolButton(string glyph, string tip) => new()
+    private Button IconAction(UIElement icon, string tip, Action onClick)
     {
-        Content = new TextBlock { Text = glyph, FontFamily = new WFF("Segoe MDL2 Assets"), FontSize = 16 },
-        Width = 34, Height = 34, Margin = new Thickness(2), ToolTip = tip,
-        Background = WBrush.Transparent, BorderThickness = new Thickness(0), Foreground = WBrush.White,
-    };
+        var b = new Button { Style = IconButtonStyle, Content = icon, ToolTip = tip };
+        b.Click += (_, _) => onClick();
+        return b;
+    }
 
-    private Button TextButton(string text) => new()
+    private Button ActionButton(string text, bool primary, Action onClick)
     {
-        Content = text, Height = 34, Padding = new Thickness(10, 0, 10, 0), Margin = new Thickness(2),
-        Background = WBrush.Transparent, BorderThickness = new Thickness(0), Foreground = WBrush.White,
-    };
+        var b = new Button { Style = primary ? PrimaryActionStyle : SecondaryActionStyle, Content = text };
+        b.Click += (_, _) => onClick();
+        return b;
+    }
+
+    /// <summary>An 18px vector icon whose stroke/fill follows the hosting control's Foreground
+    /// (so it turns dark when the chip is the active/accent tool).</summary>
+    private static UIElement Icon(string data, bool fill)
+    {
+        var path = new System.Windows.Shapes.Path { Data = Geometry.Parse(data) };
+        var fg = new System.Windows.Data.Binding("Foreground")
+        {
+            RelativeSource = new System.Windows.Data.RelativeSource(System.Windows.Data.RelativeSourceMode.FindAncestor) { AncestorType = typeof(Control) }
+        };
+        if (fill) path.SetBinding(System.Windows.Shapes.Shape.FillProperty, fg);
+        else
+        {
+            path.SetBinding(System.Windows.Shapes.Shape.StrokeProperty, fg);
+            path.StrokeThickness = 2;
+            path.StrokeStartLineCap = path.StrokeEndLineCap = PenLineCap.Round;
+            path.StrokeLineJoin = PenLineJoin.Round;
+        }
+        return new Viewbox { Width = 18, Height = 18, Child = new Canvas { Width = 24, Height = 24, Children = { path } } };
+    }
 
     private static UIElement Divider() => new Border
     {
-        Width = 1, Margin = new Thickness(4, 6, 4, 6),
-        Background = new SolidColorBrush(WColor.FromArgb(0x33, 0xFF, 0xFF, 0xFF)),
+        Width = 1, Margin = new Thickness(5, 7, 5, 7),
+        Background = new SolidColorBrush(WColor.FromArgb(0x2E, 0xFF, 0xFF, 0xFF)),
     };
+
+    // ===== Toolbar control styles (parsed once) =====
+
+    private static Style S(string xaml) => (Style)System.Windows.Markup.XamlReader.Parse(xaml);
+
+    private static readonly Style ToolToggleStyle = S(
+@"<Style xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation' xmlns:x='http://schemas.microsoft.com/winfx/2006/xaml' TargetType='RadioButton'>
+  <Setter Property='Width' Value='36'/><Setter Property='Height' Value='32'/><Setter Property='Margin' Value='2,0'/>
+  <Setter Property='Foreground' Value='#E8E8EA'/><Setter Property='Cursor' Value='Hand'/>
+  <Setter Property='Template'><Setter.Value>
+    <ControlTemplate TargetType='RadioButton'>
+      <Border x:Name='b' CornerRadius='7' Background='Transparent'>
+        <ContentPresenter HorizontalAlignment='Center' VerticalAlignment='Center'/>
+      </Border>
+      <ControlTemplate.Triggers>
+        <Trigger Property='IsMouseOver' Value='True'><Setter TargetName='b' Property='Background' Value='#26FFFFFF'/></Trigger>
+        <Trigger Property='IsChecked' Value='True'><Setter TargetName='b' Property='Background' Value='#C97B4A'/><Setter Property='Foreground' Value='#1A1A1A'/></Trigger>
+      </ControlTemplate.Triggers>
+    </ControlTemplate>
+  </Setter.Value></Setter>
+</Style>");
+
+    private static readonly Style IconButtonStyle = S(
+@"<Style xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation' xmlns:x='http://schemas.microsoft.com/winfx/2006/xaml' TargetType='Button'>
+  <Setter Property='Width' Value='36'/><Setter Property='Height' Value='32'/><Setter Property='Margin' Value='2,0'/>
+  <Setter Property='Foreground' Value='#E8E8EA'/><Setter Property='Cursor' Value='Hand'/>
+  <Setter Property='Template'><Setter.Value>
+    <ControlTemplate TargetType='Button'>
+      <Border x:Name='b' CornerRadius='7' Background='Transparent'>
+        <ContentPresenter HorizontalAlignment='Center' VerticalAlignment='Center'/>
+      </Border>
+      <ControlTemplate.Triggers>
+        <Trigger Property='IsMouseOver' Value='True'><Setter TargetName='b' Property='Background' Value='#26FFFFFF'/></Trigger>
+        <Trigger Property='IsPressed' Value='True'><Setter TargetName='b' Property='Background' Value='#33FFFFFF'/></Trigger>
+      </ControlTemplate.Triggers>
+    </ControlTemplate>
+  </Setter.Value></Setter>
+</Style>");
+
+    private static readonly Style SecondaryActionStyle = S(
+@"<Style xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation' xmlns:x='http://schemas.microsoft.com/winfx/2006/xaml' TargetType='Button'>
+  <Setter Property='Height' Value='30'/><Setter Property='Margin' Value='3,0'/><Setter Property='Padding' Value='12,0'/>
+  <Setter Property='Foreground' Value='#E8E8EA'/><Setter Property='FontSize' Value='13'/><Setter Property='Cursor' Value='Hand'/>
+  <Setter Property='Template'><Setter.Value>
+    <ControlTemplate TargetType='Button'>
+      <Border x:Name='b' CornerRadius='8' Background='#3A3A42' Padding='{TemplateBinding Padding}'>
+        <ContentPresenter HorizontalAlignment='Center' VerticalAlignment='Center'/>
+      </Border>
+      <ControlTemplate.Triggers>
+        <Trigger Property='IsMouseOver' Value='True'><Setter TargetName='b' Property='Background' Value='#47474F'/></Trigger>
+        <Trigger Property='IsPressed' Value='True'><Setter TargetName='b' Property='Background' Value='#2E2E35'/></Trigger>
+      </ControlTemplate.Triggers>
+    </ControlTemplate>
+  </Setter.Value></Setter>
+</Style>");
+
+    private static readonly Style PrimaryActionStyle = S(
+@"<Style xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation' xmlns:x='http://schemas.microsoft.com/winfx/2006/xaml' TargetType='Button'>
+  <Setter Property='Height' Value='30'/><Setter Property='Margin' Value='3,0'/><Setter Property='Padding' Value='14,0'/>
+  <Setter Property='Foreground' Value='#1A1A1A'/><Setter Property='FontSize' Value='13'/><Setter Property='FontWeight' Value='SemiBold'/><Setter Property='Cursor' Value='Hand'/>
+  <Setter Property='Template'><Setter.Value>
+    <ControlTemplate TargetType='Button'>
+      <Border x:Name='b' CornerRadius='8' Background='#C97B4A' Padding='{TemplateBinding Padding}'>
+        <ContentPresenter HorizontalAlignment='Center' VerticalAlignment='Center'/>
+      </Border>
+      <ControlTemplate.Triggers>
+        <Trigger Property='IsMouseOver' Value='True'><Setter TargetName='b' Property='Background' Value='#D7894F'/></Trigger>
+        <Trigger Property='IsPressed' Value='True'><Setter TargetName='b' Property='Background' Value='#B96C3E'/></Trigger>
+      </ControlTemplate.Triggers>
+    </ControlTemplate>
+  </Setter.Value></Setter>
+</Style>");
 
     // ===== Color + Size flyouts =====
 
