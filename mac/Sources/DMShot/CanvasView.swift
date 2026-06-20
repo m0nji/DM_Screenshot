@@ -38,18 +38,29 @@ final class CanvasNSView: NSView {
     private func recomputeTransform() {
         let vr = model.viewRect
         guard vr.width > 0, vr.height > 0 else { return }
-        let s = min((bounds.width - pad) / vr.width, (bounds.height - pad) / vr.height)
-        scale = s > 0 ? s : 1
-        offset = CGPoint(
-            x: (bounds.width - vr.width * scale) / 2,
-            y: (bounds.height - vr.height * scale) / 2)
+        let content = vr.size
+        let viewport = bounds.size
+        let eff = model.isFitMode
+            ? ViewportMath.baseScale(content: content, viewport: viewport, pad: pad)
+            : ViewportMath.clampScale(model.userScale, content: content, viewport: viewport, pad: pad)
+        scale = eff
+        offset = ViewportMath.offset(content: content, viewport: viewport, scale: eff, pan: model.pan)
+        updateZoomIndicator(percent: Int((eff * 100).rounded()))
     }
 
     private func toImage(_ p: NSPoint) -> CGPoint {
         let vr = model.viewRect
-        return CGPoint(
-            x: (p.x - offset.x) / scale + vr.minX,
-            y: (p.y - offset.y) / scale + vr.minY)
+        return ViewportMath.viewToImage(p, origin: vr.origin, scale: scale, offset: offset)
+    }
+
+    /// Publish the current zoom % to the model (for the toolbar), off the draw
+    /// pass and only when it actually changes, to avoid a redraw loop.
+    private func updateZoomIndicator(percent: Int) {
+        guard model.zoomPercent != percent else { return }
+        DispatchQueue.main.async { [weak model] in
+            guard let model, model.zoomPercent != percent else { return }
+            model.zoomPercent = percent
+        }
     }
 
     override func draw(_ dirtyRect: NSRect) {
