@@ -134,7 +134,7 @@ public partial class OverlayWindow : Window
         LoupeBox.Visibility = Visibility.Visible;
 
         // Coordinate pill centered BELOW the square, so the box reads as a true square.
-        LoupeCoordBox.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        LoupeCoordBox.Measure(new System.Windows.Size(double.PositiveInfinity, double.PositiveInfinity));
         double coordW = LoupeCoordBox.DesiredSize.Width;
         System.Windows.Controls.Canvas.SetLeft(LoupeCoordBox, origin.X + (LoupeSquare - coordW) / 2);
         System.Windows.Controls.Canvas.SetTop(LoupeCoordBox, origin.Y + LoupeSquare + 4);
