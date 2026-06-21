@@ -19,6 +19,17 @@ Definition of done for a behavior change:
 
 ### Pending parity (verify on macOS)
 
+- [ ] **Inline text annotation (replaces the modal text prompt).** Pick the text tool and drag a box
+  on the image (its **height sets the font size**), then type **directly in place** — no pop-up window.
+  Multi-line (Enter = newline, width grows with the text), commit on Esc / click-outside / tool-change /
+  window-deactivate, empty text is discarded, **double-click** a text re-edits it in place, and a corner
+  handle **scales the font**. Shared sizing/measurement lives in `TextLayout` (mac
+  `Sources/DMShot/TextLayout.swift`, win `Editor/TextLayout.cs`) used by rendering, selection and the
+  editor. macOS uses an `NSTextView` subview (`CanvasView.swift`); Windows uses an in-canvas `TextBox`
+  hosted as a managed visual child of `CanvasControl` (works in the main editor and the Quick-Edit
+  overlay). macOS: `swift build && swift test` green here, but the **inline editor (focus, typing,
+  umlauts) must be verified on a real Mac**. Windows: **build + verify on a real Windows machine**.
+
 - [ ] **Remembered annotation defaults + always-visible Quick-Edit strength slider.** Stroke size and
   blur strength are remembered across restarts and shared by the editor and Quick-Edit; the Quick-Edit
   size/blur-strength slider is **always visible** (no flyout) and contextual (size for shapes, blur
@@ -54,6 +65,7 @@ Definition of done for a behavior change:
 | Annotation model | `Annotation.swift`, `EditorModel.swift` | `Editor/Annotation.cs`, `EditorModel.cs` |
 | Rendering / flatten / blur | `Rendering.swift` | `Editor/Renderer.cs` |
 | Selection / move / resize | `CanvasView.swift` | `Editor/CanvasControl.cs`, `SelectionGeometry.cs` |
+| Text annotation (inline edit: drag-to-size, type in place, multi-line, double-click re-edit, resize→font) | `TextLayout.swift`, `CanvasView.swift` (NSTextView overlay), `Rendering.swift`, `SelectionGeometry.swift` | `Editor/TextLayout.cs`, `Editor/CanvasControl.cs` (in-canvas TextBox visual child), `Editor/SelectionGeometry.cs` |
 | Editor UI | `EditorView.swift` | `Editor/EditorWindow.xaml(.cs)` |
 | Editor zoom & pan (static window, fit-to-window; Ctrl/⌘+wheel & pinch zoom; scroll + Space-drag pan) | `ViewportMath.swift`, `CanvasView.swift`, `EditorModel.swift`, `EditorView.swift` | `Editor/ViewportMath.cs`, `Editor/CanvasControl.cs`, `Editor/EditorModel.cs`, `Editor/EditorWindow.xaml(.cs)` |
 | Save file naming | `ScreenshotFilename.swift` | `Editor/ScreenshotFilename.cs` |
@@ -80,6 +92,7 @@ These differ **by design** (platform convention), not by oversight — the *moti
 - [ ] Capture: full-screen + area (per-monitor, DPI-correct), Esc cancels, auto-copy to clipboard.
 - [ ] Area overlay shows the crosshair cursor immediately on appear (no click-to-focus needed), even when summoned by hotkey from another app.
 - [ ] Every tool draws + flattens identically (arrow head, mosaic blur, step numbers, text, highlighter, crop).
+- [ ] Text tool: drag a box to set font size, type inline (no pop-up), multi-line via Enter; Esc / click-outside commits, empty discards; double-click re-edits; corner-resize scales the font.
 - [ ] Select tool: click-select, move, resize via handles, color/size/blur edit on selection, delete.
 - [ ] Copy → window gets out of the way; Save → PNG matches.
 - [ ] History persists last 10 across restart.
