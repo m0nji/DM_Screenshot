@@ -4,6 +4,11 @@ All notable changes to DM_Screenshot. Newest version first. Always written in En
 
 ## [Unreleased]
 
+## 0.4.3 – 2026-06-21
+- fix: Text annotations can now be moved — click a text to select it and drag it to reposition; double-click anywhere on the text to edit it, and the corner resize handles are easier to grab (macOS)
+- fix: The Quick-Edit bar is no longer cut off when you capture a region near the edge of the screen (macOS)
+- fix: Annotation resize handles are easier to grab (Windows)
+
 ## 0.4.2 – 2026-06-21
 - feat: Text annotations are now added directly on the image — pick the Text tool, drag a box to set the size, and type right there (multi-line; press Enter for a new line). Double-click a text to edit it again, and drag a corner handle to scale it. The separate text-entry pop-up window is gone (macOS + Windows)
 
