@@ -161,5 +161,13 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.3.3/DM_Screenshot-v0.3.3.dmg" type="application/octet-stream" sparkle:edSignature="51uYKBSbN4GczD/qEQE0wdLK5tiqiWhCSfchBYaWOZKfgA9l9oZWCVRJDOh14zh5qd3fjSQ6CIV0yOhmHlKhDg==" length="1966516" />
 </item>
 
+<item>
+  <title>Version 0.3.4</title>
+  <description><![CDATA[<ul><li>fix: The taskbar / Alt-Tab app icon now reads at full size — the white camera motif was small inside the dark tile and made the icon look smaller than its neighbours (Windows)</li></ul>]]></description>
+  <sparkle:version>0.3.4</sparkle:version>
+  <sparkle:shortVersionString>0.3.4</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.3.4/DM_Screenshot-v0.3.4.dmg" type="application/octet-stream" sparkle:edSignature="StRKBKLO/r1cZ5E49ecfllxWzNSnFaYbjGRNF8+B5eGvXubKx3q7EbDpRXZEybMsiIPBtMpv59b1USBb7KZZDA==" length="1966733" />
+</item>
+
 </channel>
 </rss>
