@@ -106,6 +106,42 @@ final class SelectionGeometryTests: XCTestCase {
         return context.makeImage()!
     }
 
+    func testTextBoundsAreMultiLine() {
+        var single = makeAnnotation(kind: .text, x: 10, y: 20, width: 0, height: 0)
+        single.text = "Ag"
+        var double = single
+        double.text = "Ag\nAg"
+        let h1 = SelectionGeometry.bounds(for: single).height
+        let h2 = SelectionGeometry.bounds(for: double).height
+        XCTAssertGreaterThan(h2, h1 * 1.6)
+    }
+
+    func testResizingTextScalesFont() {
+        var t = makeAnnotation(kind: .text, x: 100, y: 100, width: 0, height: 0)
+        t.text = "Ag"
+        t.strokeWidth = 6                       // font 36
+        let oldFont = TextLayout.fontSize(forStroke: t.strokeWidth)
+        let box = SelectionGeometry.bounds(for: t)
+        // Drag the bottom-right corner to double the box height (top-left anchored).
+        let resized = SelectionGeometry.resized(
+            t, dragging: .bottomRight,
+            to: CGPoint(x: box.maxX, y: t.y + box.height * 2))
+        let newFont = TextLayout.fontSize(forStroke: resized.strokeWidth)
+        XCTAssertEqual(newFont, oldFont * 2, accuracy: 1.0)
+        XCTAssertEqual(resized.x, t.x, accuracy: 0.5)   // top-left stays put
+        XCTAssertEqual(resized.y, t.y, accuracy: 0.5)
+    }
+
+    func testResizingTextClampsToMinimumFont() {
+        var t = makeAnnotation(kind: .text, x: 0, y: 0, width: 0, height: 0)
+        t.text = "Ag"
+        t.strokeWidth = TextLayout.stroke(forFontSize: 16)   // already at floor
+        let box = SelectionGeometry.bounds(for: t)
+        let resized = SelectionGeometry.resized(
+            t, dragging: .bottomRight, to: CGPoint(x: box.maxX, y: box.height * 0.1))
+        XCTAssertEqual(TextLayout.fontSize(forStroke: resized.strokeWidth), 16, accuracy: 0.5)
+    }
+
     private func mouseEvent(type: NSEvent.EventType, at point: CGPoint) -> NSEvent {
         NSEvent.mouseEvent(
             with: type,

@@ -128,14 +128,17 @@ enum SceneRenderer {
     }
 
     private static func drawText(_ a: Annotation, color: NSColor) {
-        let fontSize = max(16, a.strokeWidth * 6)
-        let str = NSAttributedString(
+        let fontSize = TextLayout.fontSize(forStroke: a.strokeWidth)
+        let attr = NSAttributedString(
             string: a.text,
             attributes: [
                 .foregroundColor: color,
-                .font: NSFont.boldSystemFont(ofSize: fontSize),
+                .font: TextLayout.font(ofSize: fontSize),
             ])
-        str.draw(at: CGPoint(x: a.x, y: a.y))
+        let size = TextLayout.size(a.text, fontSize: fontSize)
+        attr.draw(
+            with: CGRect(x: a.x, y: a.y, width: size.width, height: size.height),
+            options: [.usesLineFragmentOrigin, .usesFontLeading])
     }
 
     private static func drawBlur(_ a: Annotation, base: CGImage) {

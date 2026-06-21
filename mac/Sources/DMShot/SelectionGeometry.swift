@@ -56,6 +56,8 @@ enum SelectionGeometry {
         case (.arrow, .end), (.underline, .end):
             resized.width = point.x - annotation.x
             resized.height = point.y - annotation.y
+        case (.text, .topLeft), (.text, .topRight), (.text, .bottomRight), (.text, .bottomLeft):
+            resized = resizedTextAnnotation(annotation, dragging: handle, to: point)
         case (_, .topLeft), (_, .topRight), (_, .bottomRight), (_, .bottomLeft):
             resized = resizedRectAnnotation(annotation, dragging: handle, to: point)
         case (_, .start), (_, .end):
@@ -117,6 +119,36 @@ enum SelectionGeometry {
         return resized
     }
 
+    /// Text resize scales the FONT (the box hugs the text). The dragged corner's
+    /// distance from the anchored opposite corner defines the new height; the font
+    /// scales by that height ratio, and the opposite corner stays put.
+    private static func resizedTextAnnotation(
+        _ a: Annotation,
+        dragging handle: SelectionHandle,
+        to point: CGPoint
+    ) -> Annotation {
+        let r = bounds(for: a)
+        guard r.height > 0.5 else { return a }
+        let fixed: CGPoint
+        switch handle {
+        case .topLeft:     fixed = CGPoint(x: r.maxX, y: r.maxY)
+        case .topRight:    fixed = CGPoint(x: r.minX, y: r.maxY)
+        case .bottomRight: fixed = CGPoint(x: r.minX, y: r.minY)
+        case .bottomLeft:  fixed = CGPoint(x: r.maxX, y: r.minY)
+        case .start, .end: return a
+        }
+        let newHeight = abs(point.y - fixed.y)
+        let scale = max(0.05, newHeight / r.height)
+        let oldFont = TextLayout.fontSize(forStroke: a.strokeWidth)
+        let newFont = max(TextLayout.minFontSize, oldFont * scale)
+        var resized = a
+        resized.strokeWidth = TextLayout.stroke(forFontSize: newFont)
+        let newSize = TextLayout.size(a.text, fontSize: newFont)
+        resized.x = (handle == .topLeft || handle == .bottomLeft) ? fixed.x - newSize.width : fixed.x
+        resized.y = (handle == .topLeft || handle == .topRight) ? fixed.y - newSize.height : fixed.y
+        return resized
+    }
+
     static func bounds(for annotation: Annotation) -> CGRect {
         switch annotation.kind {
         case .step:
@@ -126,19 +158,11 @@ enum SelectionGeometry {
                 y: annotation.y - radius,
                 width: radius * 2,
                 height: radius * 2)
-        case .text where annotation.width == 0 && annotation.height == 0:
-            let fontSize = max(16, annotation.strokeWidth * 6)
-            let text = annotation.text.isEmpty ? " " : annotation.text
-            let size = NSAttributedString(
-                string: text,
-                attributes: [.font: NSFont.boldSystemFont(ofSize: fontSize)]
-            ).size()
-            return CGRect(
-                x: annotation.x,
-                y: annotation.y,
-                width: max(size.width, fontSize),
-                height: max(size.height, fontSize))
-        case .arrow, .underline, .rect, .ellipse, .highlighter, .text, .blur:
+        case .text:
+            let fontSize = TextLayout.fontSize(forStroke: annotation.strokeWidth)
+            let size = TextLayout.size(annotation.text, fontSize: fontSize)
+            return CGRect(x: annotation.x, y: annotation.y, width: size.width, height: size.height)
+        case .arrow, .underline, .rect, .ellipse, .highlighter, .blur:
             return annotation.normalizedRect
         }
     }

@@ -84,6 +84,13 @@ final class EditorModel: ObservableObject {
         selectedID = nil
     }
 
+    func remove(_ id: UUID) {
+        guard annotations.contains(where: { $0.id == id }) else { return }
+        snapshot()
+        annotations.removeAll { $0.id == id }
+        if selectedID == id { selectedID = nil }
+    }
+
     func setCrop(_ newCrop: CGRect?, record: Bool = true) {
         guard crop != newCrop else { return }
         if record { snapshot() }
