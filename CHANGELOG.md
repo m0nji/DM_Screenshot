@@ -4,8 +4,10 @@ All notable changes to DM_Screenshot. Newest version first. Always written in En
 
 ## [Unreleased]
 
-## 0.4.1 – 2026-06-21
+## 0.4.2 – 2026-06-21
 - feat: Text annotations are now added directly on the image — pick the Text tool, drag a box to set the size, and type right there (multi-line; press Enter for a new line). Double-click a text to edit it again, and drag a corner handle to scale it. The separate text-entry pop-up window is gone (macOS + Windows)
+
+## 0.4.1 – 2026-06-21 — withdrawn (auto-update signature mismatch from a re-tag; re-released as 0.4.2)
 
 ## 0.4.0 – 2026-06-21
 - feat: A zoom loupe now appears while you select a capture area — a magnifier follows the cursor with a crosshair and live pixel coordinates, so you can line up the selection edges precisely. Turn it off under Settings → General → Zoom loupe (macOS + Windows)
