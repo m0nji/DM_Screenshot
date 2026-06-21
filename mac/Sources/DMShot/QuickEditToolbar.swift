@@ -21,7 +21,7 @@ struct QuickEditToolbar: View {
     let onClose: () -> Void
     @ObservedObject private var localizer = Localizer.shared
 
-    private enum Flyout { case none, color, size }
+    private enum Flyout { case none, color }
     @State private var flyout: Flyout = .none
 
     var body: some View {
@@ -30,10 +30,6 @@ struct QuickEditToolbar: View {
             toolbarRow
             if flyout == .color {
                 EditorColorPalette(model: model, onPick: { flyout = .none })
-                    .background(panelBackground)
-            } else if flyout == .size {
-                EditorContextualSlider(model: model)
-                    .padding(10)
                     .background(panelBackground)
             }
         }
@@ -56,10 +52,9 @@ struct QuickEditToolbar: View {
                     .overlay(Circle().stroke(.secondary, lineWidth: 1))
             }
             .buttonStyle(.plain).help(tr(.color))
-            Button { toggle(.size) } label: {
-                Image(systemName: "slider.horizontal.3").frame(width: 18)
-            }
-            .buttonStyle(.plain).help(tr(.sizeBlur))
+            Divider().frame(height: 22)
+            EditorContextualSlider(model: model)   // always visible so size/blur strength can be set in advance
+            Divider().frame(height: 22)
             Button(action: model.undo) { Image(systemName: "arrow.uturn.backward") }
                 .buttonStyle(.plain).help(tr(.undo)).disabled(model.image == nil)
             Divider().frame(height: 22)

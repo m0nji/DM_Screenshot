@@ -6,8 +6,14 @@ final class EditorModel: ObservableObject {
     @Published var entryID: String?
     @Published var tool: Tool = .select
     @Published var colorHex: String = "#EF4444"
-    @Published var strokeWidth: CGFloat = 4
-    @Published var blurStrength: CGFloat = 12
+    // Stroke size + blur strength are remembered across launches (UserDefaults), shared by the main
+    // editor and the Quick-Edit overlay. UserDefaults coalesces writes, so per-drag didSet is cheap.
+    @Published var strokeWidth: CGFloat = (UserDefaults.standard.object(forKey: "dmStrokeWidth") as? Double).map { CGFloat($0) } ?? 4 {
+        didSet { UserDefaults.standard.set(Double(strokeWidth), forKey: "dmStrokeWidth") }
+    }
+    @Published var blurStrength: CGFloat = (UserDefaults.standard.object(forKey: "dmBlurStrength") as? Double).map { CGFloat($0) } ?? 12 {
+        didSet { UserDefaults.standard.set(Double(blurStrength), forKey: "dmBlurStrength") }
+    }
     @Published var annotations: [Annotation] = []
     @Published var selectedID: UUID?
     @Published var crop: CGRect? { didSet { resetZoom() } }
