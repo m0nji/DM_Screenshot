@@ -49,6 +49,7 @@ Definition of done for a behavior change:
 |---|---|---|
 | Screen capture / freeze | `ScreenCapture.swift` | `Platform/GdiScreenCapturer.cs` |
 | Area selection overlay | `Overlay.swift` | `Capture/OverlayWindow.xaml(.cs)` |
+| Capture zoom loupe (Settings → General toggle) | `LoupeMath.swift`, `Overlay.swift`, `AppSettings.swift`, `Settings.swift` | `Capture/Loupe.cs`, `Capture/OverlayWindow.xaml(.cs)`, `Capture/CaptureCoordinator.cs`, `Settings/Settings.cs`, `Settings/SettingsWindow.xaml.cs` |
 | Global hotkeys | `HotkeyManager.swift`, `Shortcuts.swift` | `Platform/Win32HotkeyManager.cs`, `HotkeySpec.cs` |
 | Annotation model | `Annotation.swift`, `EditorModel.swift` | `Editor/Annotation.cs`, `EditorModel.cs` |
 | Rendering / flatten / blur | `Rendering.swift` | `Editor/Renderer.cs` |

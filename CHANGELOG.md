@@ -4,6 +4,9 @@ All notable changes to DM_Screenshot. Newest version first. Always written in En
 
 ## [Unreleased]
 
+## 0.4.0 – 2026-06-21
+- feat: A zoom loupe now appears while you select a capture area — a magnifier follows the cursor with a crosshair and live pixel coordinates, so you can line up the selection edges precisely. Turn it off under Settings → General → Zoom loupe (macOS + Windows)
+
 ## 0.3.4 – 2026-06-21
 - fix: The taskbar / Alt-Tab app icon now reads at full size — the white camera motif was small inside the dark tile and made the icon look smaller than its neighbours (Windows)
 
