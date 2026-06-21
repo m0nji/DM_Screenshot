@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -28,21 +29,45 @@ public sealed class CanvasControl : FrameworkElement
     private Point _grabStartView;
     private Point _grabStartPan;
 
+    // Inline text editing
+    private TextBox? _textBox;
+    private Annotation? _editingAnno;     // existing annotation being re-edited (null for a new one)
+    private Point _editOrigin;            // image-space top-left of the text
+    private double _editFontSize;         // on-image font size
+    private uint _editColor;
+    private Point? _textDragStart;        // image-space start of a text-box drag
+    private Rect _textDragRect;           // current dragged box (image space)
+    private bool _draggingText;
+
     private static Brush MakeFrozen(Color c) { var b = new SolidColorBrush(c); b.Freeze(); return b; }
 
     private Size ContentSize => new(_w, _h);          // full image; see Windows crop scope note
     private Size ViewportSize => new(ActualWidth, ActualHeight);
 
-    private double EffectiveScale()
-        => Model.IsFitMode
-            ? ViewportMath.BaseScale(ContentSize, ViewportSize, Pad)
-            : ViewportMath.ClampScale(Model.UserScale, ContentSize, ViewportSize, Pad);
+    /// <summary>Image→view transform for a given viewport size. OnRender uses the live
+    /// viewport; ArrangeOverride uses its finalSize so the inline editor positions
+    /// correctly even before the next render pass.</summary>
+    private (double scale, Point offset) ComputeTransform(Size viewport)
+    {
+        double s = Model.IsFitMode
+            ? ViewportMath.BaseScale(ContentSize, viewport, Pad)
+            : ViewportMath.ClampScale(Model.UserScale, ContentSize, viewport, Pad);
+        return (s, ViewportMath.Offset(ContentSize, viewport, s, Model.Pan));
+    }
+
+    private static Color ColorFromArgb(uint argb) =>
+        Color.FromArgb((byte)(argb >> 24), (byte)((argb >> 16) & 0xFF), (byte)((argb >> 8) & 0xFF), (byte)(argb & 0xFF));
 
     private Point ToImage(Point viewPoint)
         => ViewportMath.ViewToImage(viewPoint, _origin, _scale, _offset);
 
     public EditorModel Model { get; } = new();
-    public ToolKind ActiveTool { get; set; } = ToolKind.Arrow;
+    private ToolKind _activeTool = ToolKind.Arrow;
+    public ToolKind ActiveTool
+    {
+        get => _activeTool;
+        set { if (_activeTool != value) { CommitTextEdit(); _activeTool = value; } }
+    }
     public uint ActiveColor { get; set; } = 0xFFC97B4A;
     public double ActiveStroke { get; set; } = 3;
     public int ActiveBlurStrength { get; set; } = 12;
@@ -79,9 +104,32 @@ public sealed class CanvasControl : FrameworkElement
 
     protected override Size MeasureOverride(Size availableSize)
     {
+        _textBox?.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
         double w = double.IsInfinity(availableSize.Width) ? 0 : availableSize.Width;
         double h = double.IsInfinity(availableSize.Height) ? 0 : availableSize.Height;
         return new Size(w, h);   // fill the cell (Stretch); we fit/zoom internally
+    }
+
+    // ===== Inline text editor: hosted as a single managed visual child =====
+    protected override int VisualChildrenCount => _textBox is null ? 0 : 1;
+
+    protected override Visual GetVisualChild(int index) =>
+        _textBox ?? throw new ArgumentOutOfRangeException(nameof(index));
+
+    protected override Size ArrangeOverride(Size finalSize)
+    {
+        if (_textBox is not null && _source is not null)
+        {
+            var (s, off) = ComputeTransform(finalSize);
+            double vx = off.X + _editOrigin.X * s;
+            double vy = off.Y + _editOrigin.Y * s;
+            _textBox.FontSize = _editFontSize * s;
+            var sz = TextLayout.Measure(_textBox.Text, _editFontSize);
+            double w = Math.Max(sz.Width, _editFontSize) * s + 8;   // caret pad
+            double h = Math.Max(sz.Height, _editFontSize) * s + 4;
+            _textBox.Arrange(new Rect(vx, vy, w, h));
+        }
+        return finalSize;
     }
 
     protected override void OnRender(DrawingContext dc)
@@ -90,8 +138,7 @@ public sealed class CanvasControl : FrameworkElement
         if (_source is null) return;
 
         _origin = new Point(0, 0);
-        _scale = EffectiveScale();
-        _offset = ViewportMath.Offset(ContentSize, ViewportSize, _scale, Model.Pan);
+        (_scale, _offset) = ComputeTransform(ViewportSize);
 
         int pct = (int)Math.Round(_scale * 100);
         if (Model.ZoomPercent != pct)
@@ -106,6 +153,7 @@ public sealed class CanvasControl : FrameworkElement
         dc.PushTransform(new ScaleTransform(_scale, _scale));
 
         IEnumerable<Annotation> anns = Model.Annotations;
+        if (_editingAnno is not null) anns = anns.Where(a => !ReferenceEquals(a, _editingAnno));
         if (_draft is not null) anns = anns.Concat(new[] { _draft });
         using (var comp = Renderer.RenderComposite(_source, anns))
             dc.DrawImage(ImageInterop.ToBitmapSource(comp), new Rect(0, 0, _w, _h));
@@ -122,6 +170,13 @@ public sealed class CanvasControl : FrameworkElement
         }
 
         if (_selected is not null) DrawSelection(dc, _selected);
+
+        if (_draggingText)
+        {
+            var tbPen = new Pen(new SolidColorBrush(Color.FromRgb(0xC9, 0x7B, 0x4A)), 1 / _scale)
+                { DashStyle = new DashStyle(new double[] { 4, 3 }, 0) };
+            dc.DrawRectangle(null, tbPen, _textDragRect);
+        }
 
         dc.Pop();   // ScaleTransform
         dc.Pop();   // TranslateTransform
@@ -205,6 +260,7 @@ public sealed class CanvasControl : FrameworkElement
     protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
     {
         if (_source is null) return;
+        if (_textBox is not null) { CommitTextEdit(); return; }   // a click outside the editor commits it
         Focus();
         if (_space)
         {
@@ -214,6 +270,27 @@ public sealed class CanvasControl : FrameworkElement
             return;
         }
         var p = ToImage(e.GetPosition(this));
+
+        if (ActiveTool == ToolKind.Select && e.ClickCount == 2)
+        {
+            var dbl = SelectionGeometry.HitTest(Model.Annotations, p);
+            if (dbl is { Kind: ToolKind.Text })
+            {
+                BeginTextEdit(dbl, new Point(dbl.X0, dbl.Y0),
+                    TextLayout.FontSizeForStroke(dbl.StrokeWidth), dbl.ColorArgb, dbl.Text);
+                return;
+            }
+        }
+
+        if (ActiveTool == ToolKind.Text)
+        {
+            SetSelected(null);
+            _textDragStart = p;
+            _textDragRect = new Rect(p, p);
+            _draggingText = true;
+            CaptureMouse();
+            return;
+        }
 
         if (ActiveTool == ToolKind.Select)
         {
@@ -250,6 +327,15 @@ public sealed class CanvasControl : FrameworkElement
             InvalidateVisual();
             return;
         }
+        if (_draggingText && _textDragStart is { } ds)
+        {
+            var pp = ToImage(e.GetPosition(this));
+            _textDragRect = new Rect(
+                new Point(Math.Min(ds.X, pp.X), Math.Min(ds.Y, pp.Y)),
+                new Point(Math.Max(ds.X, pp.X), Math.Max(ds.Y, pp.Y)));
+            InvalidateVisual();
+            return;
+        }
         var p = ToImage(e.GetPosition(this));
 
         if (_resizing && _selected is not null)
@@ -279,16 +365,23 @@ public sealed class CanvasControl : FrameworkElement
     protected override void OnMouseLeftButtonUp(MouseButtonEventArgs e)
     {
         if (_space) { if (IsMouseCaptured) ReleaseMouseCapture(); return; }
+        if (_draggingText)
+        {
+            _draggingText = false;
+            if (IsMouseCaptured) ReleaseMouseCapture();
+            var rect = _textDragRect;
+            _textDragStart = null;
+            double fontSize = rect.Height >= 2
+                ? TextLayout.FontSizeForDragHeight(rect.Height)
+                : TextLayout.FontSizeForStroke(ActiveStroke);
+            BeginTextEdit(null, new Point(rect.X, rect.Y), fontSize, ActiveColor, "");
+            return;
+        }
         if (_resizing) { FinishSelectionMutation(); _resizing = false; _handle = -1; ReleaseMouseCapture(); return; }
         if (_moving) { FinishSelectionMutation(); _moving = false; ReleaseMouseCapture(); return; }
         if (_draft is null) return;
         ReleaseMouseCapture();
         var d = _draft; _draft = null;
-        if (d.Kind == ToolKind.Text)
-        {
-            d.Text = TextPromptWindow.Ask(Window.GetWindow(this)!);
-            if (string.IsNullOrEmpty(d.Text)) { InvalidateVisual(); return; }
-        }
         if (d.Kind == ToolKind.Crop)
         {
             Model.SetCrop(new Capture.PixelRect((int)Math.Min(d.X0, d.X1), (int)Math.Min(d.Y0, d.Y1),
@@ -335,5 +428,83 @@ public sealed class CanvasControl : FrameworkElement
         if (_selected is not null && _editBefore is not null)
             Model.RecordMutation(_selected, _editBefore);
         _editBefore = null;
+    }
+
+    // ===== Inline text editing =====
+    private void BeginTextEdit(Annotation? existing, Point imageOrigin, double fontSize, uint color, string initial)
+    {
+        CommitTextEdit();   // safety: never two editors at once
+        _editingAnno = existing;
+        _editOrigin = imageOrigin;
+        _editFontSize = fontSize;
+        _editColor = color;
+
+        var tb = new TextBox
+        {
+            Text = initial,
+            AcceptsReturn = true,
+            AcceptsTab = false,
+            BorderThickness = new Thickness(0),
+            Background = Brushes.Transparent,
+            Foreground = new SolidColorBrush(ColorFromArgb(color)),
+            CaretBrush = new SolidColorBrush(ColorFromArgb(color)),
+            Padding = new Thickness(0),
+            FontFamily = new FontFamily(TextLayout.FontFamily),
+            TextWrapping = TextWrapping.NoWrap,
+            VerticalContentAlignment = VerticalAlignment.Top,
+        };
+        tb.TextChanged += (_, _) => { InvalidateMeasure(); InvalidateArrange(); };
+        tb.PreviewKeyDown += TextBoxPreviewKeyDown;
+        tb.LostKeyboardFocus += (_, _) => CommitTextEdit();
+        _textBox = tb;
+        AddVisualChild(tb);
+        AddLogicalChild(tb);
+        InvalidateMeasure(); InvalidateArrange(); InvalidateVisual();
+        Dispatcher.BeginInvoke(() =>
+        {
+            tb.Focus();
+            tb.CaretIndex = tb.Text.Length;
+        });
+    }
+
+    private void TextBoxPreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Escape) { e.Handled = true; CommitTextEdit(); }
+        // Enter inserts a newline (AcceptsReturn=true).
+    }
+
+    private void CommitTextEdit()
+    {
+        if (_textBox is null) return;
+        var tb = _textBox;
+        string raw = tb.Text;
+        string trimmed = raw.Trim();
+        _textBox = null;                       // guard against re-entry from LostKeyboardFocus
+        var existing = _editingAnno;
+        _editingAnno = null;
+        tb.PreviewKeyDown -= TextBoxPreviewKeyDown;
+        RemoveVisualChild(tb);
+        RemoveLogicalChild(tb);
+
+        if (existing is not null)
+        {
+            if (trimmed.Length == 0) Model.Remove(existing);
+            else { Model.Mutate(existing, a => a.Text = raw); SetSelected(existing); }
+        }
+        else if (trimmed.Length != 0)
+        {
+            var a = new Annotation
+            {
+                Kind = ToolKind.Text,
+                ColorArgb = _editColor,
+                StrokeWidth = TextLayout.StrokeForFontSize(_editFontSize),
+                X0 = _editOrigin.X, Y0 = _editOrigin.Y, X1 = _editOrigin.X, Y1 = _editOrigin.Y,
+                Text = raw,
+            };
+            Model.Add(a);
+            SetSelected(a);
+        }
+        InvalidateMeasure(); InvalidateArrange(); InvalidateVisual();
+        Focus();
     }
 }
