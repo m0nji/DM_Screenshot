@@ -296,6 +296,7 @@ public sealed class CanvasControl : FrameworkElement
             return;
         }
         Model.Add(d);
+        SetSelected(d);   // auto-select the fresh shape so size/colour edits apply to it immediately
     }
 
     // ===== Edits applied to the current selection =====
