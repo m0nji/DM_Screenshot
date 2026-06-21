@@ -203,5 +203,13 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.4.3/DM_Screenshot-v0.4.3.dmg" type="application/octet-stream" sparkle:edSignature="EmfFMpcTvYc/98MK9Xd5v+e0lmL4ym7Q1qduaQ4pMvaqKd3gL5CVOts6VE/0iGrhrrxnawjjSDVVxfXDVFoPBg==" length="2001393" />
 </item>
 
+<item>
+  <title>Version 0.4.4</title>
+  <description><![CDATA[<ul><li>change: The white camera-and-viewfinder in the app icon is now a soft off-white instead of stark white, so it sits more calmly in the Dock (macOS)</li></ul>]]></description>
+  <sparkle:version>0.4.4</sparkle:version>
+  <sparkle:shortVersionString>0.4.4</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.4.4/DM_Screenshot-v0.4.4.dmg" type="application/octet-stream" sparkle:edSignature="haHEdkJ5kTuL7L3425csMsnaWwmVVH6uSdjw0ujfjkFwS6//BBt5oo0ytVFK4HbUX/EeqtevVa97EGLk2MPrAg==" length="2001745" />
+</item>
+
 </channel>
 </rss>
