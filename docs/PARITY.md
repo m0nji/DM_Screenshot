@@ -39,6 +39,16 @@ Definition of done for a behavior change:
   `QuickEditToolbar` inline slider) but **must be verified with `swift build && swift test` on a Mac**
   before merging the macOS side.
 
+- [ ] **Text annotation: body select/move + double-click edit everywhere, and Quick-Edit-Bar edge
+  clamping.** On macOS a text annotation is now selectable/movable by clicking anywhere on its body
+  (drag = move), double-click anywhere in the text re-edits, and corner handles resize; the resize
+  grab radius widened to 12pt. The Quick-Edit-Bar is clamped fully on-screen at any screen edge.
+  These match the existing Windows behavior. Windows changes in this round: only the matching
+  resize-handle grab-radius bump (8→12px, `Editor/CanvasControl.cs`). macOS hit/clamp geometry is
+  unit-tested (`SelectionGeometry.bodyHitRect`, `QuickEditLayout`), but **text move/edit/resize and
+  edge-flush captures must be verified on a real Mac**, and the Windows handle bump on a real Windows
+  machine.
+
 ## Single source of truth for shared constants
 
 | Constant | Value | macOS | Windows |
