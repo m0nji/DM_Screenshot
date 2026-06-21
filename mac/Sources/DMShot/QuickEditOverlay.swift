@@ -1,6 +1,15 @@
 import AppKit
 import SwiftUI
 
+/// Reports the measured size of the Quick-Edit toolbar up to the overlay view.
+private struct ToolbarSizeKey: PreferenceKey {
+    static var defaultValue: CGSize = .zero
+    static func reduce(value: inout CGSize, nextValue: () -> CGSize) {
+        let next = nextValue()
+        if next.width > 1, next.height > 1 { value = next }
+    }
+}
+
 /// SwiftUI content of the overlay: dimmed backdrop + framed in-place capture +
 /// floating toolbar. All coordinates are SwiftUI top-left, derived from the
 /// window-filling GeometryReader (size == screen.frame.size).
@@ -12,6 +21,7 @@ private struct QuickEditOverlayView: View {
     let onSave: () -> Void
     let onEditInMain: () -> Void
     let onClose: () -> Void
+    @State private var toolbarSize = CGSize(width: 320, height: 88)  // until measured
 
     var body: some View {
         GeometryReader { _ in
@@ -34,8 +44,12 @@ private struct QuickEditOverlayView: View {
                     model: model, onCopy: onCopy, onSave: onSave,
                     onEditInMain: onEditInMain, onClose: onClose)
                     .fixedSize()
-                    .position(x: toolbarCenterX, y: toolbarCenterY)
+                    .background(GeometryReader { proxy in
+                        Color.clear.preference(key: ToolbarSizeKey.self, value: proxy.size)
+                    })
+                    .position(x: toolbarCenter.x, y: toolbarCenter.y)
             }
+            .onPreferenceChange(ToolbarSizeKey.self) { toolbarSize = $0 }
         }
     }
 
@@ -48,23 +62,12 @@ private struct QuickEditOverlayView: View {
             height: captureFrameGlobal.height)
     }
 
-    /// Toolbar horizontal center, clamped so a ~320pt-wide toolbar stays on-screen.
-    private var toolbarCenterX: CGFloat {
-        let w = screenFrameGlobal.width
-        guard w > 320 else { return w / 2 }
-        return min(max(localCapture.midX, 160), w - 160)
-    }
-
-    /// Toolbar centerline: below the frame, flipped above if it would run off the
-    /// bottom, clamped to overlap the lower image for very tall captures.
-    private var toolbarCenterY: CGFloat {
-        let gap: CGFloat = 44      // ~ half toolbar height + margin
-        let screenH = screenFrameGlobal.height
-        let below = localCapture.maxY + gap
-        if below < screenH - 12 { return below }
-        let above = localCapture.minY - gap
-        if above > 12 { return above }
-        return screenH - gap       // fullscreen capture: float over the bottom edge
+    /// Toolbar centre, clamped fully on-screen using the measured toolbar size.
+    private var toolbarCenter: CGPoint {
+        QuickEditLayout.toolbarCenter(
+            capture: localCapture,
+            screen: screenFrameGlobal.size,
+            toolbar: toolbarSize)
     }
 }
 
