@@ -68,4 +68,19 @@ final class LoupeMathTests: XCTestCase {
         XCTAssertEqual(g.0, 1540)
         XCTAssertEqual(g.1, 50)
     }
+
+    func testSampleRectRoundsFractionalCursorAwayFromZero() {
+        let r = LoupeMath.sampleRect(
+            cursorPx: CGPoint(x: 100.5, y: 200.5), sampleCount: 16,
+            imageSize: CGSize(width: 2000, height: 1500))
+        XCTAssertEqual(r, CGRect(x: 93, y: 193, width: 16, height: 16))
+    }
+
+    func testGlobalPixelRoundsHalfAwayFromZero() {
+        let g = LoupeMath.globalPixel(
+            displayOriginPx: CGPoint(x: 0, y: 0),
+            cursorLocalPx: CGPoint(x: 0.5, y: 2.5))
+        XCTAssertEqual(g.0, 1)
+        XCTAssertEqual(g.1, 3)
+    }
 }

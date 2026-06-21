@@ -66,4 +66,18 @@ public class LoupeMathTests
         var g = LoupeMath.GlobalPixel(1440, 0, 100, 50);
         Assert.Equal((1540, 50), g);
     }
+
+    [Fact]
+    public void SampleRect_RoundsFractionalCursorAwayFromZero()
+    {
+        var r = LoupeMath.SampleRect(100.5, 200.5, 16, 2000, 1500);
+        Assert.Equal(new PixelRect(93, 193, 16, 16), r);
+    }
+
+    [Fact]
+    public void GlobalPixel_RoundsHalfAwayFromZero()
+    {
+        var g = LoupeMath.GlobalPixel(0, 0, 0.5, 2.5);
+        Assert.Equal((1, 3), g);
+    }
 }

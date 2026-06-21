@@ -17,8 +17,8 @@ public static class LoupeMath
     {
         int w = Math.Min(sampleCount, imgW);
         int h = Math.Min(sampleCount, imgH);
-        int x = (int)Math.Round(Math.Max(0, Math.Min(cursorPxX - sampleCount / 2.0, imgW - w)));
-        int y = (int)Math.Round(Math.Max(0, Math.Min(cursorPxY - sampleCount / 2.0, imgH - h)));
+        int x = (int)Math.Round(Math.Max(0, Math.Min(cursorPxX - sampleCount / 2.0, imgW - w)), MidpointRounding.AwayFromZero);
+        int y = (int)Math.Round(Math.Max(0, Math.Min(cursorPxY - sampleCount / 2.0, imgH - h)), MidpointRounding.AwayFromZero);
         return new PixelRect(x, y, w, h);
     }
 
@@ -39,5 +39,6 @@ public static class LoupeMath
     /// <summary>Cursor's global desktop pixel position = display global pixel origin
     /// + cursor local pixel offset, rounded.</summary>
     public static (int X, int Y) GlobalPixel(double originPxX, double originPxY, double cursorLocalPxX, double cursorLocalPxY)
-        => ((int)Math.Round(originPxX + cursorLocalPxX), (int)Math.Round(originPxY + cursorLocalPxY));
+        => ((int)Math.Round(originPxX + cursorLocalPxX, MidpointRounding.AwayFromZero),
+            (int)Math.Round(originPxY + cursorLocalPxY, MidpointRounding.AwayFromZero));
 }

@@ -35,6 +35,10 @@ final class SelectionView: NSView {
     // An `.activeAlways` tracking area with `.cursorUpdate` lets us set the
     // crosshair on hover regardless of activation state.
     private var crosshairTracking: NSTrackingArea?
+    private lazy var displayOriginPx: CGPoint = {
+        let o = CGDisplayBounds(capture.displayID).origin
+        return CGPoint(x: o.x * capture.scale, y: o.y * capture.scale)
+    }()
 
     override func resetCursorRects() {
         addCursorRect(bounds, cursor: .crosshair)
@@ -62,6 +66,10 @@ final class SelectionView: NSView {
     override func mouseMoved(with event: NSEvent) {
         NSCursor.crosshair.set()
         currentPoint = convert(event.locationInWindow, from: nil)
+        needsDisplay = true
+    }
+    override func mouseExited(with event: NSEvent) {
+        currentPoint = nil
         needsDisplay = true
     }
 
@@ -159,10 +167,7 @@ final class SelectionView: NSView {
         boxPath.stroke()
 
         // Global desktop pixel coordinates under the zoom area.
-        let originPx = CGPoint(
-            x: CGDisplayBounds(capture.displayID).origin.x * capture.scale,
-            y: CGDisplayBounds(capture.displayID).origin.y * capture.scale)
-        let g = LoupeMath.globalPixel(displayOriginPx: originPx, cursorLocalPx: px)
+        let g = LoupeMath.globalPixel(displayOriginPx: displayOriginPx, cursorLocalPx: px)
         let coord = "\(g.0), \(g.1)"
         let attrs: [NSAttributedString.Key: Any] = [
             .foregroundColor: NSColor.white,

@@ -11,8 +11,8 @@ enum LoupeMath {
         let n = CGFloat(sampleCount)
         let w = min(n, imageSize.width)
         let h = min(n, imageSize.height)
-        let x = max(0, min(cursorPx.x - n / 2, imageSize.width - w))
-        let y = max(0, min(cursorPx.y - n / 2, imageSize.height - h))
+        let x = (max(0, min(cursorPx.x - n / 2, imageSize.width - w))).rounded()
+        let y = (max(0, min(cursorPx.y - n / 2, imageSize.height - h))).rounded()
         return CGRect(x: x, y: y, width: w, height: h)
     }
 
