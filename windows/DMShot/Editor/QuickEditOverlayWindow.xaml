@@ -13,7 +13,10 @@
         <Border.Effect>
           <DropShadowEffect BlurRadius="16" ShadowDepth="6" Opacity="0.5" Color="Black"/>
         </Border.Effect>
-        <Viewbox x:Name="CaptureBox" Stretch="Fill"/>
+        <!-- Hosts the shared CanvasControl directly at true (DIP) size. The control renders the
+             capture via its own fit/transform path, so it must NOT sit inside a Viewbox (a Viewbox
+             measures with infinity, which collapses the control to zero size — capture + drawing dead). -->
+        <Border x:Name="CaptureBox" ClipToBounds="True"/>
       </Border>
       <!-- Toolbar host injected from code-behind (Task 6) -->
       <ContentControl x:Name="ToolbarHost"/>

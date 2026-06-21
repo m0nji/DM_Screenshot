@@ -18,7 +18,7 @@ public sealed class CanvasControl : FrameworkElement
     private int _handle = -1;
     private Annotation? _editBefore;
     private const double HandleR = 5;
-    private const double Pad = 24;
+    private double Pad = 24;                   // fit inset; 0 = edge-to-edge true size (Quick-Edit overlay)
     private const double WheelPanStep = 48;   // pixels panned per wheel notch (Delta of 120); tune on hardware
     private double _scale = 1;
     private Point _offset;
@@ -46,6 +46,11 @@ public sealed class CanvasControl : FrameworkElement
     public uint ActiveColor { get; set; } = 0xFFC97B4A;
     public double ActiveStroke { get; set; } = 3;
     public int ActiveBlurStrength { get; set; } = 12;
+
+    /// <summary>Inset (DIP) kept around the image when fitting it into the viewport. The main
+    /// editor leaves breathing room (24); the Quick-Edit overlay sets 0 so the capture fills its
+    /// frame edge-to-edge at true size. Must be set before the first render.</summary>
+    public double FitPadding { get => Pad; set => Pad = value; }
     public Annotation? Selected => _selected;
     public event Action? ContentChanged;
     public event Action? SelectionChanged;

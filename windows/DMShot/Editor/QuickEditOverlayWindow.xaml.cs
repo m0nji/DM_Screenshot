@@ -38,6 +38,7 @@ public partial class QuickEditOverlayWindow : Window
         InitializeComponent();
         _capture = capture; _screenRectPx = screenRectPx; _displayPx = displayBoundsPx;
         Canvas.ActiveTool = ToolKind.Arrow;
+        Canvas.FitPadding = 0;   // capture fills the frame edge-to-edge at true size (no breathing room)
         Canvas.Load(capture);
         CaptureBox.Child = Canvas;
         // Backdrop click = deselect only, never close (fix Q7).
