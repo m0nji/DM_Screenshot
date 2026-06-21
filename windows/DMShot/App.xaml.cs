@@ -95,6 +95,24 @@ public partial class App : Application
         w.Show();
     }
 
+    // Remembered annotation defaults (stroke size / blur strength), shared by the editor and every
+    // Quick-Edit overlay. Updated live in memory; flushed to disk debounced (and on exit) to avoid
+    // hammering settings.json while a slider is dragged.
+    private DispatcherTimer? _settingsSaveTimer;
+
+    private void OnAnnotationDefaultsChanged(double stroke, int blurStrength)
+    {
+        _settings.StrokeWidth = stroke;
+        _settings.BlurStrength = blurStrength;
+        if (_settingsSaveTimer is null)
+        {
+            _settingsSaveTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(600) };
+            _settingsSaveTimer.Tick += (_, _) => { _settingsSaveTimer!.Stop(); _settingsStore.Save(_settings); };
+        }
+        _settingsSaveTimer.Stop();
+        _settingsSaveTimer.Start();   // restart → save 600 ms after the last change
+    }
+
     /// <summary>Single editor-creation path so every hook (incl. the V17 video hook) is always wired.</summary>
     private void EnsureEditor()
     {
@@ -109,6 +127,8 @@ public partial class App : Application
             OnRequestSettings = OpenSettings,
             OnVideoEntryActivated = OpenGifViewerForEntry   // V17
         };
+        _editor.InitDefaults(_settings.StrokeWidth, _settings.BlurStrength);   // remembered stroke/blur
+        _editor.DefaultsChanged += OnAnnotationDefaultsChanged;
     }
 
     private void ShowEditor()
@@ -151,6 +171,9 @@ public partial class App : Application
 
         var overlay = new QuickEditOverlayWindow(result.Image, result.ScreenRectPx, result.DisplayBoundsPx);
         _quickEdit = overlay;
+        overlay.Canvas.ActiveStroke = _settings.StrokeWidth;          // seed remembered defaults before first paint
+        overlay.Canvas.ActiveBlurStrength = _settings.BlurStrength;
+        overlay.DefaultsChanged += OnAnnotationDefaultsChanged;
 
         overlay.CopyRequested += () =>
         {
@@ -334,5 +357,12 @@ public partial class App : Application
         SetWindowPos(h, IntPtr.Zero, x, y, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
     }
 
-    protected override void OnExit(ExitEventArgs e) { _hotkeys?.Dispose(); _tray?.Dispose(); base.OnExit(e); }
+    protected override void OnExit(ExitEventArgs e)
+    {
+        _settingsSaveTimer?.Stop();
+        if (_settingsStore is not null && _settings is not null)
+            try { _settingsStore.Save(_settings); } catch { /* best-effort flush */ }
+        _hotkeys?.Dispose(); _tray?.Dispose();
+        base.OnExit(e);
+    }
 }

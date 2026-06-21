@@ -11,4 +11,9 @@ public sealed class Settings
     public bool LaunchAtLogin { get; set; } = false;
     public AfterCaptureMode AfterCapture { get; set; } = AfterCaptureMode.MainWindow;
     public string Language { get; set; } = "en";
+
+    // Annotation defaults remembered across restarts and shared by the main editor and the
+    // Quick-Edit overlay. Match the CanvasControl/editor-slider defaults (3 px / blur 12).
+    public double StrokeWidth { get; set; } = 3;
+    public int BlurStrength { get; set; } = 12;
 }

@@ -33,6 +33,17 @@ public partial class QuickEditOverlayWindow : Window
     public event Action? EditInMainRequested;
     public event Action? Dismissed;
 
+    /// <summary>Raised when the user changes the stroke/blur defaults via the always-visible
+    /// size control, so the app can persist them. Payload: (strokeWidth, blurStrength).</summary>
+    public event Action<double, int>? DefaultsChanged;
+
+    // Always-visible contextual size / blur-strength control (replaces the old size flyout).
+    private System.Windows.Controls.Slider? _sizeSlider;
+    private TextBlock? _sizeLabel;
+    private TextBlock? _sizeValue;
+    private bool _sizeIsBlur;
+    private bool _sizeSyncing;
+
     public QuickEditOverlayWindow(Bitmap capture, PixelRect screenRectPx, Rectangle displayBoundsPx)
     {
         InitializeComponent();
@@ -40,6 +51,7 @@ public partial class QuickEditOverlayWindow : Window
         Canvas.ActiveTool = ToolKind.Arrow;
         Canvas.FitPadding = 0;   // capture fills the frame edge-to-edge at true size (no breathing room)
         Canvas.Load(capture);
+        Canvas.SelectionChanged += RefreshSizeControl;   // keep the size control in sync with selection
         CaptureBox.Child = Canvas;
         // Backdrop click = deselect only, never close (fix Q7).
         Backdrop.MouseLeftButtonDown += (_, _) => Canvas.SelectAt(new System.Windows.Point(-1, -1));
@@ -109,7 +121,6 @@ public partial class QuickEditOverlayWindow : Window
     };
 
     private const string ColorGeo = "M12,4 C16.4,4 20,7.6 20,12 C20,16.4 16.4,20 12,20 C7.6,20 4,16.4 4,12 C4,7.6 7.6,4 12,4 Z";
-    private const string SizeGeo  = "M4,8 L20,8 L20,9.4 L4,9.4 Z M4,13 L20,13 L20,16 L4,16 Z";
     private const string UndoGeo  = "M9,6 L5,9.5 L9,13 M5,9.5 L14,9.5 C17,9.5 19,11.6 19,14.2 C19,16.8 17,18.5 14.3,18.5 L11,18.5";
     private const string CloseGeo = "M6.5,6.5 L17.5,17.5 M17.5,6.5 L6.5,17.5";
     // Action icons mirror the macOS toolbar's SF Symbols so both platforms read identically.
@@ -139,12 +150,12 @@ public partial class QuickEditOverlayWindow : Window
                 IsChecked = kind == Canvas.ActiveTool,
             };
             var k = kind;
-            tb.Checked += (_, _) => { Canvas.ActiveTool = k; };
+            tb.Checked += (_, _) => { Canvas.ActiveTool = k; RefreshSizeControl(); };
             row.Children.Add(tb);
         }
         row.Children.Add(Divider());
         row.Children.Add(IconAction(Icon(ColorGeo, true), Loc.Instance["color"], ToggleColorFlyout));
-        row.Children.Add(IconAction(Icon(SizeGeo, true), Loc.Instance["quickEditSizeBlur"], ToggleSizeFlyout));
+        row.Children.Add(BuildSizeControl());   // always-visible size / blur-strength slider
         row.Children.Add(IconAction(Icon(UndoGeo, false), Loc.Instance["undo"], () => Canvas.Model.Undo()));
         row.Children.Add(Divider());
         // Icon-only actions (no text labels), matching the macOS Quick-Edit toolbar.
@@ -271,21 +282,70 @@ public partial class QuickEditOverlayWindow : Window
         ShowFlyout(row);
     }
 
-    private void ToggleSizeFlyout()
+    // ===== Always-visible size / blur-strength control =====
+
+    private UIElement BuildSizeControl()
     {
-        if (RemoveFlyoutIfKind("size")) return;
-        bool blur = Canvas.ActiveTool == ToolKind.Blur || Canvas.Selected?.Kind == ToolKind.Blur;
-        var slider = new System.Windows.Controls.Slider
+        _sizeLabel = new TextBlock
         {
-            Minimum = blur ? 4 : 1, Maximum = blur ? 40 : 24, Width = 120, Margin = new Thickness(8),
-            Value = blur ? Canvas.ActiveBlurStrength : Canvas.ActiveStroke, Tag = "size",
+            Foreground = new SolidColorBrush(WColor.FromRgb(0x9A, 0x9A, 0xA2)),
+            VerticalAlignment = VerticalAlignment.Center, FontSize = 12, Margin = new Thickness(4, 0, 6, 0),
         };
-        slider.ValueChanged += (_, ev) =>
+        _sizeSlider = new System.Windows.Controls.Slider { Width = 90, VerticalAlignment = VerticalAlignment.Center };
+        _sizeValue = new TextBlock
         {
-            if (blur) { Canvas.ActiveBlurStrength = (int)ev.NewValue; Canvas.ApplyBlurToSelected((int)ev.NewValue); }
-            else { Canvas.ActiveStroke = ev.NewValue; Canvas.ApplyStrokeToSelected(ev.NewValue); }
+            Foreground = new SolidColorBrush(WColor.FromRgb(0xE8, 0xE8, 0xEA)),
+            VerticalAlignment = VerticalAlignment.Center, FontSize = 12, Width = 30,
+            Margin = new Thickness(6, 0, 2, 0), FontFamily = new WFF("Consolas"),
         };
-        ShowFlyout(slider);
+        _sizeSlider.ValueChanged += SizeSliderChanged;
+        RefreshSizeControl();
+        return new StackPanel
+        {
+            Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center,
+            Children = { _sizeLabel, _sizeSlider, _sizeValue },
+        };
+    }
+
+    /// <summary>Re-point the single contextual slider at the current context: blur strength when the
+    /// blur tool is active or a blur is selected, otherwise stroke size. Reflects the selected shape's
+    /// value if one is selected, else the remembered default.</summary>
+    private void RefreshSizeControl()
+    {
+        if (_sizeSlider is null || _sizeLabel is null || _sizeValue is null) return;
+        var sel = Canvas.Selected;
+        bool blur = Canvas.ActiveTool == ToolKind.Blur || sel?.Kind == ToolKind.Blur;
+        _sizeSyncing = true;
+        _sizeIsBlur = blur;
+        _sizeLabel.Text = Loc.Instance[blur ? "blur" : "size"];
+        _sizeSlider.Minimum = blur ? 4 : 1;
+        _sizeSlider.Maximum = blur ? 40 : 24;
+        double val = blur
+            ? (sel is { Kind: ToolKind.Blur } b ? b.BlurStrength : Canvas.ActiveBlurStrength)
+            : (sel is { } s && s.Kind != ToolKind.Blur ? s.StrokeWidth : Canvas.ActiveStroke);
+        _sizeSlider.Value = val;
+        _sizeValue.Text = blur ? $"{(int)val}" : $"{(int)val}px";
+        _sizeSyncing = false;
+    }
+
+    private void SizeSliderChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (_sizeSyncing || _sizeValue is null) return;
+        if (_sizeIsBlur)
+        {
+            int v = (int)e.NewValue;
+            Canvas.ActiveBlurStrength = v;
+            Canvas.ApplyBlurToSelected(v);
+            _sizeValue.Text = $"{v}";
+        }
+        else
+        {
+            double v = e.NewValue;
+            Canvas.ActiveStroke = v;
+            Canvas.ApplyStrokeToSelected(v);
+            _sizeValue.Text = $"{(int)v}px";
+        }
+        DefaultsChanged?.Invoke(Canvas.ActiveStroke, Canvas.ActiveBlurStrength);
     }
 
     private void ShowFlyout(FrameworkElement content)

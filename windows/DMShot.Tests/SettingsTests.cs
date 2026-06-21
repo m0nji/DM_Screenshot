@@ -23,6 +23,18 @@ public class SettingsTests : IDisposable
         var s = store.Load();
         Assert.Equal("Ctrl+Shift+1", s.FullScreenHotkey);
         Assert.Equal("Ctrl+Shift+2", s.AreaHotkey);
+        Assert.Equal(3, s.StrokeWidth);     // remembered-annotation defaults
+        Assert.Equal(12, s.BlurStrength);
+    }
+
+    [Fact]
+    public void AnnotationDefaults_RoundTrip()
+    {
+        var store = new SettingsStore(_path);
+        store.Save(new Settings { StrokeWidth = 9, BlurStrength = 28 });
+        var loaded = store.Load();
+        Assert.Equal(9, loaded.StrokeWidth);
+        Assert.Equal(28, loaded.BlurStrength);
     }
 
     public void Dispose() { if (File.Exists(_path)) File.Delete(_path); }

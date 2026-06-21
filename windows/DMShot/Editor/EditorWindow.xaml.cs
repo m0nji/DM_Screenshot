@@ -25,6 +25,24 @@ public partial class EditorWindow : Window
 
     private bool _syncing;
 
+    /// <summary>Raised when the user changes the stroke/blur defaults via the toolbar sliders,
+    /// so the app can persist them. Payload: (strokeWidth, blurStrength).</summary>
+    public event Action<double, int>? DefaultsChanged;
+
+    /// <summary>Seed the toolbar sliders and canvas defaults from persisted settings (no
+    /// DefaultsChanged echo). Call once after construction.</summary>
+    public void InitDefaults(double stroke, int blurStrength)
+    {
+        _syncing = true;
+        StrokeSlider.Value = stroke;                 // clamped to the slider's range
+        BlurSlider.Value = blurStrength;
+        Canvas.ActiveStroke = StrokeSlider.Value;    // use the (possibly clamped) value
+        Canvas.ActiveBlurStrength = (int)BlurSlider.Value;
+        StrokeVal.Text = $"{(int)StrokeSlider.Value}px";
+        BlurVal.Text = $"{(int)BlurSlider.Value}";
+        _syncing = false;
+    }
+
     public EditorWindow()
     {
         InitializeComponent();
@@ -33,15 +51,17 @@ public partial class EditorWindow : Window
         {
             if (_syncing) return;
             StrokeVal.Text = $"{(int)StrokeSlider.Value}px";
+            Canvas.ActiveStroke = StrokeSlider.Value;          // remembered default for the next shape
             if (Canvas.Selected is not null) Canvas.ApplyStrokeToSelected(StrokeSlider.Value);
-            else Canvas.ActiveStroke = StrokeSlider.Value;
+            DefaultsChanged?.Invoke(Canvas.ActiveStroke, Canvas.ActiveBlurStrength);
         };
         BlurSlider.ValueChanged += (_, _) =>
         {
             if (_syncing) return;
             BlurVal.Text = $"{(int)BlurSlider.Value}";
+            Canvas.ActiveBlurStrength = (int)BlurSlider.Value;
             if (Canvas.Selected is not null) Canvas.ApplyBlurToSelected((int)BlurSlider.Value);
-            else Canvas.ActiveBlurStrength = (int)BlurSlider.Value;
+            DefaultsChanged?.Invoke(Canvas.ActiveStroke, Canvas.ActiveBlurStrength);
         };
         Canvas.ContentChanged += UpdateStatus;
         Canvas.SelectionChanged += SyncFromSelection;

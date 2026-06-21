@@ -17,6 +17,17 @@ Definition of done for a behavior change:
 3. Update the feature map below if files moved.
 4. Bump `VERSION` (see below) if it's a release.
 
+### Pending parity (verify on macOS)
+
+- [ ] **Remembered annotation defaults + always-visible Quick-Edit strength slider.** Stroke size and
+  blur strength are remembered across restarts and shared by the editor and Quick-Edit; the Quick-Edit
+  size/blur-strength slider is **always visible** (no flyout) and contextual (size for shapes, blur
+  strength when the blur tool/selection is active). Windows: `Settings/Settings.cs`
+  (`StrokeWidth`/`BlurStrength`), `App.xaml.cs` (seed + debounced save), `Editor/QuickEditOverlayWindow.xaml.cs`
+  (`BuildSizeControl`/`RefreshSizeControl`). macOS mirror written (`AppSettings` persistence +
+  `QuickEditToolbar` inline slider) but **must be verified with `swift build && swift test` on a Mac**
+  before merging the macOS side.
+
 ## Single source of truth for shared constants
 
 | Constant | Value | macOS | Windows |
