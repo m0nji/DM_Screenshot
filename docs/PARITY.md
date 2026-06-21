@@ -50,10 +50,17 @@ Definition of done for a behavior change:
 | Settings (shortcuts, launch-at-login) | `Settings.swift`, `ShortcutRecorderView.swift` | `Settings/*.cs`, `SettingsWindow.xaml(.cs)` |
 | Auto-update (Sparkle/Velopack) + changelog | `Updater.swift`, `Changelog.swift`, `CHANGELOG.md`, `Info.plist` (SUFeedURL/SUPublicEDKey) | `Update/UpdaterService.cs`, `Update/UpdateState.cs`, `Update/Changelog.cs`, `Program.cs` (Velopack bootstrap), `SettingsWindow.xaml.cs` (Updates pane); CI: `release.yml` `windows` job (`vpk pack`/`upload github`) |
 | Theme | `Theme.swift` | `Theme/DmTheme.xaml` |
-| App icon | `Resources/AppIcon.svg` → `.icns` | `Resources/AppIcon.ico` |
+| App icon | `Resources/AppIcon.svg` → `.icns` | `Resources/AppIcon.ico` (gen: `windows/tools/make-app-icon.ps1`) |
 | Video/GIF capture | `VideoRecorder.swift`, `GIFEncoder.swift`, `GIFPlan.swift`, `RecordingControlWindow.swift`, `VideoPreviewWindow.swift`, `App.swift`, `Shortcuts.swift`, `HistoryStore.swift` | `Platform/WgcScreenRecorder.cs`, `Video/GifPlan.cs`, `Video/GifEncoder.cs`, `Video/GifRenderer.cs`, `Video/RecordingControlWindow.xaml(.cs)`, `Video/VideoPreviewWindow.xaml(.cs)`, `Video/GifViewerWindow.xaml(.cs)`, `History/HistoryStore.cs`, `App.xaml.cs`, `Settings/Settings.cs` |
 | Quick-Edit bar | `QuickEditOverlay.swift`, `QuickEditToolbar.swift`, `EditorControls.swift`, `CaptureGeometry.swift`, `AppSettings.swift`, `Settings.swift`, `App.swift` | `Editor/QuickEditOverlayWindow.xaml(.cs)`, `Capture/CaptureGeometry.cs`, `Settings/Settings.cs` (`AfterCapture`), `Settings/SettingsWindow.xaml.cs`, `App.xaml.cs` |
 | Localization (EN/DE, live switch) | `Localization.swift`, `Language.swift` | `Localization/Loc.cs`, `Localization/Language.cs`, `Localization/TrExtension.cs` |
+
+## Intentional platform deviations
+
+These differ **by design** (platform convention), not by oversight — the *motif* stays in parity, the *presentation* adapts:
+
+- **App icon fill.** macOS keeps the Apple icon grid (824×824 plate inset in a 1024 canvas) because the OS draws its own squircle/shadow around it. Windows taskbar/Alt-Tab icons are expected to fill the tile, and the inset art reads tiny against the dark taskbar — so the Windows `.ico` uses the same camera-in-viewfinder motif scaled to nearly fill the canvas (`windows/tools/make-app-icon.ps1`, `FILL` factor). macOS art is unchanged.
+- **Tray / menu-bar icon.** macOS uses a monochrome `camera.viewfinder` **template** symbol (auto-inverts for light/dark menu bars). Windows tray icons are full-color, so Windows uses a dark squircle + white camera (`TrayIcon.ico`, `windows/tools/make-tray-icon.ps1`) — the app-icon look but **without the viewfinder corner brackets**, which are noise at 16-24px.
 
 ## Parity checklist (run before a release)
 
