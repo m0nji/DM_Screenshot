@@ -296,7 +296,7 @@ public sealed class CanvasControl : FrameworkElement
         {
             if (_selected is not null)
             {
-                int h = SelectionGeometry.HitHandle(p, _selected, (HandleR + 3) / _scale);
+                int h = SelectionGeometry.HitHandle(p, _selected, (HandleR + 7) / _scale);
                 if (h >= 0) { _resizing = true; _handle = h; _last = p; _editBefore = _selected.Clone(); CaptureMouse(); return; }
             }
             var hit = SelectionGeometry.HitTest(Model.Annotations, p);
@@ -355,7 +355,7 @@ public sealed class CanvasControl : FrameworkElement
         }
 
         if (ActiveTool == ToolKind.Select && _selected is not null)
-            Cursor = SelectionGeometry.HitHandle(p, _selected, (HandleR + 3) / _scale) >= 0 ? Cursors.SizeNWSE : Cursors.Arrow;
+            Cursor = SelectionGeometry.HitHandle(p, _selected, (HandleR + 7) / _scale) >= 0 ? Cursors.SizeNWSE : Cursors.Arrow;
 
         if (_draft is null) return;
         _draft.X1 = p.X; _draft.Y1 = p.Y;

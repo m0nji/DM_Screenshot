@@ -112,4 +112,14 @@ public class SelectionGeometryTests
         var anns = new[] { bottom, top };
         Assert.Same(top, SelectionGeometry.HitTest(anns, new Point(50, 50)));
     }
+
+    [Fact]
+    public void HitHandle_GrabRadius_IsForgiving()
+    {
+        var a = Rect(0, 0, 100, 60);
+        // 11px from the TL corner: beyond the old 8px radius, within the new 12px.
+        Assert.True(SelectionGeometry.HitHandle(new Point(11, 0), a, 12) >= 0);
+        // 13px away: still a clear miss.
+        Assert.True(SelectionGeometry.HitHandle(new Point(13, 0), a, 12) < 0);
+    }
 }
