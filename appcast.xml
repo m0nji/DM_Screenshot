@@ -150,5 +150,16 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.3.2/DM_Screenshot-v0.3.2.dmg" type="application/octet-stream" sparkle:edSignature="jktUS//sBV71zRSIU+GUXneBsYJxyWrKw/BsNftE7valmA7FM0YusTTuFz5F5re3efkFXMAY1XjUd4wEKxSeBw==" length="1968640" />
 </item>
 
+<item>
+  <title>Version 0.3.3</title>
+  <description><![CDATA[<ul><li>feat: The Quick-Edit overlay's size / blur-strength slider is now always visible instead of tucked behind a button, so you can set it before drawing; it shows size for shapes and blur strength when the blur tool is active (Windows)</li>
+<li>feat: Stroke size and blur strength are now remembered across restarts and shared by the editor and the Quick-Edit overlay (Windows)</li>
+<li>fix: Quick-Edit annotations work again — drawing arrows, blurring a region and the strength slider had stopped working in the overlay because its drawing surface collapsed to zero size (Windows)</li>
+<li>fix: A freshly drawn shape is selected right away, so the size and colour controls apply to it without first switching to the Select tool, matching macOS (Windows)</li></ul>]]></description>
+  <sparkle:version>0.3.3</sparkle:version>
+  <sparkle:shortVersionString>0.3.3</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.3.3/DM_Screenshot-v0.3.3.dmg" type="application/octet-stream" sparkle:edSignature="51uYKBSbN4GczD/qEQE0wdLK5tiqiWhCSfchBYaWOZKfgA9l9oZWCVRJDOh14zh5qd3fjSQ6CIV0yOhmHlKhDg==" length="1966516" />
+</item>
+
 </channel>
 </rss>
