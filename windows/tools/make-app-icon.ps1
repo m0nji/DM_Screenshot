@@ -22,6 +22,12 @@ $sizes = 16, 20, 24, 32, 40, 48, 64, 128, 256
 # 1024 canvas with a small (20px) margin: half-extent 412 -> 492  =>  S = 492/412.
 $FILL = 492.0 / 412.0
 
+# The near-black plate blends into the dark taskbar, so the only thing the eye reads as
+# "the icon" is the white motif — at the macOS grid size it's ~50% of the plate and looks
+# tiny next to neighbours that fill their tile. Enlarge the motif (Windows-only; macOS art
+# untouched) about the canvas centre so it fills ~70% of the plate and reads at full size.
+$MOTIF = 1.35
+
 function New-Brush-Vertical([object[]]$stops, [double]$bx, [double]$by, [double]$bw, [double]$bh) {
     $g = New-Object Windows.Media.LinearGradientBrush
     $g.StartPoint = New-Object Windows.Point(0, 0)
@@ -62,6 +68,8 @@ function Render-Png([int]$N) {
     $dc.DrawGeometry($null, $edgePen, (New-Object Windows.Media.RectangleGeometry((New-Object Windows.Rect(101.5, 101.5, 821, 821)), 183.5, 183.5)))
 
     # --- Camera-in-viewfinder motif (pure white), same coords as macOS AppIcon.svg ---
+    # Enlarged about the centre (Windows-only) so the white art reads at full tile size.
+    $dc.PushTransform((New-Object Windows.Media.ScaleTransform($MOTIF, $MOTIF, 512, 512)))
     $white = New-Object Windows.Media.SolidColorBrush([Windows.Media.Colors]::White)
 
     $bracketPen = New-Object Windows.Media.Pen($white, 40)
@@ -80,6 +88,7 @@ function Render-Png([int]$N) {
     $dc.DrawGeometry($white, $null, $holed)
     $dc.DrawGeometry($white, $null, (New-Object Windows.Media.EllipseGeometry((New-Object Windows.Point(512, 521)), 14, 14)))
 
+    $dc.Pop()            # MOTIF scale
     $dc.Pop(); $dc.Pop()
     $dc.Close()
     $rtb.Render($dv)
