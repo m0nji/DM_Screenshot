@@ -1,3 +1,4 @@
+using System.Threading;
 using System.Windows;
 using DMShot.Editor;
 using Xunit;
@@ -6,6 +7,52 @@ public class SelectionGeometryTests
 {
     private static Annotation Rect(double x0, double y0, double x1, double y1) =>
         new() { Kind = ToolKind.Rectangle, X0 = x0, Y0 = y0, X1 = x1, Y1 = y1 };
+
+    private static Annotation Text(string s, double x, double y, double stroke) =>
+        new() { Kind = ToolKind.Text, Text = s, X0 = x, Y0 = y, X1 = x, Y1 = y, StrokeWidth = stroke };
+
+    /// <summary>Runs <paramref name="act"/> on a dedicated STA thread (text BBox/resize
+    /// build a WPF FormattedText, which wants STA; xUnit runs MTA by default).</summary>
+    private static void OnSta(Action act)
+    {
+        Exception? ex = null;
+        var t = new Thread(() => { try { act(); } catch (Exception e) { ex = e; } });
+        t.SetApartmentState(ApartmentState.STA);
+        t.Start();
+        t.Join();
+        if (ex != null) throw ex;
+    }
+
+    [Fact]
+    public void Text_BBox_IsMultiLine() => OnSta(() =>
+    {
+        double h1 = SelectionGeometry.BBox(Text("Ag", 10, 20, 4)).Height;
+        double h2 = SelectionGeometry.BBox(Text("Ag\nAg", 10, 20, 4)).Height;
+        Assert.True(h2 > h1 * 1.6);
+    });
+
+    [Fact]
+    public void ResizeTo_Text_DoublingHeight_DoublesFontSize_TopLeftAnchored() => OnSta(() =>
+    {
+        var t = Text("Ag", 100, 100, 6);            // font 30
+        double oldFont = TextLayout.FontSizeForStroke(6);
+        var bbox = SelectionGeometry.BBox(t);
+        // Drag BR (handle index 3); anchor is TL (100,100). Target height = 2x.
+        SelectionGeometry.ResizeTo(t, 3, new Point(t.X0 + bbox.Width, t.Y0 + 2 * bbox.Height));
+        double newFont = TextLayout.FontSizeForStroke(t.StrokeWidth);
+        Assert.Equal(2 * oldFont, newFont, 1);
+        Assert.Equal(100, t.X0, 1);   // top-left stays put
+        Assert.Equal(100, t.Y0, 1);
+    });
+
+    [Fact]
+    public void ResizeTo_Text_ClampsToMinimumFont() => OnSta(() =>
+    {
+        var t = Text("Ag", 0, 0, TextLayout.StrokeForFontSize(10));   // already at floor
+        var bbox = SelectionGeometry.BBox(t);
+        SelectionGeometry.ResizeTo(t, 3, new Point(bbox.Width, bbox.Height * 0.1));
+        Assert.Equal(10, TextLayout.FontSizeForStroke(t.StrokeWidth), 1);
+    });
 
     [Fact]
     public void Rect_Has4Corners_ArrowHas2Endpoints()

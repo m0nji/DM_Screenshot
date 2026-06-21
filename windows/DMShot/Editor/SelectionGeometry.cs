@@ -18,9 +18,11 @@ public static class SelectionGeometry
                 double d = Math.Max(22, a.StrokeWidth * 7);
                 return new Rect(a.X0, a.Y0, d, d);
             case ToolKind.Text:
-                double fs = Math.Max(10, a.StrokeWidth * 5);
-                double tw = Math.Max(20, (a.Text?.Length ?? 1) * fs * 0.6);
-                return new Rect(a.X0, a.Y0, tw, fs * 1.4);
+            {
+                double fs = TextLayout.FontSizeForStroke(a.StrokeWidth);
+                var sz = TextLayout.Measure(a.Text ?? "", fs);
+                return new Rect(a.X0, a.Y0, sz.Width, sz.Height);
+            }
             case ToolKind.Underline:
             case ToolKind.Highlighter:
                 return new Rect(Math.Min(a.X0, a.X1), a.Y1 - 6, Math.Abs(a.X1 - a.X0), 12);
@@ -56,6 +58,26 @@ public static class SelectionGeometry
     /// <summary>Applies a resize: the given handle follows p, the opposite corner stays put.</summary>
     public static void ResizeTo(Annotation a, int handle, Point p)
     {
+        if (a.Kind == ToolKind.Text)
+        {
+            // Text resize scales the FONT (the box hugs the text). The dragged corner's
+            // distance from the anchored opposite corner sets the new height ratio.
+            var bbox = BBox(a);
+            if (bbox.Height < 0.5) return;
+            var hsT = Handles(a);                 // order: TL, TR, BL, BR
+            var anchor = hsT[3 - handle];         // diagonally opposite corner
+            double newHeight = Math.Abs(p.Y - anchor.Y);
+            double scale = Math.Max(0.05, newHeight / bbox.Height);
+            double newFont = Math.Max(TextLayout.MinFontSize, TextLayout.FontSizeForStroke(a.StrokeWidth) * scale);
+            a.StrokeWidth = TextLayout.StrokeForFontSize(newFont);
+            var sz = TextLayout.Measure(a.Text ?? "", newFont);
+            bool left = handle == 0 || handle == 2;   // TL or BL
+            bool top  = handle == 0 || handle == 1;   // TL or TR
+            a.X0 = left ? anchor.X - sz.Width : anchor.X;
+            a.Y0 = top  ? anchor.Y - sz.Height : anchor.Y;
+            a.X1 = a.X0; a.Y1 = a.Y0;
+            return;
+        }
         if (IsLine(a))
         {
             if (a.Kind == ToolKind.Arrow)
