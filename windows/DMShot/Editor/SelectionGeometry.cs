@@ -65,16 +65,16 @@ public static class SelectionGeometry
             var bbox = BBox(a);
             if (bbox.Height < 0.5) return;
             var hsT = Handles(a);                 // order: TL, TR, BL, BR
-            var anchor = hsT[3 - handle];         // diagonally opposite corner
-            double newHeight = Math.Abs(p.Y - anchor.Y);
+            var tAnchor = hsT[3 - handle];        // diagonally opposite corner
+            double newHeight = Math.Abs(p.Y - tAnchor.Y);
             double scale = Math.Max(0.05, newHeight / bbox.Height);
             double newFont = Math.Max(TextLayout.MinFontSize, TextLayout.FontSizeForStroke(a.StrokeWidth) * scale);
             a.StrokeWidth = TextLayout.StrokeForFontSize(newFont);
             var sz = TextLayout.Measure(a.Text ?? "", newFont);
             bool left = handle == 0 || handle == 2;   // TL or BL
             bool top  = handle == 0 || handle == 1;   // TL or TR
-            a.X0 = left ? anchor.X - sz.Width : anchor.X;
-            a.Y0 = top  ? anchor.Y - sz.Height : anchor.Y;
+            a.X0 = left ? tAnchor.X - sz.Width : tAnchor.X;
+            a.Y0 = top  ? tAnchor.Y - sz.Height : tAnchor.Y;
             a.X1 = a.X0; a.Y1 = a.Y0;
             return;
         }
