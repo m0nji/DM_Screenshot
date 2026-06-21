@@ -4,6 +4,9 @@ All notable changes to DM_Screenshot. Newest version first. Always written in En
 
 ## [Unreleased]
 
+## 0.4.4 – 2026-06-21
+- change: The white camera-and-viewfinder in the app icon is now a soft off-white instead of stark white, so it sits more calmly in the Dock (macOS)
+
 ## 0.4.3 – 2026-06-21
 - fix: Text annotations can now be moved — click a text to select it and drag it to reposition; double-click anywhere on the text to edit it, and the corner resize handles are easier to grab (macOS)
 - fix: The Quick-Edit bar is no longer cut off when you capture a region near the edge of the screen (macOS)

@@ -67,10 +67,11 @@ function Render-Png([int]$N) {
     $edgePen = New-Object Windows.Media.Pen((New-Object Windows.Media.SolidColorBrush((C 0xff 0xff 0xff 0.12))), 3)
     $dc.DrawGeometry($null, $edgePen, (New-Object Windows.Media.RectangleGeometry((New-Object Windows.Rect(101.5, 101.5, 821, 821)), 183.5, 183.5)))
 
-    # --- Camera-in-viewfinder motif (pure white), same coords as macOS AppIcon.svg ---
-    # Enlarged about the centre (Windows-only) so the white art reads at full tile size.
+    # --- Camera-in-viewfinder motif (soft off-white #ECECF0), same coords as macOS AppIcon.svg ---
+    # Enlarged about the centre (Windows-only) so the art reads at full tile size.
+    # Off-white (not pure white) so the motif reads slightly grey instead of stark white (parity with AppIcon.svg).
     $dc.PushTransform((New-Object Windows.Media.ScaleTransform($MOTIF, $MOTIF, 512, 512)))
-    $white = New-Object Windows.Media.SolidColorBrush([Windows.Media.Colors]::White)
+    $white = New-Object Windows.Media.SolidColorBrush((C 0xEC 0xEC 0xF0))
 
     $bracketPen = New-Object Windows.Media.Pen($white, 40)
     $bracketPen.StartLineCap = [Windows.Media.PenLineCap]::Round

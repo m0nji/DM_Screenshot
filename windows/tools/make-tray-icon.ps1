@@ -33,10 +33,11 @@ function VBrush([object[]]$stops) {
     $g
 }
 
-# White camera body (rounded body + flash bump, lens hole cut out) + centre dot, in
-# macOS AppIcon.svg coordinates (centred ~512,509.5).
+# Soft off-white (#ECECF0) camera body (rounded body + flash bump, lens hole cut out) + centre
+# dot, in macOS AppIcon.svg coordinates (centred ~512,509.5). Off-white (not pure white) so the
+# glyph reads slightly grey instead of stark white (parity with AppIcon.svg).
 function Draw-Camera($dc) {
-    $white = New-Object Windows.Media.SolidColorBrush([Windows.Media.Colors]::White)
+    $white = New-Object Windows.Media.SolidColorBrush((C 0xEC 0xEC 0xF0))
     $body = New-Object Windows.Media.RectangleGeometry((New-Object Windows.Rect(412, 455, 200, 132)), 30, 30)
     $bump = New-Object Windows.Media.RectangleGeometry((New-Object Windows.Rect(468, 432, 88, 34)), 14, 14)
     $bodyU = New-Object Windows.Media.CombinedGeometry([Windows.Media.GeometryCombineMode]::Union, $body, $bump)
