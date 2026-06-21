@@ -3,7 +3,12 @@
 All notable changes to DM_Screenshot. Newest version first. Always written in English.
 
 ## [Unreleased]
+
+## 0.3.2 – 2026-06-21
 - fix: The sidebar Settings button also shows the orange hover border on mouse-over now, and its gear icon lines up with the capture buttons above (macOS; Windows already had it)
+- fix: The video / GIF preview now plays back correctly instead of showing a zoomed-in crop of part of the last frame (Windows)
+- fix: Recorded GIFs are much smaller — the encoder no longer dithers, which removes the coloured fringing on text and cuts file size dramatically, matching macOS (Windows)
+- fix: The app and tray icons now fill their frame edge-to-edge instead of sitting inside an empty bracket border, matching the macOS icon (Windows)
 
 ## 0.3.1 – 2026-06-20
 - fix: The editor sidebar capture buttons (Full Screen / Selection / Video Full Screen / Video Section) now show the orange hover border on mouse-over, matching the Settings sidebar (macOS; Windows already had it)
