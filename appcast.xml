@@ -193,5 +193,15 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.4.2/DM_Screenshot-v0.4.2.dmg" type="application/octet-stream" sparkle:edSignature="+5fQfBK+kJLLbuCRLPSNJZDC4AqpdtWw7A2fwWA9TLjthMaJ7tKmFOt40E0ww9VVbnvis9y82qY/+cOmoTunBg==" length="1996256" />
 </item>
 
+<item>
+  <title>Version 0.4.3</title>
+  <description><![CDATA[<ul><li>fix: Text annotations can now be moved — click a text to select it and drag it to reposition; double-click anywhere on the text to edit it, and the corner resize handles are easier to grab (macOS)</li>
+<li>fix: The Quick-Edit bar is no longer cut off when you capture a region near the edge of the screen (macOS)</li>
+<li>fix: Annotation resize handles are easier to grab (Windows)</li></ul>]]></description>
+  <sparkle:version>0.4.3</sparkle:version>
+  <sparkle:shortVersionString>0.4.3</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.4.3/DM_Screenshot-v0.4.3.dmg" type="application/octet-stream" sparkle:edSignature="EmfFMpcTvYc/98MK9Xd5v+e0lmL4ym7Q1qduaQ4pMvaqKd3gL5CVOts6VE/0iGrhrrxnawjjSDVVxfXDVFoPBg==" length="2001393" />
+</item>
+
 </channel>
 </rss>
