@@ -20,9 +20,10 @@ public partial class OverlayWindow : Window
 
     private readonly DisplayInfo _display;
     private readonly Bitmap _frozen;
+    private readonly bool _showLoupe;
     private readonly System.Windows.Media.Imaging.BitmapSource _frozenSource;
-    private const int LoupeSampleCount = 16;
-    private const double LoupeOffset = 20, LoupeBoxW = 132, LoupeBoxH = 156;
+    private const int LoupeSampleCount = 20;
+    private const double LoupeOffset = 20, LoupeBoxW = 132, LoupeBoxH = 156, LoupeSquare = 131;
     private System.Windows.Point _start;
     private bool _dragging;
 
@@ -33,10 +34,10 @@ public partial class OverlayWindow : Window
     /// <summary>Raised on any terminal action (commit or cancel) so the coordinator can close all overlays.</summary>
     public event Action<OverlayWindow, bool>? Finished; // bool committed
 
-    public OverlayWindow(DisplayInfo display, Bitmap frozen)
+    public OverlayWindow(DisplayInfo display, Bitmap frozen, bool showLoupe = true)
     {
         InitializeComponent();
-        _display = display; _frozen = frozen;
+        _display = display; _frozen = frozen; _showLoupe = showLoupe;
         _frozenSource = ImageInterop.ToBitmapSource(frozen);
         FrozenImage.Source = _frozenSource;
         // Position BEFORE the first paint to avoid a flash at the default location.
@@ -45,7 +46,7 @@ public partial class OverlayWindow : Window
         SizeChanged += (_, _) => { if (!_dragging) UpdateDim(new Rect()); };
         MouseLeftButtonDown += OnDown;
         MouseMove += OnMove;
-        MouseLeave += (_, _) => LoupeBox.Visibility = Visibility.Collapsed;
+        MouseLeave += (_, _) => { LoupeBox.Visibility = Visibility.Collapsed; LoupeCoordBox.Visibility = Visibility.Collapsed; };
         MouseLeftButtonUp += OnUp;
         KeyDown += (_, e) => { if (e.Key == Key.Escape) Finish(false); };
     }
@@ -113,6 +114,12 @@ public partial class OverlayWindow : Window
 
     private void UpdateLoupe(System.Windows.Point p, double scale)
     {
+        if (!_showLoupe)
+        {
+            LoupeBox.Visibility = Visibility.Collapsed;
+            LoupeCoordBox.Visibility = Visibility.Collapsed;
+            return;
+        }
         double cursorPxX = p.X * scale, cursorPxY = p.Y * scale;
         var sample = LoupeMath.SampleRect(cursorPxX, cursorPxY, LoupeSampleCount, _frozen.Width, _frozen.Height);
         LoupeImage.Source = new System.Windows.Media.Imaging.CroppedBitmap(
@@ -125,6 +132,13 @@ public partial class OverlayWindow : Window
         var g = LoupeMath.GlobalPixel(_display.Bounds.Left, _display.Bounds.Top, cursorPxX, cursorPxY);
         LoupeCoord.Text = $"{g.X}, {g.Y}";
         LoupeBox.Visibility = Visibility.Visible;
+
+        // Coordinate pill centered BELOW the square, so the box reads as a true square.
+        LoupeCoordBox.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        double coordW = LoupeCoordBox.DesiredSize.Width;
+        System.Windows.Controls.Canvas.SetLeft(LoupeCoordBox, origin.X + (LoupeSquare - coordW) / 2);
+        System.Windows.Controls.Canvas.SetTop(LoupeCoordBox, origin.Y + LoupeSquare + 4);
+        LoupeCoordBox.Visibility = Visibility.Visible;
     }
 
     private void OnUp(object? s, MouseButtonEventArgs e)

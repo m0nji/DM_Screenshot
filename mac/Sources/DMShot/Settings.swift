@@ -109,6 +109,11 @@ struct SettingsView: View {
                 .labelsHidden()
                 .frame(width: 220)
             }
+            settingRow(tr(.showLoupe), tr(.showLoupeHelp)) {
+                Toggle("", isOn: $settings.showLoupe)
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+            }
         case .shortcuts:
             shortcutsDetail
         case .language:

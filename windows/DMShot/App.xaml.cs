@@ -43,7 +43,7 @@ public partial class App : Application
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "DMShot", "history"));
         _history.Load();
 
-        _coordinator = new CaptureCoordinator(new GdiScreenCapturer());
+        _coordinator = new CaptureCoordinator(new GdiScreenCapturer(), () => _settings.ShowZoomLoupe);
         _coordinator.CaptureProduced += OnCaptureProduced;
         _coordinator.VideoRequested += OnVideoRequested;
 

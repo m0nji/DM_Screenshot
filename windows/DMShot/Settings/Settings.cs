@@ -10,6 +10,7 @@ public sealed class Settings
     public string VideoAreaHotkey { get; set; } = "Ctrl+Alt+2";
     public bool LaunchAtLogin { get; set; } = false;
     public AfterCaptureMode AfterCapture { get; set; } = AfterCaptureMode.MainWindow;
+    public bool ShowZoomLoupe { get; set; } = true;
     public string Language { get; set; } = "en";
 
     // Annotation defaults remembered across restarts and shared by the main editor and the

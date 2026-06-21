@@ -9,14 +9,16 @@ final class OverlayWindow: NSWindow {
 /// Shows the frozen capture full-screen and lets the user drag a selection.
 final class SelectionView: NSView {
     private let capture: DisplayCapture
+    private let showLoupe: Bool
     private var startPoint: NSPoint?
     private var selection: NSRect?
     private var currentPoint: NSPoint?
     var onSelect: ((CGRect) -> Void)?
     var onCancel: (() -> Void)?
 
-    init(capture: DisplayCapture) {
+    init(capture: DisplayCapture, showLoupe: Bool) {
         self.capture = capture
+        self.showLoupe = showLoupe
         super.init(frame: NSRect(origin: .zero, size: capture.frameGlobal.size))
     }
     required init?(coder: NSCoder) { fatalError() }
@@ -107,7 +109,7 @@ final class SelectionView: NSView {
             drawHint()
         }
 
-        drawLoupe(in: bounds)
+        if showLoupe { drawLoupe(in: bounds) }
     }
 
     private func drawHint() {
@@ -123,20 +125,22 @@ final class SelectionView: NSView {
 
     private func drawLoupe(in bounds: NSRect) {
         guard let cursor = currentPoint else { return }
-        let sampleCount = 16
+        let sampleCount = 20
         let zoom: CGFloat = 128
-        let strip: CGFloat = 20
         let radius: CGFloat = 6
         let offset: CGFloat = 20
-        let boxSize = CGSize(width: zoom, height: zoom + strip)
+        let coordGap: CGFloat = 4
+        // Footprint used for edge-flip placement includes the coordinate pill that
+        // sits BELOW the square, so the whole thing stays on screen near edges.
+        let footprint = CGSize(width: zoom, height: zoom + coordGap + 18)
 
         let origin = LoupeMath.boxOrigin(
-            cursor: cursor, boxSize: boxSize, offset: offset, overlaySize: bounds.size)
-        let box = NSRect(origin: origin, size: boxSize)
+            cursor: cursor, boxSize: footprint, offset: offset, overlaySize: bounds.size)
+        // The box itself is a true square; the coordinates are drawn under it.
         let zoomRect = NSRect(x: origin.x, y: origin.y, width: zoom, height: zoom)
 
-        // Box background + later border.
-        let boxPath = NSBezierPath(roundedRect: box, xRadius: radius, yRadius: radius)
+        // Square box background + later border.
+        let boxPath = NSBezierPath(roundedRect: zoomRect, xRadius: radius, yRadius: radius)
         NSColor(white: 0.12, alpha: 0.92).setFill()
         boxPath.fill()
 
@@ -152,32 +156,44 @@ final class SelectionView: NSView {
             NSGraphicsContext.restoreGraphicsState()
         }
 
-        // Center crosshair on the target pixel.
-        NSColor.dmAccent.setStroke()
+        // Center crosshair on the target pixel: soft, slightly translucent light gray
+        // + dashed, so it marks the pixel without the starkness of solid white pulling
+        // the eye away from the drag itself.
+        NSColor(white: 0.85, alpha: 0.6).setStroke()
         let cross = NSBezierPath()
         cross.move(to: NSPoint(x: zoomRect.midX, y: zoomRect.minY))
         cross.line(to: NSPoint(x: zoomRect.midX, y: zoomRect.maxY))
         cross.move(to: NSPoint(x: zoomRect.minX, y: zoomRect.midY))
         cross.line(to: NSPoint(x: zoomRect.maxX, y: zoomRect.midY))
         cross.lineWidth = 1
+        cross.setLineDash([3, 3], count: 2, phase: 0)
         cross.stroke()
 
-        // Border on top.
+        // Border on top of the square.
         boxPath.lineWidth = 1.5
         boxPath.stroke()
 
-        // Global desktop pixel coordinates under the zoom area.
+        // Global desktop pixel coordinates on a small pill BELOW the square, so the
+        // box reads as a true square.
         let g = LoupeMath.globalPixel(displayOriginPx: displayOriginPx, cursorLocalPx: px)
         let coord = "\(g.0), \(g.1)"
         let attrs: [NSAttributedString.Key: Any] = [
-            .foregroundColor: NSColor.white,
+            .foregroundColor: NSColor(white: 0.9, alpha: 0.9),
             .font: NSFont.systemFont(ofSize: 11, weight: .medium),
         ]
         let s = NSAttributedString(string: coord, attributes: attrs)
         let ssize = s.size()
-        s.draw(at: NSPoint(
-            x: origin.x + (zoom - ssize.width) / 2,
-            y: origin.y + zoom + (strip - ssize.height) / 2))
+        let padX: CGFloat = 6, padY: CGFloat = 2
+        let pillW = ssize.width + padX * 2
+        let pillH = ssize.height + padY * 2
+        let pillX = origin.x + (zoom - pillW) / 2
+        let pillY = origin.y + zoom + coordGap
+        let pill = NSBezierPath(
+            roundedRect: NSRect(x: pillX, y: pillY, width: pillW, height: pillH),
+            xRadius: 3, yRadius: 3)
+        NSColor(white: 0.12, alpha: 0.55).setFill()
+        pill.fill()
+        s.draw(at: NSPoint(x: pillX + padX, y: pillY + padY))
     }
 
     override func mouseDown(with event: NSEvent) {
@@ -223,11 +239,11 @@ final class OverlayController {
     var onCompleteRect: ((DisplayCapture, CGRect) -> Void)?
 
     /// Like `begin`, but reports the selected display + pixel rect (for video).
-    func beginRectSelection(captures: [DisplayCapture]) {
+    func beginRectSelection(captures: [DisplayCapture], showLoupe: Bool) {
         close()
         NSApp.activate(ignoringOtherApps: true)
         for cap in captures {
-            let view = SelectionView(capture: cap)
+            let view = SelectionView(capture: cap, showLoupe: showLoupe)
             view.onSelect = { [weak self] pixelRect in
                 self?.close()
                 self?.onCompleteRect?(cap, pixelRect)
@@ -244,14 +260,14 @@ final class OverlayController {
         }
     }
 
-    func begin(captures: [DisplayCapture]) {
+    func begin(captures: [DisplayCapture], showLoupe: Bool) {
         close()
         // Become frontmost first so the windows below come up as key in the
         // active app — a prerequisite for the crosshair cursor to apply on hover
         // without requiring an initial click.
         NSApp.activate(ignoringOtherApps: true)
         for cap in captures {
-            let view = SelectionView(capture: cap)
+            let view = SelectionView(capture: cap, showLoupe: showLoupe)
             view.onSelect = { [weak self] pixelRect in
                 let s = cap.scale
                 let pointsRect = CGRect(

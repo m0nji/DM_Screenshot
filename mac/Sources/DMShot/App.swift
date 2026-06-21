@@ -167,7 +167,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         Task { @MainActor in
             do {
                 let caps = try await ScreenCapture.captureAll()
-                overlay.begin(captures: caps)
+                overlay.begin(captures: caps, showLoupe: appSettings.showLoupe)
             } catch { NSLog("capture area failed: \(error)") }
         }
     }
@@ -196,7 +196,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                     self?.startRecording(source: VideoSource(displayID: cap.displayID, cropPoints: pts),
                                          on: ScreenCapture.nsScreen(for: cap.displayID))
                 }
-                self.overlay.beginRectSelection(captures: caps)
+                self.overlay.beginRectSelection(captures: caps, showLoupe: self.appSettings.showLoupe)
             } catch { NSLog("video area failed: \(error)") }
         }
     }

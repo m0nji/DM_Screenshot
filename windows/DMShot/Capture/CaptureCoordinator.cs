@@ -11,11 +11,13 @@ public sealed class CaptureCoordinator
     private struct POINT { public int X, Y; }
 
     private readonly IScreenCapturer _capturer;
+    private readonly Func<bool> _showLoupe;
     public event Action<CaptureResult>? CaptureProduced;
     /// <summary>Raised when a video recording is requested for a display, with an optional crop
     /// (the selection in that display's local source pixels; null = whole display).</summary>
     public event Action<DisplayInfo, PixelRect?>? VideoRequested;
-    public CaptureCoordinator(IScreenCapturer capturer) => _capturer = capturer;
+    public CaptureCoordinator(IScreenCapturer capturer, Func<bool>? showLoupe = null)
+    { _capturer = capturer; _showLoupe = showLoupe ?? (() => true); }
 
     public void CaptureFullScreen()
     {
@@ -36,7 +38,7 @@ public sealed class CaptureCoordinator
         foreach (var d in displays)
         {
             var frozen = _capturer.CaptureDisplay(d);
-            var o = new OverlayWindow(d, frozen);
+            var o = new OverlayWindow(d, frozen, _showLoupe());
             o.Finished += (win, committed) =>
             {
                 if (done) return;
@@ -70,7 +72,7 @@ public sealed class CaptureCoordinator
         foreach (var d in displays)
         {
             var frozen = _capturer.CaptureDisplay(d);
-            var o = new OverlayWindow(d, frozen);
+            var o = new OverlayWindow(d, frozen, _showLoupe());
             var display = d;
             o.Finished += (win, committed) =>
             {

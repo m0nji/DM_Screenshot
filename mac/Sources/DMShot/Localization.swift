@@ -8,6 +8,7 @@ enum L: CaseIterable {
     case settingsTitle, sectionGeneral, sectionShortcuts, sectionLanguage, sectionUpdates
     case launchAtLogin, launchAtLoginHelp, comingSoon
     case afterCapture, afterCaptureHelp, afterCaptureMainWindow, afterCaptureQuickEdit
+    case showLoupe, showLoupeHelp
     case languageLabel, languageHelp
     // Settings — updates
     case version, versionHelp, checkForUpdates, updatesInstalledOnly
@@ -65,6 +66,9 @@ final class Localizer: ObservableObject {
                                             "Was direkt nach einem Screenshot passiert.")
         case .afterCaptureMainWindow: return ("Open main window", "Hauptfenster öffnen")
         case .afterCaptureQuickEdit:  return ("Show Quick-Edit bar", "Schnellbearbeitungsleiste anzeigen")
+        case .showLoupe:            return ("Zoom loupe", "Zoom-Lupe")
+        case .showLoupeHelp:        return ("Show a magnifier while selecting an area, for pixel-precise edges.",
+                                            "Beim Auswählen eines Bereichs eine Lupe für pixelgenaue Kanten anzeigen.")
         case .languageLabel:        return ("Language", "Sprache")
         case .languageHelp:         return ("Interface language.", "Sprache der Oberfläche.")
         case .version:              return ("Version", "Version")

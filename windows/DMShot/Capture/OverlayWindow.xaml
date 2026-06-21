@@ -20,18 +20,18 @@
         <Border.Effect>
           <DropShadowEffect BlurRadius="8" ShadowDepth="0" Opacity="0.5"/>
         </Border.Effect>
-        <StackPanel>
-          <Grid Width="128" Height="128">
-            <Image x:Name="LoupeImage" Width="128" Height="128" Stretch="Fill"
-                   RenderOptions.BitmapScalingMode="NearestNeighbor"/>
-            <Rectangle Width="1" Fill="#C97B4A"
-                       HorizontalAlignment="Center" VerticalAlignment="Stretch"/>
-            <Rectangle Height="1" Fill="#C97B4A"
-                       VerticalAlignment="Center" HorizontalAlignment="Stretch"/>
-          </Grid>
-          <TextBlock x:Name="LoupeCoord" Foreground="White" FontSize="11"
-                     Margin="0,2,0,2" HorizontalAlignment="Center"/>
-        </StackPanel>
+        <Grid Width="128" Height="128">
+          <Image x:Name="LoupeImage" Width="128" Height="128" Stretch="Fill"
+                 RenderOptions.BitmapScalingMode="NearestNeighbor"/>
+          <Line X1="64" Y1="0" X2="64" Y2="128"
+                Stroke="#99D9D9D9" StrokeThickness="1" StrokeDashArray="3 3"/>
+          <Line X1="0" Y1="64" X2="128" Y2="64"
+                Stroke="#99D9D9D9" StrokeThickness="1" StrokeDashArray="3 3"/>
+        </Grid>
+      </Border>
+      <Border x:Name="LoupeCoordBox" Visibility="Collapsed"
+              Background="#991F1F24" CornerRadius="3" Padding="6,2">
+        <TextBlock x:Name="LoupeCoord" Foreground="#E6E6E6" FontSize="11"/>
       </Border>
     </Canvas>
   </Grid>

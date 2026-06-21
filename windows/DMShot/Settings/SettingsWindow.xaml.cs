@@ -107,6 +107,20 @@ public partial class SettingsWindow : Window
         rbQuick.Checked += (_, _) => { _settings.AfterCapture = AfterCaptureMode.QuickEdit; Commit(); };
         Pane.Children.Add(rbMain);
         Pane.Children.Add(rbQuick);
+
+        var cbLoupe = new CheckBox
+        {
+            Content = Loc.Instance["showLoupe"], Foreground = Text, FontSize = 14,
+            Margin = new Thickness(0, 18, 0, 0), IsChecked = _settings.ShowZoomLoupe
+        };
+        cbLoupe.Checked += (_, _) => { _settings.ShowZoomLoupe = true; Commit(); };
+        cbLoupe.Unchecked += (_, _) => { _settings.ShowZoomLoupe = false; Commit(); };
+        Pane.Children.Add(cbLoupe);
+        Pane.Children.Add(new TextBlock
+        {
+            Text = Loc.Instance["showLoupeHelp"],
+            Foreground = TextDim, Margin = new Thickness(0, 6, 0, 0), TextWrapping = TextWrapping.Wrap
+        });
     }
 
     private void ShowShortcuts()
