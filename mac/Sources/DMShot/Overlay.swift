@@ -11,6 +11,7 @@ final class SelectionView: NSView {
     private let capture: DisplayCapture
     private var startPoint: NSPoint?
     private var selection: NSRect?
+    private var currentPoint: NSPoint?
     var onSelect: ((CGRect) -> Void)?
     var onCancel: (() -> Void)?
 
@@ -55,9 +56,13 @@ final class SelectionView: NSView {
     }
     override func mouseEntered(with event: NSEvent) {
         NSCursor.crosshair.set()
+        currentPoint = convert(event.locationInWindow, from: nil)
+        needsDisplay = true
     }
     override func mouseMoved(with event: NSEvent) {
         NSCursor.crosshair.set()
+        currentPoint = convert(event.locationInWindow, from: nil)
+        needsDisplay = true
     }
 
     override func viewDidMoveToWindow() {
@@ -70,28 +75,31 @@ final class SelectionView: NSView {
         img.draw(in: bounds)
         NSColor.black.withAlphaComponent(0.35).setFill()
         bounds.fill()
-        guard let sel = selection else {
+
+        if let sel = selection {
+            NSGraphicsContext.saveGraphicsState()
+            NSBezierPath(rect: sel).addClip()
+            img.draw(in: bounds)
+            NSGraphicsContext.restoreGraphicsState()
+
+            NSColor.dmAccent.setStroke()
+            let border = NSBezierPath(rect: sel)
+            border.lineWidth = 1.5
+            border.stroke()
+
+            let label = "\(Int(sel.width)) × \(Int(sel.height))"
+            let attrs: [NSAttributedString.Key: Any] = [
+                .foregroundColor: NSColor.white,
+                .font: NSFont.systemFont(ofSize: 12, weight: .medium),
+                .backgroundColor: NSColor.dmAccent,
+            ]
+            NSAttributedString(string: " \(label) ", attributes: attrs)
+                .draw(at: NSPoint(x: sel.minX, y: max(0, sel.minY - 18)))
+        } else {
             drawHint()
-            return
         }
-        NSGraphicsContext.saveGraphicsState()
-        NSBezierPath(rect: sel).addClip()
-        img.draw(in: bounds)
-        NSGraphicsContext.restoreGraphicsState()
 
-        NSColor.dmAccent.setStroke()
-        let border = NSBezierPath(rect: sel)
-        border.lineWidth = 1.5
-        border.stroke()
-
-        let label = "\(Int(sel.width)) × \(Int(sel.height))"
-        let attrs: [NSAttributedString.Key: Any] = [
-            .foregroundColor: NSColor.white,
-            .font: NSFont.systemFont(ofSize: 12, weight: .medium),
-            .backgroundColor: NSColor.dmAccent,
-        ]
-        NSAttributedString(string: " \(label) ", attributes: attrs)
-            .draw(at: NSPoint(x: sel.minX, y: max(0, sel.minY - 18)))
+        drawLoupe(in: bounds)
     }
 
     private func drawHint() {
@@ -105,9 +113,72 @@ final class SelectionView: NSView {
         s.draw(at: NSPoint(x: (bounds.width - size.width) / 2, y: bounds.height - 60))
     }
 
+    private func drawLoupe(in bounds: NSRect) {
+        guard let cursor = currentPoint else { return }
+        let sampleCount = 16
+        let zoom: CGFloat = 128
+        let strip: CGFloat = 20
+        let radius: CGFloat = 6
+        let offset: CGFloat = 20
+        let boxSize = CGSize(width: zoom, height: zoom + strip)
+
+        let origin = LoupeMath.boxOrigin(
+            cursor: cursor, boxSize: boxSize, offset: offset, overlaySize: bounds.size)
+        let box = NSRect(origin: origin, size: boxSize)
+        let zoomRect = NSRect(x: origin.x, y: origin.y, width: zoom, height: zoom)
+
+        // Box background + later border.
+        let boxPath = NSBezierPath(roundedRect: box, xRadius: radius, yRadius: radius)
+        NSColor(white: 0.12, alpha: 0.92).setFill()
+        boxPath.fill()
+
+        // Magnified pixels, clipped to the zoom area, nearest-neighbor for crisp pixels.
+        let px = CGPoint(x: cursor.x * capture.scale, y: cursor.y * capture.scale)
+        let imageSize = CGSize(width: capture.image.width, height: capture.image.height)
+        let sample = LoupeMath.sampleRect(cursorPx: px, sampleCount: sampleCount, imageSize: imageSize)
+        if let crop = capture.image.cropping(to: sample) {
+            NSGraphicsContext.saveGraphicsState()
+            NSBezierPath(rect: zoomRect).addClip()
+            NSGraphicsContext.current?.imageInterpolation = .none
+            ImageUtils.nsImage(crop).draw(in: zoomRect)
+            NSGraphicsContext.restoreGraphicsState()
+        }
+
+        // Center crosshair on the target pixel.
+        NSColor.dmAccent.setStroke()
+        let cross = NSBezierPath()
+        cross.move(to: NSPoint(x: zoomRect.midX, y: zoomRect.minY))
+        cross.line(to: NSPoint(x: zoomRect.midX, y: zoomRect.maxY))
+        cross.move(to: NSPoint(x: zoomRect.minX, y: zoomRect.midY))
+        cross.line(to: NSPoint(x: zoomRect.maxX, y: zoomRect.midY))
+        cross.lineWidth = 1
+        cross.stroke()
+
+        // Border on top.
+        boxPath.lineWidth = 1.5
+        boxPath.stroke()
+
+        // Global desktop pixel coordinates under the zoom area.
+        let originPx = CGPoint(
+            x: CGDisplayBounds(capture.displayID).origin.x * capture.scale,
+            y: CGDisplayBounds(capture.displayID).origin.y * capture.scale)
+        let g = LoupeMath.globalPixel(displayOriginPx: originPx, cursorLocalPx: px)
+        let coord = "\(g.0), \(g.1)"
+        let attrs: [NSAttributedString.Key: Any] = [
+            .foregroundColor: NSColor.white,
+            .font: NSFont.systemFont(ofSize: 11, weight: .medium),
+        ]
+        let s = NSAttributedString(string: coord, attributes: attrs)
+        let ssize = s.size()
+        s.draw(at: NSPoint(
+            x: origin.x + (zoom - ssize.width) / 2,
+            y: origin.y + zoom + (strip - ssize.height) / 2))
+    }
+
     override func mouseDown(with event: NSEvent) {
         NSCursor.crosshair.set()
         startPoint = convert(event.locationInWindow, from: nil)
+        currentPoint = startPoint
         selection = NSRect(origin: startPoint!, size: .zero)
         needsDisplay = true
     }
@@ -115,6 +186,7 @@ final class SelectionView: NSView {
     override func mouseDragged(with event: NSEvent) {
         guard let start = startPoint else { return }
         let p = convert(event.locationInWindow, from: nil)
+        currentPoint = p
         selection = NSRect(
             x: min(start.x, p.x), y: min(start.y, p.y),
             width: abs(p.x - start.x), height: abs(p.y - start.y))
