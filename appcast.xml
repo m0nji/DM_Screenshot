@@ -177,5 +177,13 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.4.0/DM_Screenshot-v0.4.0.dmg" type="application/octet-stream" sparkle:edSignature="BZaS53GS+wR2seX67/zMja+sZEvLh7iWj0Lo+dbyko04Sq0XFqRRugxWyswo2k5fZOCFpw1KfxCcNQXso3mwBQ==" length="1974258" />
 </item>
 
+<item>
+  <title>Version 0.4.1</title>
+  <description><![CDATA[<ul><li>feat: Text annotations are now added directly on the image — pick the Text tool, drag a box to set the size, and type right there (multi-line; press Enter for a new line). Double-click a text to edit it again, and drag a corner handle to scale it. The separate text-entry pop-up window is gone (macOS + Windows)</li></ul>]]></description>
+  <sparkle:version>0.4.1</sparkle:version>
+  <sparkle:shortVersionString>0.4.1</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.4.1/DM_Screenshot-v0.4.1.dmg" type="application/octet-stream" sparkle:edSignature="sMo4EdB5a7drZVXtaecLbfaJxzTeT5JQYhVxKWQRCeoX0uqXdyiCBmtj7Tj3MnsRC/ceUIWuheHEKTgjOjyoBw==" length="1995644" />
+</item>
+
 </channel>
 </rss>
