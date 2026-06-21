@@ -4,6 +4,9 @@ All notable changes to DM_Screenshot. Newest version first. Always written in En
 
 ## [Unreleased]
 
+## 0.3.4 – 2026-06-21
+- fix: The taskbar / Alt-Tab app icon now reads at full size — the white camera motif was small inside the dark tile and made the icon look smaller than its neighbours (Windows)
+
 ## 0.3.3 – 2026-06-21
 - feat: The Quick-Edit overlay's size / blur-strength slider is now always visible instead of tucked behind a button, so you can set it before drawing; it shows size for shapes and blur strength when the blur tool is active (Windows)
 - feat: Stroke size and blur strength are now remembered across restarts and shared by the editor and the Quick-Edit overlay (Windows)
