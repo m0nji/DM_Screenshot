@@ -473,8 +473,7 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
 
     private func annotationHit(_ p: CGPoint) -> Annotation? {
         for a in model.annotations.reversed() {
-            let r = a.normalizedRect.insetBy(dx: -a.strokeWidth - 4, dy: -a.strokeWidth - 4)
-            if r.contains(p) { return a }
+            if SelectionGeometry.bodyHitRect(for: a).contains(p) { return a }
         }
         return nil
     }

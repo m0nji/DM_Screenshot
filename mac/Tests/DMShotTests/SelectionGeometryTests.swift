@@ -142,6 +142,57 @@ final class SelectionGeometryTests: XCTestCase {
         XCTAssertEqual(TextLayout.fontSize(forStroke: resized.strokeWidth), 16, accuracy: 0.5)
     }
 
+    func testTextBodyHitRectCoversInterior() {
+        var t = makeAnnotation(kind: .text, x: 100, y: 100, width: 0, height: 0)
+        t.text = "Ag"
+        t.strokeWidth = 6                                  // font 36 → a real, non-zero box
+        let bounds = SelectionGeometry.bounds(for: t)
+        let hit = SelectionGeometry.bodyHitRect(for: t)
+
+        // The whole measured box (and a small margin) is clickable, not just the corners.
+        XCTAssertTrue(hit.contains(CGPoint(x: bounds.midX, y: bounds.midY)))
+        XCTAssertTrue(hit.contains(CGPoint(x: bounds.minX + 1, y: bounds.minY + 1)))
+        XCTAssertTrue(hit.contains(CGPoint(x: bounds.maxX - 1, y: bounds.maxY - 1)))
+        // A point well outside the text is not a hit.
+        XCTAssertFalse(hit.contains(CGPoint(x: bounds.maxX + 50, y: bounds.maxY + 50)))
+    }
+
+    func testRectBodyHitRectKeepsStrokePadding() {
+        let r = makeAnnotation(kind: .rect, x: 10, y: 20, width: 40, height: 30)  // stroke 4
+        let hit = SelectionGeometry.bodyHitRect(for: r)
+        // Legacy behavior: normalizedRect inset by -(strokeWidth + 4) = -8 on each side.
+        XCTAssertEqual(hit, CGRect(x: 2, y: 12, width: 56, height: 46))
+    }
+
+    func testCanvasDraggingTextBodyMovesAndUndoRestores() {
+        var t = makeAnnotation(kind: .text, x: 40, y: 40, width: 0, height: 0)
+        t.text = "Ag"
+        t.strokeWidth = 6
+        let model = EditorModel()
+        model.load(image: makeImage(100, 80), entryID: "test", annotations: [t])
+        model.tool = .select                                   // nothing selected yet
+        let view = CanvasNSView(model: model, pad: 0)
+        view.frame = NSRect(x: 0, y: 0, width: 100, height: 80)
+
+        // Click the centre of the text body (far from every corner → select + move,
+        // not resize). image→event y is flipped: event_y = 80 - image_y.
+        let b = SelectionGeometry.bounds(for: t)
+        let downImg = CGPoint(x: b.midX, y: b.midY)
+        let dragImg = CGPoint(x: b.midX + 12, y: b.midY + 10)   // move by (+12, +10)
+        view.mouseDown(with: mouseEvent(type: .leftMouseDown, at: CGPoint(x: downImg.x, y: 80 - downImg.y)))
+
+        XCTAssertEqual(model.selectedID, t.id)                  // body click selects
+
+        view.mouseDragged(with: mouseEvent(type: .leftMouseDragged, at: CGPoint(x: dragImg.x, y: 80 - dragImg.y)))
+        view.mouseUp(with: mouseEvent(type: .leftMouseUp, at: CGPoint(x: dragImg.x, y: 80 - dragImg.y)))
+
+        XCTAssertEqual(model.annotations.first?.x ?? 0, 52, accuracy: 0.5)   // 40 + 12
+        XCTAssertEqual(model.annotations.first?.y ?? 0, 50, accuracy: 0.5)   // 40 + 10
+
+        model.undo()
+        XCTAssertEqual(model.annotations.first, t)
+    }
+
     private func mouseEvent(type: NSEvent.EventType, at point: CGPoint) -> NSEvent {
         NSEvent.mouseEvent(
             with: type,

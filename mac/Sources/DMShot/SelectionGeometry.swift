@@ -167,6 +167,20 @@ enum SelectionGeometry {
         }
     }
 
+    /// The clickable body rectangle (image space) used to select/move an
+    /// annotation. Text has no stored size, so it uses its measured bounds
+    /// (matching the double-click edit target); every other kind keeps the
+    /// legacy stroke-padded stored rect.
+    static func bodyHitRect(for annotation: Annotation) -> CGRect {
+        switch annotation.kind {
+        case .text:
+            return bounds(for: annotation).insetBy(dx: -4, dy: -4)
+        default:
+            let pad = annotation.strokeWidth + 4
+            return annotation.normalizedRect.insetBy(dx: -pad, dy: -pad)
+        }
+    }
+
     private static func distance(from a: CGPoint, to b: CGPoint) -> CGFloat {
         hypot(a.x - b.x, a.y - b.y)
     }
