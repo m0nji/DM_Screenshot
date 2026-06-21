@@ -211,5 +211,13 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.4.4/DM_Screenshot-v0.4.4.dmg" type="application/octet-stream" sparkle:edSignature="haHEdkJ5kTuL7L3425csMsnaWwmVVH6uSdjw0ujfjkFwS6//BBt5oo0ytVFK4HbUX/EeqtevVa97EGLk2MPrAg==" length="2001745" />
 </item>
 
+<item>
+  <title>Version 0.4.5</title>
+  <description><![CDATA[<ul><li>fix: The Windows app and tray icons now show the soft off-white camera-and-viewfinder motif, matching macOS; the previous build still shipped the old stark-white icon (Windows)</li></ul>]]></description>
+  <sparkle:version>0.4.5</sparkle:version>
+  <sparkle:shortVersionString>0.4.5</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.4.5/DM_Screenshot-v0.4.5.dmg" type="application/octet-stream" sparkle:edSignature="QG8FqD+14/BP0EIZxmCURCEHH1q0b1Ed8IohGLQwfcf0GH2lXcvOedDrGIrA4ouEpo/M1US+zfi9kNI3rlYYAw==" length="2001758" />
+</item>
+
 </channel>
 </rss>
