@@ -4,6 +4,9 @@ All notable changes to DM_Screenshot. Newest version first. Always written in En
 
 ## [Unreleased]
 
+## 0.4.5 – 2026-06-21
+- fix: The Windows app and tray icons now show the soft off-white camera-and-viewfinder motif, matching macOS; the previous build still shipped the old stark-white icon (Windows)
+
 ## 0.4.4 – 2026-06-21
 - change: The white camera-and-viewfinder in the app icon is now a soft off-white instead of stark white, so it sits more calmly in the Dock (macOS)
 
