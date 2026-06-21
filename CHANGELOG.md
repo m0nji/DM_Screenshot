@@ -4,6 +4,12 @@ All notable changes to DM_Screenshot. Newest version first. Always written in En
 
 ## [Unreleased]
 
+## 0.3.3 – 2026-06-21
+- feat: The Quick-Edit overlay's size / blur-strength slider is now always visible instead of tucked behind a button, so you can set it before drawing; it shows size for shapes and blur strength when the blur tool is active (Windows)
+- feat: Stroke size and blur strength are now remembered across restarts and shared by the editor and the Quick-Edit overlay (Windows)
+- fix: Quick-Edit annotations work again — drawing arrows, blurring a region and the strength slider had stopped working in the overlay because its drawing surface collapsed to zero size (Windows)
+- fix: A freshly drawn shape is selected right away, so the size and colour controls apply to it without first switching to the Select tool, matching macOS (Windows)
+
 ## 0.3.2 – 2026-06-21
 - fix: The sidebar Settings button also shows the orange hover border on mouse-over now, and its gear icon lines up with the capture buttons above (macOS; Windows already had it)
 - fix: The video / GIF preview now plays back correctly instead of showing a zoomed-in crop of part of the last frame (Windows)
