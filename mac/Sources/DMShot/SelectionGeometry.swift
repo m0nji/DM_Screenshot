@@ -16,7 +16,7 @@ struct SelectionHandlePoint: Equatable {
 
 enum SelectionGeometry {
     static let viewHandleRadius: CGFloat = 5
-    static let viewHandleHitTolerance: CGFloat = 8
+    static let viewHandleHitTolerance: CGFloat = 12  // forgiving grab radius (view space)
 
     static func handles(for annotation: Annotation) -> [SelectionHandlePoint] {
         switch annotation.kind {

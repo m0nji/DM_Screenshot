@@ -206,6 +206,15 @@ final class SelectionGeometryTests: XCTestCase {
             pressure: 1)!
     }
 
+    func testHandleHitToleranceIsForgiving() {
+        let a = makeAnnotation(kind: .rect, x: 0, y: 0, width: 100, height: 60)
+        let tol = SelectionGeometry.viewHandleHitTolerance
+        // 11pt from the top-left corner: beyond the old 8pt, within the new 12pt.
+        XCTAssertEqual(SelectionGeometry.hitHandle(at: CGPoint(x: 11, y: 0), in: a, tolerance: tol), .topLeft)
+        // 13pt away: still a clear miss.
+        XCTAssertNil(SelectionGeometry.hitHandle(at: CGPoint(x: 13, y: 0), in: a, tolerance: tol))
+    }
+
     private func makeAnnotation(
         kind: Annotation.Kind,
         x: CGFloat,
