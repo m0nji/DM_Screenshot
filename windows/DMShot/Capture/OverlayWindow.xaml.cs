@@ -20,6 +20,9 @@ public partial class OverlayWindow : Window
 
     private readonly DisplayInfo _display;
     private readonly Bitmap _frozen;
+    private readonly System.Windows.Media.Imaging.BitmapSource _frozenSource;
+    private const int LoupeSampleCount = 16;
+    private const double LoupeOffset = 20, LoupeBoxW = 132, LoupeBoxH = 156;
     private System.Windows.Point _start;
     private bool _dragging;
 
@@ -34,13 +37,15 @@ public partial class OverlayWindow : Window
     {
         InitializeComponent();
         _display = display; _frozen = frozen;
-        FrozenImage.Source = ImageInterop.ToBitmapSource(frozen);
+        _frozenSource = ImageInterop.ToBitmapSource(frozen);
+        FrozenImage.Source = _frozenSource;
         // Position BEFORE the first paint to avoid a flash at the default location.
         SourceInitialized += OnSourceInit;
         Loaded += OnLoaded;
         SizeChanged += (_, _) => { if (!_dragging) UpdateDim(new Rect()); };
         MouseLeftButtonDown += OnDown;
         MouseMove += OnMove;
+        MouseLeave += (_, _) => LoupeBox.Visibility = Visibility.Collapsed;
         MouseLeftButtonUp += OnUp;
         KeyDown += (_, e) => { if (e.Key == Key.Escape) Finish(false); };
     }
@@ -92,17 +97,34 @@ public partial class OverlayWindow : Window
 
     private void OnMove(object? s, MouseEventArgs e)
     {
-        if (!_dragging) return;
         var p = e.GetPosition(Overlay);
+        double scale = VisualTreeHelperDpi();
+        UpdateLoupe(p, scale);
+        if (!_dragging) return;
         var rect = new Rect(_start, p);
         System.Windows.Controls.Canvas.SetLeft(SelRect, rect.Left);
         System.Windows.Controls.Canvas.SetTop(SelRect, rect.Top);
         SelRect.Width = rect.Width; SelRect.Height = rect.Height;
-        double scale = VisualTreeHelperDpi();
         Readout.Text = $"{(int)(rect.Width * scale)} × {(int)(rect.Height * scale)}";
         System.Windows.Controls.Canvas.SetLeft(ReadoutBox, rect.Left);
         System.Windows.Controls.Canvas.SetTop(ReadoutBox, Math.Max(0, rect.Top - 24));
         UpdateDim(rect);
+    }
+
+    private void UpdateLoupe(System.Windows.Point p, double scale)
+    {
+        double cursorPxX = p.X * scale, cursorPxY = p.Y * scale;
+        var sample = LoupeMath.SampleRect(cursorPxX, cursorPxY, LoupeSampleCount, _frozen.Width, _frozen.Height);
+        LoupeImage.Source = new System.Windows.Media.Imaging.CroppedBitmap(
+            _frozenSource, new Int32Rect(sample.X, sample.Y, sample.Width, sample.Height));
+
+        var origin = LoupeMath.BoxOrigin(p.X, p.Y, LoupeBoxW, LoupeBoxH, LoupeOffset, ActualWidth, ActualHeight);
+        System.Windows.Controls.Canvas.SetLeft(LoupeBox, origin.X);
+        System.Windows.Controls.Canvas.SetTop(LoupeBox, origin.Y);
+
+        var g = LoupeMath.GlobalPixel(_display.Bounds.Left, _display.Bounds.Top, cursorPxX, cursorPxY);
+        LoupeCoord.Text = $"{g.X}, {g.Y}";
+        LoupeBox.Visibility = Visibility.Visible;
     }
 
     private void OnUp(object? s, MouseButtonEventArgs e)

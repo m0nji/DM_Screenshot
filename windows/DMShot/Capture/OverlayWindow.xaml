@@ -14,6 +14,25 @@
       <Border x:Name="ReadoutBox" Background="#CC1F1F24" CornerRadius="3" Padding="6,2">
         <TextBlock x:Name="Readout" Foreground="White" FontSize="12"/>
       </Border>
+      <Border x:Name="LoupeBox" Visibility="Collapsed"
+              BorderBrush="#C97B4A" BorderThickness="1.5" CornerRadius="6"
+              Background="#EB1E1E22">
+        <Border.Effect>
+          <DropShadowEffect BlurRadius="8" ShadowDepth="0" Opacity="0.5"/>
+        </Border.Effect>
+        <StackPanel>
+          <Grid Width="128" Height="128">
+            <Image x:Name="LoupeImage" Width="128" Height="128" Stretch="Fill"
+                   RenderOptions.BitmapScalingMode="NearestNeighbor"/>
+            <Rectangle Width="1" Fill="#C97B4A"
+                       HorizontalAlignment="Center" VerticalAlignment="Stretch"/>
+            <Rectangle Height="1" Fill="#C97B4A"
+                       VerticalAlignment="Center" HorizontalAlignment="Stretch"/>
+          </Grid>
+          <TextBlock x:Name="LoupeCoord" Foreground="White" FontSize="11"
+                     Margin="0,2,0,2" HorizontalAlignment="Center"/>
+        </StackPanel>
+      </Border>
     </Canvas>
   </Grid>
 </Window>
