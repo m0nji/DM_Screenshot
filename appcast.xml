@@ -169,5 +169,13 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.3.4/DM_Screenshot-v0.3.4.dmg" type="application/octet-stream" sparkle:edSignature="StRKBKLO/r1cZ5E49ecfllxWzNSnFaYbjGRNF8+B5eGvXubKx3q7EbDpRXZEybMsiIPBtMpv59b1USBb7KZZDA==" length="1966733" />
 </item>
 
+<item>
+  <title>Version 0.4.0</title>
+  <description><![CDATA[<ul><li>feat: A zoom loupe now appears while you select a capture area — a magnifier follows the cursor with a crosshair and live pixel coordinates, so you can line up the selection edges precisely. Turn it off under Settings → General → Zoom loupe (macOS + Windows)</li></ul>]]></description>
+  <sparkle:version>0.4.0</sparkle:version>
+  <sparkle:shortVersionString>0.4.0</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.4.0/DM_Screenshot-v0.4.0.dmg" type="application/octet-stream" sparkle:edSignature="BZaS53GS+wR2seX67/zMja+sZEvLh7iWj0Lo+dbyko04Sq0XFqRRugxWyswo2k5fZOCFpw1KfxCcNQXso3mwBQ==" length="1974258" />
+</item>
+
 </channel>
 </rss>
