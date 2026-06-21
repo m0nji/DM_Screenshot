@@ -139,5 +139,16 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.3.1/DM_Screenshot-v0.3.1.dmg" type="application/octet-stream" sparkle:edSignature="gFyHMcCw2ku0dFfoKodLGiXC0JrGxsQSFPG3e3EtOUP+YWlo1+hmQyFs2pymxTeiYRuoRpZpkDn0rPjx1e57Bw==" length="1969671" />
 </item>
 
+<item>
+  <title>Version 0.3.2</title>
+  <description><![CDATA[<ul><li>fix: The sidebar Settings button also shows the orange hover border on mouse-over now, and its gear icon lines up with the capture buttons above (macOS; Windows already had it)</li>
+<li>fix: The video / GIF preview now plays back correctly instead of showing a zoomed-in crop of part of the last frame (Windows)</li>
+<li>fix: Recorded GIFs are much smaller — the encoder no longer dithers, which removes the coloured fringing on text and cuts file size dramatically, matching macOS (Windows)</li>
+<li>fix: The app and tray icons now fill their frame edge-to-edge instead of sitting inside an empty bracket border, matching the macOS icon (Windows)</li></ul>]]></description>
+  <sparkle:version>0.3.2</sparkle:version>
+  <sparkle:shortVersionString>0.3.2</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.3.2/DM_Screenshot-v0.3.2.dmg" type="application/octet-stream" sparkle:edSignature="jktUS//sBV71zRSIU+GUXneBsYJxyWrKw/BsNftE7valmA7FM0YusTTuFz5F5re3efkFXMAY1XjUd4wEKxSeBw==" length="1968640" />
+</item>
+
 </channel>
 </rss>
