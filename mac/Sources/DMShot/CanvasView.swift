@@ -3,7 +3,7 @@ import Combine
 import SwiftUI
 
 /// AppKit canvas: renders the image + annotations and handles mouse interaction.
-final class CanvasNSView: NSView {
+final class CanvasNSView: NSView, NSTextViewDelegate {
     let model: EditorModel
     let pad: CGFloat
     private var scale: CGFloat = 1
@@ -20,6 +20,16 @@ final class CanvasNSView: NSView {
     private var grabStartView: CGPoint?
     private var grabStartPan: CGPoint?
 
+    // Inline text editing
+    private var textEditor: NSTextView?
+    private var editingExistingID: UUID?     // non-nil while re-editing an existing annotation
+    private var editingOrigin: CGPoint = .zero
+    private var editingFontSize: CGFloat = TextLayout.minFontSize
+    private var editingColorHex: String = "#EF4444"
+    private var textDragStart: CGPoint?      // image-space start of a text-box drag
+    private var textDragRect: CGRect?        // current dragged box (image space), for the rubber band
+    private var toolObserver: AnyCancellable?
+
     init(model: EditorModel, pad: CGFloat = 24) {
         self.model = model
         self.pad = pad
@@ -29,11 +39,27 @@ final class CanvasNSView: NSView {
         // frame exceeds the view bounds) paints out over the sidebar and the
         // rest of the window instead of staying inside the editor canvas.
         clipsToBounds = true
+        toolObserver = model.$tool
+            .removeDuplicates()
+            .dropFirst()
+            .sink { [weak self] _ in self?.endTextEditing(commit: true) }
     }
     required init?(coder: NSCoder) { fatalError() }
 
     override var isFlipped: Bool { true }
     override var acceptsFirstResponder: Bool { true }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        NotificationCenter.default.removeObserver(self, name: NSWindow.didResignKeyNotification, object: nil)
+        if let w = window {
+            NotificationCenter.default.addObserver(
+                self, selector: #selector(windowDidResignKey),
+                name: NSWindow.didResignKeyNotification, object: w)
+        }
+    }
+
+    @objc private func windowDidResignKey() { endTextEditing(commit: true) }
 
     func refresh() {
         needsDisplay = true
@@ -92,9 +118,22 @@ final class CanvasNSView: NSView {
         t.translateX(by: -vr.minX, yBy: -vr.minY)
         t.concat()
         var shapes = model.annotations
+        if let id = editingExistingID { shapes.removeAll { $0.id == id } }
         if let draft { shapes.append(draft) }
         SceneRenderer.draw(image: image, annotations: shapes)
         NSGraphicsContext.restoreGraphicsState()
+
+        if let r = textDragRect {
+            let box = NSRect(
+                x: offset.x + (r.minX - vr.minX) * scale,
+                y: offset.y + (r.minY - vr.minY) * scale,
+                width: r.width * scale, height: r.height * scale)
+            NSColor.dmAccent.setStroke()
+            let p = NSBezierPath(rect: box)
+            p.lineWidth = 1
+            p.setLineDash([4, 3], count: 2, phase: 0)
+            p.stroke()
+        }
 
         // Selection highlight (in view space).
         if let id = model.selectedID,
@@ -111,6 +150,8 @@ final class CanvasNSView: NSView {
             p.stroke()
             drawSelectionHandles(for: ann, in: vr)
         }
+
+        if textEditor != nil { layoutTextEditor() }
     }
 
     // MARK: - Zoom / pan
@@ -199,12 +240,21 @@ final class CanvasNSView: NSView {
             return
         }
         guard model.image != nil else { return }
+        if textEditor != nil {            // any canvas click outside the editor commits it
+            endTextEditing(commit: true)
+            refresh()
+            return
+        }
         recomputeTransform()
         let p = toImage(convert(event.locationInWindow, from: nil))
         gestureSnapshotTaken = false
 
         switch model.tool {
         case .select:
+            if event.clickCount == 2, let hit = textAnnotationHit(p) {
+                beginTextEditing(existing: hit)
+                return
+            }
             if let selected = selectedAnnotation(),
                let handle = hitSelectionHandle(p, in: selected) {
                 model.selectedID = selected.id
@@ -226,9 +276,8 @@ final class CanvasNSView: NSView {
                 resizeOriginal = nil
             }
         case .text:
-            if let text = Self.promptText(), !text.isEmpty {
-                model.add(makeAnnotation(kind: .text, at: p, text: text))
-            }
+            textDragStart = p
+            textDragRect = CGRect(origin: p, size: .zero)
         case .step:
             model.stepCounter += 1
             var a = makeAnnotation(kind: .step, at: p)
@@ -254,6 +303,15 @@ final class CanvasNSView: NSView {
             let vr = model.viewRect
             let moved = CGPoint(x: startPan.x + (cur.x - start.x), y: startPan.y + (cur.y - start.y))
             model.pan = ViewportMath.clampPan(content: vr.size, viewport: bounds.size, scale: scale, pan: moved)
+            refresh()
+            return
+        }
+        if let start = textDragStart {
+            recomputeTransform()
+            let p = toImage(convert(event.locationInWindow, from: nil))
+            textDragRect = CGRect(
+                x: min(start.x, p.x), y: min(start.y, p.y),
+                width: abs(p.x - start.x), height: abs(p.y - start.y))
             refresh()
             return
         }
@@ -302,6 +360,16 @@ final class CanvasNSView: NSView {
             resizeOriginal = nil
             gestureSnapshotTaken = false
             refresh()
+        }
+        if let start = textDragStart {
+            textDragStart = nil
+            let rect = textDragRect ?? CGRect(origin: start, size: .zero)
+            textDragRect = nil
+            let fontSize = rect.height >= 2
+                ? TextLayout.fontSize(forDragHeight: rect.height)
+                : TextLayout.fontSize(forStroke: model.strokeWidth)   // plain click → slider size
+            beginNewTextEditing(at: CGPoint(x: rect.minX, y: rect.minY), fontSize: fontSize)
+            return
         }
         if model.tool == .crop, let d = draft {
             let r = d.normalizedRect
@@ -411,15 +479,109 @@ final class CanvasNSView: NSView {
         return nil
     }
 
-    static func promptText() -> String? {
-        let alert = NSAlert()
-        alert.messageText = tr(.enterText)
-        let field = NSTextField(frame: NSRect(x: 0, y: 0, width: 240, height: 24))
-        alert.accessoryView = field
-        alert.addButton(withTitle: tr(.ok))
-        alert.addButton(withTitle: tr(.cancel))
-        let response = alert.runModal()
-        return response == .alertFirstButtonReturn ? field.stringValue : nil
+    private func textAnnotationHit(_ p: CGPoint) -> Annotation? {
+        for a in model.annotations.reversed() where a.kind == .text {
+            if SelectionGeometry.bounds(for: a).insetBy(dx: -4, dy: -4).contains(p) { return a }
+        }
+        return nil
+    }
+
+    private func beginNewTextEditing(at origin: CGPoint, fontSize: CGFloat) {
+        editingExistingID = nil
+        editingOrigin = origin
+        editingColorHex = model.colorHex
+        editingFontSize = fontSize
+        presentTextEditor(initialText: "")
+    }
+
+    private func beginTextEditing(existing a: Annotation) {
+        model.selectedID = a.id
+        editingExistingID = a.id
+        editingOrigin = CGPoint(x: a.x, y: a.y)
+        editingColorHex = a.colorHex
+        editingFontSize = TextLayout.fontSize(forStroke: a.strokeWidth)
+        presentTextEditor(initialText: a.text)
+    }
+
+    private func presentTextEditor(initialText: String) {
+        recomputeTransform()
+        let tv = NSTextView(frame: .zero)
+        tv.isRichText = false
+        tv.drawsBackground = false
+        tv.backgroundColor = .clear
+        tv.textColor = NSColor(hex: editingColorHex)
+        tv.insertionPointColor = NSColor(hex: editingColorHex)
+        tv.font = TextLayout.font(ofSize: editingFontSize * scale)
+        tv.string = initialText
+        tv.isVerticallyResizable = true
+        tv.isHorizontallyResizable = true
+        tv.textContainer?.widthTracksTextView = false
+        let bigContainer = CGFloat.greatestFiniteMagnitude
+        tv.textContainer?.containerSize = CGSize(width: bigContainer, height: bigContainer)
+        tv.textContainer?.lineFragmentPadding = 0
+        tv.textContainerInset = .zero
+        tv.delegate = self
+        addSubview(tv)
+        textEditor = tv
+        layoutTextEditor()
+        window?.makeFirstResponder(tv)
+        tv.setSelectedRange(NSRange(location: (initialText as NSString).length, length: 0))
+        refresh()
+    }
+
+    private func layoutTextEditor() {
+        guard let tv = textEditor else { return }
+        tv.font = TextLayout.font(ofSize: editingFontSize * scale)
+        let onImage = TextLayout.size(tv.string, fontSize: editingFontSize)
+        let viewOrigin = imageToView(editingOrigin, in: model.viewRect)
+        let caretPad: CGFloat = 6
+        let w = max(onImage.width, editingFontSize) * scale + caretPad
+        let h = max(onImage.height, editingFontSize) * scale
+        tv.frame = NSRect(x: viewOrigin.x, y: viewOrigin.y, width: w, height: h)
+    }
+
+    private func endTextEditing(commit: Bool) {
+        guard let tv = textEditor else { return }
+        let raw = tv.string
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        let existingID = editingExistingID
+        textEditor = nil
+        editingExistingID = nil
+        tv.removeFromSuperview()
+        if window?.firstResponder === tv { window?.makeFirstResponder(self) }
+
+        if commit {
+            if let id = existingID {
+                if trimmed.isEmpty {
+                    model.remove(id)
+                } else {
+                    model.update(id) { $0.text = raw }
+                    model.selectedID = id
+                }
+            } else if !trimmed.isEmpty {
+                let a = Annotation(
+                    kind: .text, colorHex: editingColorHex,
+                    strokeWidth: TextLayout.stroke(forFontSize: editingFontSize),
+                    x: editingOrigin.x, y: editingOrigin.y, width: 0, height: 0,
+                    text: raw, stepLabel: 0, blurRadius: model.blurStrength)
+                model.add(a)
+            }
+        }
+        refresh()
+    }
+
+    // MARK: - NSTextViewDelegate
+
+    func textDidChange(_ notification: Notification) {
+        layoutTextEditor()
+    }
+
+    func textView(_ textView: NSTextView, doCommandBy selector: Selector) -> Bool {
+        if selector == #selector(NSResponder.cancelOperation(_:)) {   // Esc commits
+            endTextEditing(commit: true)
+            return true
+        }
+        return false
     }
 }
 

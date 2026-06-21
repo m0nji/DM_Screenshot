@@ -34,8 +34,8 @@ enum L: CaseIterable {
     case blur, size, custom, hex, stop, pixelsSuffix
     // Video preview / trim + GIF viewer
     case previewTrimTitle, startLabel, endLabel, discard, createGIF, estimatedGIFSize, gifViewerTitle
-    // Text prompt
-    case enterText, ok, cancel
+    // Dialog buttons
+    case ok, cancel
 }
 
 final class Localizer: ObservableObject {
@@ -160,7 +160,6 @@ final class Localizer: ObservableObject {
         case .createGIF:            return ("Create GIF", "GIF erstellen")
         case .estimatedGIFSize:     return ("Estimated GIF size: %@", "Geschätzte GIF-Größe: %@")
         case .gifViewerTitle:       return ("DM_Screenshot — GIF", "DM_Screenshot — GIF")
-        case .enterText:            return ("Enter text", "Text eingeben")
         case .ok:                   return ("OK", "OK")
         case .cancel:               return ("Cancel", "Abbrechen")
         }
