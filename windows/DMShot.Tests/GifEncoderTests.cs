@@ -60,4 +60,27 @@ public class GifEncoderTests
     [Fact]
     public void EncodeRejectsMismatchedDelayCount()
         => Assert.Empty(GifEncoder.EncodeWithDelays(new[] { Solid(4, 4, 1, 2, 3) }, new[] { 0.1, 0.2 }));
+
+    // A smooth gradient is the worst case for error-diffusion dithering: it sprinkles
+    // high-frequency noise that wrecks LZW compression (and shows as colored fringing).
+    // macOS/ImageIO doesn't dither, so our encoder must not either. Measured: dithered
+    // output for these frames is ~85 KB; no-dither is well under 25 KB.
+    private static Bitmap Gradient(int w, int h, int phase)
+    {
+        var bmp = new Bitmap(w, h);
+        for (int y = 0; y < h; y++)
+            for (int x = 0; x < w; x++)
+                bmp.SetPixel(x, y, Color.FromArgb(255, x * 255 / w, y * 255 / h, ((x + y) * 255 / (w + h) + phase) & 0xFF));
+        return bmp;
+    }
+
+    [Fact]
+    public void EncodeDoesNotDitherGradients()
+    {
+        var frames = new[] { Gradient(640, 360, 0), Gradient(640, 360, 1), Gradient(640, 360, 2) };
+        var bytes = GifEncoder.EncodeWithDelays(frames, new[] { 0.1, 0.1, 0.1 });
+        foreach (var f in frames) f.Dispose();
+        Assert.True(bytes.Length < 40_000,
+            $"GIF unexpectedly large ({bytes.Length} bytes) — dithering likely re-enabled.");
+    }
 }

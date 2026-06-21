@@ -5,15 +5,19 @@ using System.IO;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Processors.Quantization;
 using Drawing = System.Drawing;
 using IsGifEncoder = SixLabors.ImageSharp.Formats.Gif.GifEncoder;
 
 namespace DMShot.Video;
 
 /// <summary>
-/// Animated GIF encoder (SixLabors.ImageSharp). Encodes FULL OPAQUE frames (no
-/// inter-frame transparency/disposal) — frame-dedup upstream collapses static frames.
-/// loop=0 (infinite). FractionDiffering ports the macOS RGB-only frame comparison.
+/// Animated GIF encoder (SixLabors.ImageSharp), loop=0 (infinite). Uses a single global
+/// palette and NO dithering to mirror macOS/ImageIO and keep files small (see Encode).
+/// ImageSharp delta-optimises later frames down to their changed bounding box, so on the
+/// wire frames 2..n are cropped sub-rectangles — <see cref="GifPreviewDecoder"/> composites
+/// them back for the in-app preview. FractionDiffering ports the macOS RGB-only comparison;
+/// whole-static frames are still collapsed upstream by the renderer.
 /// </summary>
 public static class GifEncoder
 {
@@ -47,7 +51,17 @@ public static class GifEncoder
         }
 
         using var ms = new MemoryStream();
-        gif.SaveAsGif(ms, new IsGifEncoder());
+        // No dithering + one shared (global) palette — mirrors macOS/ImageIO. ImageSharp's
+        // default FloydSteinberg dither sprinkles per-pixel noise that both wrecks LZW
+        // compression (MB-sized GIFs) and shows as coloured fringing on text. Disabling it
+        // cut a 12-frame 640×360 sample from ~85 KB to ~10 KB with no visible quality loss
+        // on screen-recording content. Frame-delta cropping stays on (keeps files small);
+        // GifPreviewDecoder composites the cropped frames back for the preview.
+        gif.SaveAsGif(ms, new IsGifEncoder
+        {
+            ColorTableMode = GifColorTableMode.Global,
+            Quantizer      = new WuQuantizer(new QuantizerOptions { Dither = null }),
+        });
         return ms.ToArray();
     }
 

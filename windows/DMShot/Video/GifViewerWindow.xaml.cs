@@ -1,7 +1,6 @@
 using System;
-using System.IO;
+using System.Collections.Generic;
 using System.Windows;
-using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using DMShot.Localization;
 using DMShot.Platform;
@@ -14,8 +13,8 @@ public partial class GifViewerWindow : Window
     private readonly string _gifPath;
     private readonly IClipboardService _clipboard;
 
-    private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMilliseconds(100) };
-    private BitmapFrame[] _frames = Array.Empty<BitmapFrame>();
+    private readonly DispatcherTimer _timer = new();
+    private IReadOnlyList<GifPreviewDecoder.Frame> _frames = Array.Empty<GifPreviewDecoder.Frame>();
     private int _frameIndex;
 
     public GifViewerWindow(byte[] gifBytes, string gifPath, IClipboardService clipboard)
@@ -27,25 +26,23 @@ public partial class GifViewerWindow : Window
         _gifPath   = gifPath;
         _clipboard = clipboard;
 
-        // Decode the GIF frames from the raw bytes.
-        using var ms = new MemoryStream(gifBytes);
-        var decoder = new GifBitmapDecoder(ms,
-            BitmapCreateOptions.PreservePixelFormat,
-            BitmapCacheOption.OnLoad);
-
-        _frames = new BitmapFrame[decoder.Frames.Count];
-        for (int i = 0; i < decoder.Frames.Count; i++)
-            _frames[i] = decoder.Frames[i];
+        // Decode into fully-composited, full-canvas frames (see GifPreviewDecoder — our
+        // encoder writes cropped delta frames that must be composited before display).
+        _frames = GifPreviewDecoder.Decode(gifBytes);
 
         // Show first frame immediately.
-        if (_frames.Length > 0)
-            GifImage.Source = _frames[0];
+        if (_frames.Count > 0)
+            GifImage.Source = _frames[0].Image;
 
         // Start the animation timer after the window is rendered.
         _timer.Tick += OnTimerTick;
         Loaded += (_, _) =>
         {
-            if (_frames.Length > 1) _timer.Start();
+            if (_frames.Count > 1)
+            {
+                _timer.Interval = TimeSpan.FromMilliseconds(_frames[0].DelayMs);
+                _timer.Start();
+            }
         };
 
         // Stop the timer and release resources when the window closes.
@@ -57,11 +54,13 @@ public partial class GifViewerWindow : Window
     }
 
     // ── Animation ─────────────────────────────────────────────────────────────
+    // Per-frame delays vary, so re-arm the timer to the next frame's delay each tick.
     private void OnTimerTick(object? sender, EventArgs e)
     {
-        if (_frames.Length == 0) return;
-        _frameIndex = (_frameIndex + 1) % _frames.Length;
-        GifImage.Source = _frames[_frameIndex];
+        if (_frames.Count == 0) return;
+        _frameIndex = (_frameIndex + 1) % _frames.Count;
+        GifImage.Source = _frames[_frameIndex].Image;
+        _timer.Interval = TimeSpan.FromMilliseconds(_frames[_frameIndex].DelayMs);
     }
 
     // ── Save (V18) ────────────────────────────────────────────────────────────
