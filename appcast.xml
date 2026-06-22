@@ -235,5 +235,13 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.4.7/DM_Screenshot-v0.4.7.dmg" type="application/octet-stream" sparkle:edSignature="tabt5hcOC0i1PbFxeqF5ZSyWzcGmUBuOKW8gCS26bDrIzptAbcs7HAqcN8iFMqtP5AkTkJ7pbor7o3NGRoaoCA==" length="2151356" />
 </item>
 
+<item>
+  <title>Version 0.4.8</title>
+  <description><![CDATA[<ul><li>change: The macOS menu bar icon now uses the modern DM Screenshot mark, matching the new app icon while staying a monochrome template symbol for light/dark menu bars (macOS)</li></ul>]]></description>
+  <sparkle:version>0.4.8</sparkle:version>
+  <sparkle:shortVersionString>0.4.8</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.4.8/DM_Screenshot-v0.4.8.dmg" type="application/octet-stream" sparkle:edSignature="S5suKsDIl9iX99wPJZfyT220R/OfwFcsSMaRxrHtXCPBehWJEryGv4m7ERGKtbjWcL8m19LDUEknVpohw7rhAA==" length="2152787" />
+</item>
+
 </channel>
 </rss>
