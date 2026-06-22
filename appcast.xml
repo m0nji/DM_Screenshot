@@ -219,5 +219,13 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.4.5/DM_Screenshot-v0.4.5.dmg" type="application/octet-stream" sparkle:edSignature="QG8FqD+14/BP0EIZxmCURCEHH1q0b1Ed8IohGLQwfcf0GH2lXcvOedDrGIrA4ouEpo/M1US+zfi9kNI3rlYYAw==" length="2001758" />
 </item>
 
+<item>
+  <title>Version 0.4.6</title>
+  <description><![CDATA[<ul><li>fix: The Quick-Edit toolbar no longer ends up behind the Dock (macOS) / taskbar (Windows). For captures dragged near the bottom of the screen and for full-screen captures it now stays fully on-screen and clickable (macOS + Windows)</li></ul>]]></description>
+  <sparkle:version>0.4.6</sparkle:version>
+  <sparkle:shortVersionString>0.4.6</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.4.6/DM_Screenshot-v0.4.6.dmg" type="application/octet-stream" sparkle:edSignature="3PpREcKXtPeej5IQrD6BnYfnpW0CBtkd8Nps+FHclUs6eaYcAvha2zY6SeW7sswLmp/qRFwhiahAsJaCPZyEBg==" length="2002209" />
+</item>
+
 </channel>
 </rss>
