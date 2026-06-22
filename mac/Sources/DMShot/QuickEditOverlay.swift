@@ -15,8 +15,9 @@ private struct ToolbarSizeKey: PreferenceKey {
 /// window-filling GeometryReader (size == screen.frame.size).
 private struct QuickEditOverlayView: View {
     @ObservedObject var model: EditorModel
-    let screenFrameGlobal: CGRect   // the capture screen's frame (global, bottom-left)
-    let captureFrameGlobal: CGRect  // the capture's rect (global, bottom-left)
+    let screenFrameGlobal: CGRect    // the capture screen's frame (global, bottom-left)
+    let visibleFrameGlobal: CGRect   // the screen's visibleFrame (excl. menu bar + Dock)
+    let captureFrameGlobal: CGRect   // the capture's rect (global, bottom-left)
     let onCopy: () -> Void
     let onSave: () -> Void
     let onEditInMain: () -> Void
@@ -62,11 +63,22 @@ private struct QuickEditOverlayView: View {
             height: captureFrameGlobal.height)
     }
 
-    /// Toolbar centre, clamped fully on-screen using the measured toolbar size.
+    /// The screen's safe area (visibleFrame) in the overlay's top-left space —
+    /// the menu bar is carved off the top, the Dock off whichever edge it's on.
+    private var safeArea: CGRect {
+        CGRect(
+            x: visibleFrameGlobal.minX - screenFrameGlobal.minX,
+            y: screenFrameGlobal.maxY - visibleFrameGlobal.maxY,  // menu-bar inset from top
+            width: visibleFrameGlobal.width,
+            height: visibleFrameGlobal.height)
+    }
+
+    /// Toolbar centre, clamped fully inside the safe area using the measured size,
+    /// so it never lands behind the Dock / menu bar.
     private var toolbarCenter: CGPoint {
         QuickEditLayout.toolbarCenter(
             capture: localCapture,
-            screen: screenFrameGlobal.size,
+            safeArea: safeArea,
             toolbar: toolbarSize)
     }
 }
@@ -102,6 +114,7 @@ final class QuickEditOverlay {
         let view = QuickEditOverlayView(
             model: model,
             screenFrameGlobal: screen.frame,
+            visibleFrameGlobal: screen.visibleFrame,
             captureFrameGlobal: captureFrameGlobal,
             onCopy: onCopy, onSave: onSave, onEditInMain: onEditInMain,
             onClose: { [weak self] in self?.close(); self?.onClose() })

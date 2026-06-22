@@ -22,6 +22,13 @@ public partial class QuickEditOverlayWindow : Window
     [DllImport("user32.dll")] private static extern bool SetWindowPos(IntPtr h, IntPtr after, int x, int y, int cx, int cy, uint flags);
     private const uint SWP_NOZORDER = 0x0004, SWP_NOACTIVATE = 0x0010;
 
+    // Monitor work area (excludes the taskbar) so the toolbar never docks behind it.
+    [StructLayout(LayoutKind.Sequential)] private struct RECT { public int Left, Top, Right, Bottom; }
+    [StructLayout(LayoutKind.Sequential)] private struct MONITORINFO { public int cbSize; public RECT rcMonitor, rcWork; public uint dwFlags; }
+    [DllImport("user32.dll")] private static extern IntPtr MonitorFromRect(ref RECT r, uint flags);
+    [DllImport("user32.dll")] private static extern bool GetMonitorInfo(IntPtr h, ref MONITORINFO mi);
+    private const uint MONITOR_DEFAULTTONEAREST = 2;
+
     private readonly Bitmap _capture;
     private readonly PixelRect _screenRectPx;
     private readonly Rectangle _displayPx;
@@ -395,18 +402,38 @@ public partial class QuickEditOverlayWindow : Window
         double tbW = toolbar.DesiredSize.Width, tbH = toolbar.DesiredSize.Height;
 
         double screenW = ActualWidth, screenH = ActualHeight;
-        // X: center on capture, clamped so a ~tbW toolbar stays on-screen (Q3).
-        double half = Math.Max(160, tbW / 2);
-        double centerX = Math.Clamp(capLeftDip + capWDip / 2, half, Math.Max(half, screenW - half));
-        double tbLeft = centerX - tbW / 2;
+        const double margin = 12;
 
-        // Y: default below capture; flip above if off-bottom; else dock to screen bottom (Q4).
-        double belowY = capTopDip + capHDip + 12;
-        double aboveY = capTopDip - tbH - 12;
+        // Safe area = the monitor work area (excludes the taskbar), so the toolbar is
+        // never docked behind the taskbar where it would be unclickable. Mirrors the
+        // macOS visibleFrame clamp in QuickEditLayout. Insets: physical px -> DIP.
+        double safeLeft = 0, safeTop = 0, safeRight = screenW, safeBottom = screenH;
+        var mr = new RECT { Left = _displayPx.Left, Top = _displayPx.Top, Right = _displayPx.Right, Bottom = _displayPx.Bottom };
+        var mon = MonitorFromRect(ref mr, MONITOR_DEFAULTTONEAREST);
+        var mi = new MONITORINFO { cbSize = Marshal.SizeOf<MONITORINFO>() };
+        if (mon != IntPtr.Zero && GetMonitorInfo(mon, ref mi))
+        {
+            double s = DpiScale();
+            safeLeft   = (mi.rcWork.Left - mi.rcMonitor.Left) / s;
+            safeTop    = (mi.rcWork.Top  - mi.rcMonitor.Top)  / s;
+            safeRight  = screenW - (mi.rcMonitor.Right  - mi.rcWork.Right)  / s;
+            safeBottom = screenH - (mi.rcMonitor.Bottom - mi.rcWork.Bottom) / s;
+        }
+
+        // X: center on capture, clamped so the whole toolbar stays in the safe area.
+        double halfW = tbW / 2;
+        double loX = safeLeft + halfW + margin, hiX = safeRight - halfW - margin;
+        double centerX = hiX >= loX ? Math.Clamp(capLeftDip + capWDip / 2, loX, hiX) : (safeLeft + safeRight) / 2;
+        double tbLeft = centerX - halfW;
+
+        // Y: default below capture; flip above if off-bottom; else dock to the safe-area
+        // bottom — but never above its top (toolbar taller than the area).
+        double belowY = capTopDip + capHDip + margin;
+        double aboveY = capTopDip - tbH - margin;
         double tbTop;
-        if (belowY + tbH <= screenH) tbTop = belowY;
-        else if (aboveY >= 0) tbTop = aboveY;
-        else tbTop = screenH - tbH - 12;
+        if (belowY + tbH <= safeBottom - margin) tbTop = belowY;
+        else if (aboveY >= safeTop + margin) tbTop = aboveY;
+        else tbTop = Math.Max(safeTop + margin, safeBottom - tbH - margin);
 
         System.Windows.Controls.Canvas.SetLeft(ToolbarHost, tbLeft);
         System.Windows.Controls.Canvas.SetTop(ToolbarHost, tbTop);
