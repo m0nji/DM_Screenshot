@@ -1,32 +1,30 @@
-<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" data-variant="modern">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#21212b"/>
-      <stop offset="1" stop-color="#0c0c12"/>
+    <linearGradient id="screenshot-modern-bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#24242d"/>
+      <stop offset="1" stop-color="#08080d"/>
     </linearGradient>
-    <linearGradient id="rim" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#ffffff" stop-opacity="0.22"/>
-      <stop offset="0.5" stop-color="#ffffff" stop-opacity="0.03"/>
+    <linearGradient id="screenshot-modern-rim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.18"/>
+      <stop offset="0.55" stop-color="#ffffff" stop-opacity="0.03"/>
       <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
     </linearGradient>
-    <mask id="cam">
-      <rect x="0" y="0" width="1024" height="1024" fill="black"/>
-      <rect x="412" y="455" width="200" height="132" rx="30" fill="white"/>
-      <rect x="468" y="432" width="88" height="34" rx="14" fill="white"/>
-      <circle cx="512" cy="521" r="46" fill="black"/>
-      <circle cx="512" cy="521" r="14" fill="white"/>
-    </mask>
+    <radialGradient id="screenshot-modern-accent" cx="0.45" cy="0.35" r="0.42">
+      <stop offset="0" stop-color="#ee9a5d" stop-opacity="0.14"/>
+      <stop offset="1" stop-color="#c97b4a" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="screenshot-modern-depth" x="-28%" y="-24%" width="156%" height="164%">
+      <feDropShadow dx="0" dy="26" stdDeviation="10" flood-color="#000000" flood-opacity="0.62"/>
+      <feDropShadow dx="0" dy="8" stdDeviation="4" flood-color="#c97b4a" flood-opacity="0.18"/>
+      <feDropShadow dx="0" dy="-4" stdDeviation="2" flood-color="#ffffff" flood-opacity="0.16"/>
+    </filter>
   </defs>
-  <!-- DM family squircle with subtle depth + Tahoe-style glass rim -->
-  <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#bg)"/>
-  <rect x="100" y="100" width="824" height="412" rx="185" fill="url(#rim)"/>
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#screenshot-modern-bg)"/>
+  <rect x="100" y="100" width="824" height="412" rx="185" fill="url(#screenshot-modern-rim)"/>
+  <circle cx="452" cy="364" r="226" fill="url(#screenshot-modern-accent)" data-layer="accent-glint"/>
   <rect x="101.5" y="101.5" width="821" height="821" rx="183.5" fill="none" stroke="#ffffff" stroke-opacity="0.12" stroke-width="3"/>
-  <!-- camera-in-viewfinder, soft off-white (#ececf0) so it reads slightly grey, not stark white -->
-  <g fill="none" stroke="#ececf0" stroke-width="40" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M 300 384 L 300 300 L 384 300"/>
-    <path d="M 640 300 L 724 300 L 724 384"/>
-    <path d="M 300 640 L 300 724 L 384 724"/>
-    <path d="M 724 640 L 724 724 L 640 724"/>
+  <g id="screenshot-modern-mark" fill="none" stroke="#f5f5f7" stroke-opacity="0.86" stroke-width="40" stroke-linecap="round" stroke-linejoin="round" filter="url(#screenshot-modern-depth)">
+    <path data-role="capture-corners" d="M 344 338 H 278 V 404 M 680 338 H 746 V 404 M 344 686 H 278 V 620 M 680 686 H 746 V 620"/>
+    <path data-role="capture-aperture" d="M 512 392 L 616 452 V 572 L 512 632 L 408 572 V 452 Z M 512 462 L 556 488 V 536 L 512 562 L 468 536 V 488 Z"/>
   </g>
-  <rect x="0" y="0" width="1024" height="1024" fill="#ececf0" mask="url(#cam)"/>
 </svg>
