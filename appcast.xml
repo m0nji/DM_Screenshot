@@ -227,5 +227,13 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.4.6/DM_Screenshot-v0.4.6.dmg" type="application/octet-stream" sparkle:edSignature="3PpREcKXtPeej5IQrD6BnYfnpW0CBtkd8Nps+FHclUs6eaYcAvha2zY6SeW7sswLmp/qRFwhiahAsJaCPZyEBg==" length="2002209" />
 </item>
 
+<item>
+  <title>Version 0.4.7</title>
+  <description><![CDATA[<ul><li>change: The app icon now uses the modern DM Screenshot BrandDesign mark with capture corners, aperture mark, subtle depth, and the shared orange glint (macOS + Windows)</li></ul>]]></description>
+  <sparkle:version>0.4.7</sparkle:version>
+  <sparkle:shortVersionString>0.4.7</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.4.7/DM_Screenshot-v0.4.7.dmg" type="application/octet-stream" sparkle:edSignature="tabt5hcOC0i1PbFxeqF5ZSyWzcGmUBuOKW8gCS26bDrIzptAbcs7HAqcN8iFMqtP5AkTkJ7pbor7o3NGRoaoCA==" length="2151356" />
+</item>
+
 </channel>
 </rss>
