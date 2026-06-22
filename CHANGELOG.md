@@ -4,6 +4,9 @@ All notable changes to DM_Screenshot. Newest version first. Always written in En
 
 ## [Unreleased]
 
+## 0.4.8 – 2026-06-22
+- change: The macOS menu bar icon now uses the modern DM Screenshot mark, matching the new app icon while staying a monochrome template symbol for light/dark menu bars (macOS)
+
 ## 0.4.7 – 2026-06-22
 - change: The app icon now uses the modern DM Screenshot BrandDesign mark with capture corners, aperture mark, subtle depth, and the shared orange glint (macOS + Windows)
 
