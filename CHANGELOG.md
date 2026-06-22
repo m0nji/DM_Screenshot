@@ -4,6 +4,9 @@ All notable changes to DM_Screenshot. Newest version first. Always written in En
 
 ## [Unreleased]
 
+## 0.4.6 – 2026-06-22
+- fix: The Quick-Edit toolbar no longer ends up behind the Dock (macOS) / taskbar (Windows). For captures dragged near the bottom of the screen and for full-screen captures it now stays fully on-screen and clickable (macOS + Windows)
+
 ## 0.4.5 – 2026-06-21
 - fix: The Windows app and tray icons now show the soft off-white camera-and-viewfinder motif, matching macOS; the previous build still shipped the old stark-white icon (Windows)
 
