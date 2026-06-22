@@ -4,6 +4,9 @@ All notable changes to DM_Screenshot. Newest version first. Always written in En
 
 ## [Unreleased]
 
+## 0.4.7 – 2026-06-22
+- change: The app icon now uses the modern DM Screenshot BrandDesign mark with capture corners, aperture mark, subtle depth, and the shared orange glint (macOS + Windows)
+
 ## 0.4.6 – 2026-06-22
 - fix: The Quick-Edit toolbar no longer ends up behind the Dock (macOS) / taskbar (Windows). For captures dragged near the bottom of the screen and for full-screen captures it now stays fully on-screen and clickable (macOS + Windows)
 
