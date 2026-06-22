@@ -55,16 +55,61 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     // MARK: - Setup
 
+    private func makeStatusItemIcon() -> NSImage {
+        let size = NSSize(width: 22, height: 18)
+        let image = NSImage(size: size, flipped: false) { _ in
+            let markColor = NSColor.black
+            markColor.setStroke()
+
+            let corners = NSBezierPath()
+            corners.lineWidth = 2.2
+            corners.lineCapStyle = .round
+            corners.lineJoinStyle = .round
+            corners.move(to: NSPoint(x: 6.4, y: 15.1))
+            corners.line(to: NSPoint(x: 3.1, y: 15.1))
+            corners.line(to: NSPoint(x: 3.1, y: 11.8))
+            corners.move(to: NSPoint(x: 15.6, y: 15.1))
+            corners.line(to: NSPoint(x: 18.9, y: 15.1))
+            corners.line(to: NSPoint(x: 18.9, y: 11.8))
+            corners.move(to: NSPoint(x: 3.1, y: 6.2))
+            corners.line(to: NSPoint(x: 3.1, y: 2.9))
+            corners.line(to: NSPoint(x: 6.4, y: 2.9))
+            corners.move(to: NSPoint(x: 18.9, y: 6.2))
+            corners.line(to: NSPoint(x: 18.9, y: 2.9))
+            corners.line(to: NSPoint(x: 15.6, y: 2.9))
+            corners.stroke()
+
+            func addHex(to path: NSBezierPath, center: NSPoint, radius: CGFloat) {
+                for index in 0..<6 {
+                    let angle = CGFloat.pi / 2 + CGFloat(index) * CGFloat.pi / 3
+                    let point = NSPoint(
+                        x: center.x + cos(angle) * radius,
+                        y: center.y + sin(angle) * radius
+                    )
+                    index == 0 ? path.move(to: point) : path.line(to: point)
+                }
+                path.close()
+            }
+
+            markColor.setFill()
+            let aperture = NSBezierPath()
+            aperture.windingRule = .evenOdd
+            let center = NSPoint(x: 11, y: 9)
+            addHex(to: aperture, center: center, radius: 4.15)
+            addHex(to: aperture, center: center, radius: 1.55)
+            aperture.fill()
+            return true
+        }
+        image.isTemplate = true
+        image.accessibilityDescription = "DM_Screenshot"
+        return image
+    }
+
     private func setupStatusItem() {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = item.button {
-            // Enlarged so the camera-in-viewfinder fills the menu bar (matches the app icon motif).
-            let config = NSImage.SymbolConfiguration(pointSize: 18, weight: .regular)
-            let icon = NSImage(systemSymbolName: "camera.viewfinder",
-                               accessibilityDescription: "DM_Screenshot")?
-                .withSymbolConfiguration(config)
-            icon?.isTemplate = true  // monochrome, adapts to light/dark menu bar
-            button.image = icon
+            button.image = makeStatusItemIcon()
+            button.imagePosition = .imageOnly
         }
         let menu = NSMenu()
         let fullItem = NSMenuItem(title: tr(.menuNewFullScreen), action: #selector(captureFull), keyEquivalent: "")
