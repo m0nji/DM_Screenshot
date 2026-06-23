@@ -285,5 +285,13 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.4.14/DM_Screenshot-v0.4.14.dmg" type="application/octet-stream" sparkle:edSignature="uYIHfOTmkKVYfy3lqIIuhljd4u98nacJX2icN2ASb0/3AtVun31QY3/fQVRWJ8jDdEUNzHgdAKl8c28eBH2dDQ==" length="2162170" />
 </item>
 
+<item>
+  <title>Version 0.4.15</title>
+  <description><![CDATA[<ul><li>fix: Toolbar tooltips no longer stop working after the first annotation — in both the Quick-Edit overlay and the main editor they keep appearing for the whole session (macOS)</li></ul>]]></description>
+  <sparkle:version>0.4.15</sparkle:version>
+  <sparkle:shortVersionString>0.4.15</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.4.15/DM_Screenshot-v0.4.15.dmg" type="application/octet-stream" sparkle:edSignature="ilHo55EeqUAsCydS0Utajpg/083k6t07/+TYyk046+PkytA8JKTyHnH5IEK5xn6YJ7t3Hx2D/yNNgzXW5EdzAQ==" length="2179668" />
+</item>
+
 </channel>
 </rss>
