@@ -113,7 +113,7 @@ final class EditorModel: ObservableObject {
         annotations = state.annotations
         crop = state.crop
         selectedID = nil
-        stepCounter = max(stepCounter, Self.maxStepLabel(in: annotations))
+        stepCounter = Self.maxStepLabel(in: annotations)
     }
 
     private static func maxStepLabel(in annotations: [Annotation]) -> Int {
