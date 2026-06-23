@@ -29,6 +29,7 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
     private var textDragStart: CGPoint?      // image-space start of a text-box drag
     private var textDragRect: CGRect?        // current dragged box (image space), for the rubber band
     private var editingStepFresh = false     // true while editing a JUST-placed step's comment
+    private var editingStepComment = false   // true while editing a step's comment (white text in a bubble)
     private var toolObserver: AnyCancellable?
 
     init(model: EditorModel, pad: CGFloat = 24) {
@@ -502,6 +503,7 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
 
     private func beginNewTextEditing(at origin: CGPoint, fontSize: CGFloat) {
         editingStepFresh = false
+        editingStepComment = false
         editingExistingID = nil
         editingOrigin = origin
         editingColorHex = model.colorHex
@@ -511,6 +513,7 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
 
     private func beginTextEditing(existing a: Annotation) {
         editingStepFresh = false
+        editingStepComment = false
         model.selectedID = a.id
         editingExistingID = a.id
         editingOrigin = CGPoint(x: a.x, y: a.y)
@@ -523,9 +526,10 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
         model.selectedID = a.id
         editingExistingID = a.id
         editingStepFresh = fresh
+        editingStepComment = true
         editingColorHex = a.colorHex
         editingFontSize = StepGeometry.commentFontSize(for: a)
-        editingOrigin = StepGeometry.commentOrigin(for: a)
+        editingOrigin = StepGeometry.bubbleOrigin(for: a)   // editor top-left = bubble top-left
         presentTextEditor(initialText: a.text)
     }
 
@@ -540,10 +544,14 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
         recomputeTransform()
         let tv = NSTextView(frame: .zero)
         tv.isRichText = false
-        tv.drawsBackground = false
-        tv.backgroundColor = .clear
-        tv.textColor = NSColor(hex: editingColorHex)
-        tv.insertionPointColor = NSColor(hex: editingColorHex)
+        // Step comments render as white text inside a translucent dark bubble (the
+        // NSTextView's own rounded background previews the committed bubble live).
+        let bubble = editingStepComment
+        tv.drawsBackground = bubble
+        tv.backgroundColor = bubble ? NSColor(white: 0.10, alpha: 0.82) : .clear
+        tv.textColor = bubble ? .white : NSColor(hex: editingColorHex)
+        tv.insertionPointColor = bubble ? .white : NSColor(hex: editingColorHex)
+        if bubble { tv.wantsLayer = true; tv.layer?.masksToBounds = true }
         tv.font = TextLayout.font(ofSize: editingFontSize * scale)
         tv.string = initialText
         tv.isVerticallyResizable = true
@@ -568,9 +576,19 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
         let onImage = TextLayout.size(tv.string, fontSize: editingFontSize)
         let viewOrigin = imageToView(editingOrigin, in: model.viewRect)
         let caretPad: CGFloat = 6
-        let w = max(onImage.width, editingFontSize) * scale + caretPad
-        let h = max(onImage.height, editingFontSize) * scale
-        tv.frame = NSRect(x: viewOrigin.x, y: viewOrigin.y, width: w, height: h)
+        if editingStepComment {
+            let padH = StepGeometry.commentPadH(forFont: editingFontSize) * scale
+            let padV = StepGeometry.commentPadV(forFont: editingFontSize) * scale
+            tv.textContainerInset = NSSize(width: padH, height: padV)
+            let w = max(onImage.width, editingFontSize) * scale + 2 * padH + caretPad
+            let h = max(onImage.height, editingFontSize) * scale + 2 * padV
+            tv.frame = NSRect(x: viewOrigin.x, y: viewOrigin.y, width: w, height: h)
+            tv.layer?.cornerRadius = h * 0.4
+        } else {
+            let w = max(onImage.width, editingFontSize) * scale + caretPad
+            let h = max(onImage.height, editingFontSize) * scale
+            tv.frame = NSRect(x: viewOrigin.x, y: viewOrigin.y, width: w, height: h)
+        }
     }
 
     private func endTextEditing(commit: Bool) {
@@ -584,6 +602,7 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
         textEditor = nil
         editingExistingID = nil
         editingStepFresh = false
+        editingStepComment = false
         tv.removeFromSuperview()
         if window?.firstResponder === tv { window?.makeFirstResponder(self) }
 

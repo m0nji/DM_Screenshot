@@ -126,20 +126,42 @@ enum SceneRenderer {
         let size = str.size()
         str.draw(at: CGPoint(x: center.x - size.width / 2, y: center.y - size.height / 2))
 
-        // Optional comment hanging to the right of the badge.
-        guard !a.text.isEmpty else { return }
+        // Optional comment in a translucent bubble to the right of the badge.
+        guard !a.text.isEmpty, let bubble = StepGeometry.bubbleRect(for: a) else { return }
+        let path = stepBubblePath(bubble)
+        NSColor(white: 0.10, alpha: 0.82).setFill()
+        path.fill()
         let fontSize = StepGeometry.commentFontSize(for: a)
         let comment = NSAttributedString(
             string: a.text,
             attributes: [
-                .foregroundColor: color,
+                .foregroundColor: NSColor.white,
                 .font: TextLayout.font(ofSize: fontSize),
             ])
         let csize = TextLayout.size(a.text, fontSize: fontSize)
-        let origin = StepGeometry.commentOrigin(for: a)
+        let origin = StepGeometry.commentTextOrigin(for: a)
         comment.draw(
             with: CGRect(x: origin.x, y: origin.y, width: csize.width, height: csize.height),
             options: [.usesLineFragmentOrigin, .usesFontLeading])
+    }
+
+    /// Rounded bubble with a SHARPER (smaller-radius) left side and a fully
+    /// rounded right side, so it reads as pointing back toward the badge.
+    private static func stepBubblePath(_ r: CGRect) -> NSBezierPath {
+        let rR = min(r.height / 2, r.width / 2)            // right: pill end
+        let rL = min(r.height * 0.24, r.width - rR)        // left: sharper
+        let p = NSBezierPath()
+        p.move(to: CGPoint(x: r.minX + rL, y: r.minY))
+        p.line(to: CGPoint(x: r.maxX - rR, y: r.minY))
+        p.appendArc(from: CGPoint(x: r.maxX, y: r.minY), to: CGPoint(x: r.maxX, y: r.minY + rR), radius: rR)
+        p.line(to: CGPoint(x: r.maxX, y: r.maxY - rR))
+        p.appendArc(from: CGPoint(x: r.maxX, y: r.maxY), to: CGPoint(x: r.maxX - rR, y: r.maxY), radius: rR)
+        p.line(to: CGPoint(x: r.minX + rL, y: r.maxY))
+        p.appendArc(from: CGPoint(x: r.minX, y: r.maxY), to: CGPoint(x: r.minX, y: r.maxY - rL), radius: rL)
+        p.line(to: CGPoint(x: r.minX, y: r.minY + rL))
+        p.appendArc(from: CGPoint(x: r.minX, y: r.minY), to: CGPoint(x: r.minX + rL, y: r.minY), radius: rL)
+        p.close()
+        return p
     }
 
     private static func drawText(_ a: Annotation, color: NSColor) {
