@@ -261,5 +261,13 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.4.10/DM_Screenshot-v0.4.10.dmg" type="application/octet-stream" sparkle:edSignature="qd4McJLkxLIvjgyGJa4RjSl1D0jDyceBT3TVOxZ6rMCcBjemyABYHhRSPO4WTzdcikTHeVHbrYP19mmOp+PADA==" length="2162090" />
 </item>
 
+<item>
+  <title>Version 0.4.12</title>
+  <description><![CDATA[<ul><li>change: The numbered-step comment bubble now has a softer speech-bubble shape — the whole left side is one rounded arrow pointing at the number, with rounded shoulders and tip (macOS + Windows)</li></ul>]]></description>
+  <sparkle:version>0.4.12</sparkle:version>
+  <sparkle:shortVersionString>0.4.12</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.4.12/DM_Screenshot-v0.4.12.dmg" type="application/octet-stream" sparkle:edSignature="T6MU0L0RdqtiHemLa2xsditUVoJFfgxLmDekErkjnGYZXXQ/+yKEkv08L3Xcp5PQNQ8hWkvpcr0IHp8ISh5QBA==" length="2162097" />
+</item>
+
 </channel>
 </rss>
