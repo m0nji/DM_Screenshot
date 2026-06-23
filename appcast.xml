@@ -277,5 +277,13 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.4.13/DM_Screenshot-v0.4.13.dmg" type="application/octet-stream" sparkle:edSignature="EYNZGGmKzow/j6XYCUvIvv/tY27hgHBXDxy1bq8XEtWpiOm8Ym1eAswMuzVBpp11wkf9Lk6REK77cf71huOQBg==" length="2162046" />
 </item>
 
+<item>
+  <title>Version 0.4.14</title>
+  <description><![CDATA[<ul><li>change: In the Quick-Edit toolbar, the Save and "Edit in main window" buttons swapped places (macOS + Windows)</li></ul>]]></description>
+  <sparkle:version>0.4.14</sparkle:version>
+  <sparkle:shortVersionString>0.4.14</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.4.14/DM_Screenshot-v0.4.14.dmg" type="application/octet-stream" sparkle:edSignature="uYIHfOTmkKVYfy3lqIIuhljd4u98nacJX2icN2ASb0/3AtVun31QY3/fQVRWJ8jDdEUNzHgdAKl8c28eBH2dDQ==" length="2162170" />
+</item>
+
 </channel>
 </rss>
