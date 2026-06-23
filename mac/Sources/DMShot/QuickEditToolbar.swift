@@ -6,7 +6,9 @@ private let quickTools: [(tool: Tool, icon: String, help: L)] = [
     (.select, "cursorarrow", .toolSelect),
     (.arrow, "arrow.up.right", .toolArrow),
     (.rect, "rectangle", .toolRect),
+    (.ellipse, "circle", .toolEllipse),
     (.highlighter, "highlighter", .toolHighlighter),
+    (.step, "number.circle.fill", .toolStep),
     (.text, "textformat", .toolText),
     (.blur, "circle.grid.3x3.fill", .toolBlur),
 ]
@@ -58,14 +60,14 @@ struct QuickEditToolbar: View {
             Button(action: model.undo) { Image(systemName: "arrow.uturn.backward") }
                 .buttonStyle(.plain).help(tr(.undo)).disabled(model.image == nil)
             Divider().frame(height: 22)
-            Button(action: onCopy) { Image(systemName: "doc.on.doc") }
-                .buttonStyle(.plain).help(tr(.copy)).disabled(model.image == nil)
+            Button(action: onClose) { Image(systemName: "xmark") }
+                .buttonStyle(.plain).help(tr(.close))
             Button(action: onSave) { Image(systemName: "square.and.arrow.down") }
                 .buttonStyle(.plain).help(tr(.save)).disabled(model.image == nil)
             Button(action: onEditInMain) { Image(systemName: "macwindow") }
                 .buttonStyle(.plain).help(tr(.editInMainWindow))
-            Button(action: onClose) { Image(systemName: "xmark") }
-                .buttonStyle(.plain).help(tr(.close))
+            Button(action: onCopy) { Image(systemName: "doc.on.doc") }
+                .buttonStyle(.plain).help(tr(.copy)).disabled(model.image == nil)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
