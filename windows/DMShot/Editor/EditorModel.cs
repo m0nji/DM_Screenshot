@@ -146,6 +146,7 @@ public sealed class EditorModel
         var command = _undo.Pop();
         command.Revert();
         _redo.Push(command);
+        _stepCounter = _items.Select(a => a.StepNumber).DefaultIfEmpty(0).Max();
         Changed?.Invoke();
     }
 
@@ -155,6 +156,7 @@ public sealed class EditorModel
         var command = _redo.Pop();
         command.Apply();
         _undo.Push(command);
+        _stepCounter = _items.Select(a => a.StepNumber).DefaultIfEmpty(0).Max();
         Changed?.Invoke();
     }
 }

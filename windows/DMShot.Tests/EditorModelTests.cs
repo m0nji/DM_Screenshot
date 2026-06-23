@@ -29,6 +29,19 @@ public class EditorModelTests
     }
 
     [Fact]
+    public void StepCounter_ResetsAfterUndo()
+    {
+        var m = new EditorModel();
+        for (int i = 0; i < 3; i++) { var s = m.CreateStep(); m.Add(s); }
+        Assert.Equal(3, m.Annotations[^1].StepNumber);
+
+        m.Undo();                  // removes step #3
+
+        var next = m.CreateStep(); // must reuse 3, not jump to 4
+        Assert.Equal(3, next.StepNumber);
+    }
+
+    [Fact]
     public void NewAction_ClearsRedo()
     {
         var m = new EditorModel();
