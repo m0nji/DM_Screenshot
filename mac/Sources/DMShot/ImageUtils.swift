@@ -1,0 +1,53 @@
+import AppKit
+
+enum ImageUtils {
+    static func pngData(_ image: CGImage) -> Data? {
+        let rep = NSBitmapImageRep(cgImage: image)
+        rep.size = NSSize(width: image.width, height: image.height)
+        return rep.representation(using: .png, properties: [:])
+    }
+
+    /// Copy a PNG to the clipboard (broadly pasteable).
+    static func copyToClipboard(_ image: CGImage) {
+        guard let png = pngData(image) else { return }
+        let pb = NSPasteboard.general
+        pb.clearContents()
+        pb.setData(png, forType: .png)
+    }
+
+    /// Crop in pixel coordinates (top-left origin).
+    static func crop(_ image: CGImage, to rect: CGRect) -> CGImage? {
+        let clamped = rect.intersection(
+            CGRect(x: 0, y: 0, width: image.width, height: image.height))
+        guard clamped.width >= 1, clamped.height >= 1 else { return nil }
+        return image.cropping(to: clamped)
+    }
+
+    static func nsImage(_ image: CGImage) -> NSImage {
+        NSImage(cgImage: image, size: NSSize(width: image.width, height: image.height))
+    }
+
+    /// Downscale so width ≤ `maxWidth` (preserving aspect). Returns the original if already small enough.
+    static func scaled(_ image: CGImage, toWidth maxWidth: Int) -> CGImage {
+        let target = GIFPlan.scaledSize(width: image.width, height: image.height, maxWidth: maxWidth)
+        if target.width == image.width && target.height == image.height { return image }
+        guard let ctx = CGContext(
+            data: nil, width: target.width, height: target.height, bitsPerComponent: 8,
+            bytesPerRow: 0, space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return image }
+        ctx.interpolationQuality = .high
+        ctx.draw(image, in: CGRect(x: 0, y: 0, width: target.width, height: target.height))
+        return ctx.makeImage() ?? image
+    }
+
+    /// Put a GIF on the pasteboard as BOTH raw GIF data and a file URL, so different
+    /// target apps (rich editors vs. Mail/Outlook) can each consume it.
+    static func copyGIF(data: Data, fileURL: URL, to pasteboard: NSPasteboard = .general) {
+        let gifType = NSPasteboard.PasteboardType("com.compuserve.gif")
+        let item = NSPasteboardItem()
+        item.setData(data, forType: gifType)
+        item.setString(fileURL.absoluteString, forType: .fileURL)
+        pasteboard.clearContents()
+        pasteboard.writeObjects([item])
+    }
+}
