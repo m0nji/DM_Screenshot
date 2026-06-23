@@ -33,6 +33,7 @@ public sealed class CanvasControl : FrameworkElement
     private TextBox? _textBox;
     private Annotation? _editingAnno;     // existing annotation being re-edited (null for a new one)
     private bool _editingStepFresh;       // true while editing a JUST-placed step's comment
+    private bool _editingStepComment;     // true while editing a step's comment (white text in a bubble)
     private Point _editOrigin;            // image-space top-left of the text
     private double _editFontSize;         // on-image font size
     private uint _editColor;
@@ -126,8 +127,20 @@ public sealed class CanvasControl : FrameworkElement
             double vy = off.Y + _editOrigin.Y * s;
             _textBox.FontSize = _editFontSize * s;
             var sz = TextLayout.Measure(_textBox.Text, _editFontSize);
-            double w = Math.Max(sz.Width, _editFontSize) * s + 8;   // caret pad
-            double h = Math.Max(sz.Height, _editFontSize) * s + 4;
+            double w, h;
+            if (_editingStepComment)
+            {
+                double padH = StepGeometry.CommentPadH(_editFontSize) * s;
+                double padV = StepGeometry.CommentPadV(_editFontSize) * s;
+                _textBox.Padding = new Thickness(padH, padV, padH, padV);
+                w = Math.Max(sz.Width, _editFontSize) * s + 2 * padH + 8;   // + caret pad
+                h = Math.Max(sz.Height, _editFontSize) * s + 2 * padV;
+            }
+            else
+            {
+                w = Math.Max(sz.Width, _editFontSize) * s + 8;   // caret pad
+                h = Math.Max(sz.Height, _editFontSize) * s + 4;
+            }
             _textBox.Arrange(new Rect(vx, vy, w, h));
         }
         return finalSize;
@@ -445,14 +458,23 @@ public sealed class CanvasControl : FrameworkElement
 
     private void BeginStepComment(Annotation step, bool fresh)
     {
-        BeginTextEdit(step, StepGeometry.CommentOrigin(step), StepGeometry.CommentFontSize(step), step.ColorArgb, step.Text);
+        BeginTextEdit(step, StepGeometry.BubbleOrigin(step), StepGeometry.CommentFontSize(step), step.ColorArgb, step.Text);
         _editingStepFresh = fresh;
+        _editingStepComment = true;
+        if (_textBox is not null)
+        {
+            _textBox.Background = new SolidColorBrush(System.Windows.Media.Color.FromArgb(209, 26, 26, 26));
+            _textBox.Foreground = Brushes.White;
+            _textBox.CaretBrush = Brushes.White;
+        }
+        InvalidateArrange();
     }
 
     private void BeginTextEdit(Annotation? existing, Point imageOrigin, double fontSize, uint color, string initial)
     {
         CommitTextEdit();   // safety: never two editors at once
-        _editingStepFresh = false;   // plain text edits clear the flag; BeginStepComment sets it after this returns
+        _editingStepFresh = false;   // plain text edits clear the flags; BeginStepComment sets them after this returns
+        _editingStepComment = false;
         _editingAnno = existing;
         _editOrigin = imageOrigin;
         _editFontSize = fontSize;

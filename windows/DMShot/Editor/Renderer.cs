@@ -88,10 +88,18 @@ public static class Renderer
                 }
                 if (!string.IsNullOrEmpty(a.Text))
                 {
-                    using var cb = new SolidBrush(color);
-                    using var cf = new Font("Segoe UI", (float)StepGeometry.CommentFontSize(a), System.Drawing.FontStyle.Bold);
-                    var origin = StepGeometry.CommentOrigin(a);
-                    g.DrawString(a.Text, cf, cb, (float)(origin.X - ox), (float)(origin.Y - oy));
+                    float fs = (float)StepGeometry.CommentFontSize(a);
+                    using var cf = new Font("Segoe UI", fs, System.Drawing.FontStyle.Bold);
+                    var csz = g.MeasureString(a.Text, cf);
+                    float padH = (float)StepGeometry.CommentPadH(fs), padV = (float)StepGeometry.CommentPadV(fs);
+                    var bo = StepGeometry.BubbleOrigin(a);
+                    var brect = new RectangleF((float)(bo.X - ox), (float)(bo.Y - oy), csz.Width + 2 * padH, csz.Height + 2 * padV);
+                    using (var bub = new SolidBrush(Color.FromArgb(209, 26, 26, 26)))
+                    using (var path = StepBubblePath(brect))
+                        g.FillPath(bub, path);
+                    var to = StepGeometry.CommentTextOrigin(a);
+                    using var tcb = new SolidBrush(Color.White);
+                    g.DrawString(a.Text, cf, tcb, (float)(to.X - ox), (float)(to.Y - oy));
                 }
                 break;
             case ToolKind.Blur:
@@ -118,6 +126,22 @@ public static class Renderer
         g.PixelOffsetMode = PixelOffsetMode.Half;
         g.DrawImage(small, new Rectangle((int)(rx - ox), (int)(ry - oy), rw, rh));
         g.InterpolationMode = InterpolationMode.Default;
+    }
+
+    /// <summary>Rounded comment-bubble path with a SHARPER (smaller-radius) left
+    /// side and a fully rounded right side, so it reads as pointing back toward
+    /// the badge.</summary>
+    private static System.Drawing.Drawing2D.GraphicsPath StepBubblePath(RectangleF r)
+    {
+        float rR = Math.Min(r.Height / 2f, r.Width / 2f);          // right: pill end
+        float rL = Math.Min(r.Height * 0.24f, r.Width - rR);       // left: sharper
+        var p = new System.Drawing.Drawing2D.GraphicsPath();
+        p.AddArc(r.Left, r.Top, 2 * rL, 2 * rL, 180, 90);                      // top-left
+        p.AddArc(r.Right - 2 * rR, r.Top, 2 * rR, 2 * rR, 270, 90);            // top-right
+        p.AddArc(r.Right - 2 * rR, r.Bottom - 2 * rR, 2 * rR, 2 * rR, 0, 90);  // bottom-right
+        p.AddArc(r.Left, r.Bottom - 2 * rL, 2 * rL, 2 * rL, 90, 90);           // bottom-left
+        p.CloseFigure();
+        return p;
     }
 
     // Live-canvas path: draw onto a WPF DrawingContext. Mirrors DrawGdi shape-by-shape.
@@ -162,13 +186,19 @@ public static class Renderer
                 dc.DrawText(ft, new System.Windows.Point(a.X0 + d / 2 - ft.Width / 2, a.Y0 + d / 2 - ft.Height / 2));
                 if (!string.IsNullOrEmpty(a.Text))
                 {
-                    var co = StepGeometry.CommentOrigin(a);
+                    double cfs = StepGeometry.CommentFontSize(a);
                     var cft = new System.Windows.Media.FormattedText(a.Text,
                         System.Globalization.CultureInfo.InvariantCulture, System.Windows.FlowDirection.LeftToRight,
                         new System.Windows.Media.Typeface(new System.Windows.Media.FontFamily("Segoe UI"),
                             System.Windows.FontStyles.Normal, System.Windows.FontWeights.Bold, System.Windows.FontStretches.Normal),
-                        StepGeometry.CommentFontSize(a), brush, 1.0);
-                    dc.DrawText(cft, new System.Windows.Point(co.X, co.Y));
+                        cfs, System.Windows.Media.Brushes.White, 1.0);
+                    var bo = StepGeometry.BubbleOrigin(a);
+                    double padH = StepGeometry.CommentPadH(cfs), padV = StepGeometry.CommentPadV(cfs);
+                    var brect = new System.Windows.Rect(bo.X, bo.Y, cft.Width + 2 * padH, cft.Height + 2 * padV);
+                    var bub = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(209, 26, 26, 26));
+                    dc.DrawRoundedRectangle(bub, null, brect, brect.Height * 0.4, brect.Height * 0.4);
+                    var to = StepGeometry.CommentTextOrigin(a);
+                    dc.DrawText(cft, new System.Windows.Point(to.X, to.Y));
                 }
                 break;
             case ToolKind.Text:

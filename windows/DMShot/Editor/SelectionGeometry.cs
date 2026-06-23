@@ -36,12 +36,7 @@ public static class SelectionGeometry
     public static Rect StepBounds(Annotation a)
     {
         var badge = BBox(a);   // step case returns the badge rect
-        if (!StepGeometry.HasComment(a)) return badge;
-        double fs = StepGeometry.CommentFontSize(a);
-        var sz = TextLayout.Measure(a.Text, fs);
-        var origin = StepGeometry.CommentOrigin(a);
-        var comment = new Rect(origin.X, origin.Y, sz.Width, sz.Height);
-        return Rect.Union(badge, comment);
+        return StepGeometry.BubbleRect(a) is { } bubble ? Rect.Union(badge, bubble) : badge;
     }
 
     /// <summary>Drag handles. Lines: 2 endpoints. Everything else: 4 bbox corners (TL,TR,BL,BR).</summary>
