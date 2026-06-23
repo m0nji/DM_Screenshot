@@ -3,6 +3,16 @@
 Native macOS screenshot & annotation app (`mac/`, Swift / SwiftUI / AppKit) plus a
 Windows port (`windows/`, C# / .NET / WPF). **macOS is the behavioral source of truth.**
 
+## BrandDesign App Icons
+
+- App icons must use the shared DM BrandDesign system from /Users/thomas/Projects/DM_BrandDesign.
+- Check /Users/thomas/Projects/DM_BrandDesign/packages/assets/icons/screenshot-color-modern-source.svg before changing icon geometry, colors, or effects.
+- Keep the editable macOS/source art at 1024x1024 with the BrandDesign safe area: the squircle is x=100, y=100, width=824, height=824.
+- Windows exports must be full-bleed compared with the macOS source. Keep WIN_FILL at about 1.214 and include explicit .ico frames for taskbar sizes.
+- Do not redraw the icon locally. Update the BrandDesign source first, then regenerate app assets from that source.
+- macOS source: mac/Resources/AppIcon.svg, regenerated with mac/make_icon.sh.
+- Windows app icon: windows/DMShot/Resources/AppIcon.ico, regenerated from the same SVG source with windows/tools/make-app-icon.mjs or windows/tools/make-app-icon.ps1.
+
 ## Git workflow (IMPORTANT — read before committing)
 
 - **One branch per feature or change.** Branch off `main` (`feat/…`, `fix/…`,

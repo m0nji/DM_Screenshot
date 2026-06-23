@@ -17,9 +17,9 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>0.4.15</string>
+	<string>0.4.16</string>
 	<key>CFBundleVersion</key>
-	<string>0.4.15</string>
+	<string>0.4.16</string>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.productivity</string>
 	<key>LSMinimumSystemVersion</key>
@@ -28,12 +28,12 @@
 	<true/>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
 	<key>SUFeedURL</key>
 	<string>https://raw.githubusercontent.com/m0nji/DM_Screenshot/appcast/appcast.xml</string>
 	<key>SUPublicEDKey</key>
 	<string>JG+/h9p+gSJk/8dTRdSERT7eBmfY0zPR0As07fAeyDY=</string>
-	<key>SUEnableAutomaticChecks</key>
-	<true/>
 	<key>SUScheduledCheckInterval</key>
 	<integer>86400</integer>
 </dict>
