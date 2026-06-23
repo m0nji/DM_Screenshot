@@ -463,9 +463,11 @@ public sealed class CanvasControl : FrameworkElement
         _editingStepComment = true;
         if (_textBox is not null)
         {
-            _textBox.Background = new SolidColorBrush(System.Windows.Media.Color.FromArgb(209, 26, 26, 26));
+            _textBox.Background = new SolidColorBrush(System.Windows.Media.Color.FromArgb(224, 33, 33, 33));
             _textBox.Foreground = Brushes.White;
             _textBox.CaretBrush = Brushes.White;
+            _textBox.BorderBrush = new SolidColorBrush(System.Windows.Media.Color.FromArgb(77, 255, 255, 255));
+            _textBox.BorderThickness = new Thickness(1);
         }
         InvalidateArrange();
     }

@@ -8,7 +8,10 @@ namespace DMShot.Editor;
 /// mac/Sources/DMShot/StepGeometry.swift.</summary>
 public static class StepGeometry
 {
-    public const double CommentGap = 10;   // badge edge -> bubble left edge
+    public const double CommentGap = 9;    // badge edge -> tail tip (tail points at the badge)
+    // Speech-bubble tail: how far it juts toward the badge, and its base height.
+    public static double CommentTailW(double fs) => fs * 0.62;
+    public static double CommentTailH(double fs) => fs * 0.66;   // wider base = slightly blunter tip
 
     public static double Diameter(Annotation a) => Math.Max(22, a.StrokeWidth * 7);
 
@@ -28,7 +31,8 @@ public static class StepGeometry
     {
         double d = Diameter(a), fs = CommentFontSize(a);
         double bubbleH = fs * 1.3 + 2 * CommentPadV(fs);
-        return new Point(a.X0 + d + CommentGap, a.Y0 + d / 2 - bubbleH / 2);
+        // body left = badge edge + gap + tail width (tail tip sits `gap` from the badge)
+        return new Point(a.X0 + d + CommentGap + CommentTailW(fs), a.Y0 + d / 2 - bubbleH / 2);
     }
 
     /// <summary>Top-left of the comment text (inside the bubble).</summary>

@@ -94,9 +94,15 @@ public static class Renderer
                     float padH = (float)StepGeometry.CommentPadH(fs), padV = (float)StepGeometry.CommentPadV(fs);
                     var bo = StepGeometry.BubbleOrigin(a);
                     var brect = new RectangleF((float)(bo.X - ox), (float)(bo.Y - oy), csz.Width + 2 * padH, csz.Height + 2 * padV);
-                    using (var bub = new SolidBrush(Color.FromArgb(209, 26, 26, 26)))
-                    using (var path = StepBubblePath(brect))
-                        g.FillPath(bub, path);
+                    float tailW = (float)StepGeometry.CommentTailW(fs), tailH = (float)StepGeometry.CommentTailH(fs);
+                    using (var path = StepBubblePath(brect, tailW, tailH))
+                    {
+                        using (var bub = new SolidBrush(Color.FromArgb(224, 33, 33, 33)))
+                            g.FillPath(bub, path);
+                        // Light hairline so the bubble stays visible on dark backgrounds too.
+                        using (var bpen = new Pen(Color.FromArgb(77, 255, 255, 255), Math.Max(2f, fs * 0.08f)))
+                            g.DrawPath(bpen, path);
+                    }
                     var to = StepGeometry.CommentTextOrigin(a);
                     using var tcb = new SolidBrush(Color.White);
                     g.DrawString(a.Text, cf, tcb, (float)(to.X - ox), (float)(to.Y - oy));
@@ -131,15 +137,20 @@ public static class Renderer
     /// <summary>Rounded comment-bubble path with a SHARPER (smaller-radius) left
     /// side and a fully rounded right side, so it reads as pointing back toward
     /// the badge.</summary>
-    private static System.Drawing.Drawing2D.GraphicsPath StepBubblePath(RectangleF r)
+    private static System.Drawing.Drawing2D.GraphicsPath StepBubblePath(RectangleF r, float tailW, float tailH)
     {
         float rR = Math.Min(r.Height / 2f, r.Width / 2f);          // right: pill end
-        float rL = Math.Min(r.Height * 0.24f, r.Width - rR);       // left: sharper
+        float rL = Math.Min(r.Height * 0.28f, r.Width - rR);       // left corners
+        float cy = r.Top + r.Height / 2f;
+        float tipX = r.Left - tailW;
         var p = new System.Drawing.Drawing2D.GraphicsPath();
         p.AddArc(r.Left, r.Top, 2 * rL, 2 * rL, 180, 90);                      // top-left
         p.AddArc(r.Right - 2 * rR, r.Top, 2 * rR, 2 * rR, 270, 90);            // top-right
         p.AddArc(r.Right - 2 * rR, r.Bottom - 2 * rR, 2 * rR, 2 * rR, 0, 90);  // bottom-right
         p.AddArc(r.Left, r.Bottom - 2 * rL, 2 * rL, 2 * rL, 90, 90);           // bottom-left
+        // left edge -> tail base (bottom) -> tip (points at the badge) -> tail base (top)
+        p.AddLine(r.Left, cy + tailH / 2, tipX, cy);
+        p.AddLine(tipX, cy, r.Left, cy - tailH / 2);
         p.CloseFigure();
         return p;
     }
@@ -195,8 +206,21 @@ public static class Renderer
                     var bo = StepGeometry.BubbleOrigin(a);
                     double padH = StepGeometry.CommentPadH(cfs), padV = StepGeometry.CommentPadV(cfs);
                     var brect = new System.Windows.Rect(bo.X, bo.Y, cft.Width + 2 * padH, cft.Height + 2 * padV);
-                    var bub = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(209, 26, 26, 26));
-                    dc.DrawRoundedRectangle(bub, null, brect, brect.Height * 0.4, brect.Height * 0.4);
+                    var bub = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(224, 33, 33, 33));
+                    var bpen = new System.Windows.Media.Pen(
+                        new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(77, 255, 255, 255)),
+                        Math.Max(2, cfs * 0.08));
+                    dc.DrawRoundedRectangle(bub, bpen, brect, brect.Height * 0.4, brect.Height * 0.4);
+                    double tw = StepGeometry.CommentTailW(cfs), th = StepGeometry.CommentTailH(cfs);
+                    double tcy = brect.Top + brect.Height / 2;
+                    var tail = new System.Windows.Media.StreamGeometry();
+                    using (var tc = tail.Open())
+                    {
+                        tc.BeginFigure(new System.Windows.Point(brect.Left, tcy - th / 2), true, true);
+                        tc.LineTo(new System.Windows.Point(brect.Left - tw, tcy), true, false);
+                        tc.LineTo(new System.Windows.Point(brect.Left, tcy + th / 2), true, false);
+                    }
+                    dc.DrawGeometry(bub, null, tail);
                     var to = StepGeometry.CommentTextOrigin(a);
                     dc.DrawText(cft, new System.Windows.Point(to.X, to.Y));
                 }

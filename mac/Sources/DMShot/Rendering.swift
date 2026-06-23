@@ -128,10 +128,17 @@ enum SceneRenderer {
 
         // Optional comment in a translucent bubble to the right of the badge.
         guard !a.text.isEmpty, let bubble = StepGeometry.bubbleRect(for: a) else { return }
-        let path = stepBubblePath(bubble)
-        NSColor(white: 0.10, alpha: 0.82).setFill()
-        path.fill()
         let fontSize = StepGeometry.commentFontSize(for: a)
+        let path = stepBubblePath(
+            body: bubble,
+            tailW: StepGeometry.commentTailW(forFont: fontSize),
+            tailH: StepGeometry.commentTailH(forFont: fontSize))
+        NSColor(white: 0.13, alpha: 0.88).setFill()
+        path.fill()
+        // Light hairline so the bubble stays visible on dark backgrounds too.
+        NSColor(white: 1.0, alpha: 0.30).setStroke()
+        path.lineWidth = max(2, fontSize * 0.08)
+        path.stroke()
         let comment = NSAttributedString(
             string: a.text,
             attributes: [
@@ -145,21 +152,28 @@ enum SceneRenderer {
             options: [.usesLineFragmentOrigin, .usesFontLeading])
     }
 
-    /// Rounded bubble with a SHARPER (smaller-radius) left side and a fully
-    /// rounded right side, so it reads as pointing back toward the badge.
-    private static func stepBubblePath(_ r: CGRect) -> NSBezierPath {
+    /// Rounded speech bubble for a step comment: rounded corners + a pointed tail
+    /// on the LEFT-centre that juts toward the badge, so the comment reads as
+    /// belonging to the number. `body` is the rounded-rect part; the tail tip sits
+    /// `tailW` to its left.
+    private static func stepBubblePath(body r: CGRect, tailW: CGFloat, tailH: CGFloat) -> NSBezierPath {
         let rR = min(r.height / 2, r.width / 2)            // right: pill end
-        let rL = min(r.height * 0.24, r.width - rR)        // left: sharper
+        let rL = min(r.height * 0.28, r.width - rR)        // left corners
+        let cy = r.midY
+        let tipX = r.minX - tailW
         let p = NSBezierPath()
         p.move(to: CGPoint(x: r.minX + rL, y: r.minY))
         p.line(to: CGPoint(x: r.maxX - rR, y: r.minY))
-        p.appendArc(from: CGPoint(x: r.maxX, y: r.minY), to: CGPoint(x: r.maxX, y: r.minY + rR), radius: rR)
+        p.appendArc(from: CGPoint(x: r.maxX, y: r.minY), to: CGPoint(x: r.maxX, y: r.minY + rR), radius: rR)  // TR
         p.line(to: CGPoint(x: r.maxX, y: r.maxY - rR))
-        p.appendArc(from: CGPoint(x: r.maxX, y: r.maxY), to: CGPoint(x: r.maxX - rR, y: r.maxY), radius: rR)
+        p.appendArc(from: CGPoint(x: r.maxX, y: r.maxY), to: CGPoint(x: r.maxX - rR, y: r.maxY), radius: rR)  // BR
         p.line(to: CGPoint(x: r.minX + rL, y: r.maxY))
-        p.appendArc(from: CGPoint(x: r.minX, y: r.maxY), to: CGPoint(x: r.minX, y: r.maxY - rL), radius: rL)
+        p.appendArc(from: CGPoint(x: r.minX, y: r.maxY), to: CGPoint(x: r.minX, y: r.maxY - rL), radius: rL)  // BL
+        p.line(to: CGPoint(x: r.minX, y: cy + tailH / 2))   // left edge down to the tail base
+        p.line(to: CGPoint(x: tipX, y: cy))                 // out to the tail tip (points at the badge)
+        p.line(to: CGPoint(x: r.minX, y: cy - tailH / 2))   // back to the tail base
         p.line(to: CGPoint(x: r.minX, y: r.minY + rL))
-        p.appendArc(from: CGPoint(x: r.minX, y: r.minY), to: CGPoint(x: r.minX + rL, y: r.minY), radius: rL)
+        p.appendArc(from: CGPoint(x: r.minX, y: r.minY), to: CGPoint(x: r.minX + rL, y: r.minY), radius: rL)  // TL
         p.close()
         return p
     }

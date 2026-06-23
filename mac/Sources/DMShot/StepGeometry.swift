@@ -7,8 +7,11 @@ import CoreGraphics
 /// hit-testing all derive from these so they stay in agreement. The step anchor
 /// (a.x / a.y) is the badge CENTRE.
 enum StepGeometry {
-    /// Gap between the badge edge and the bubble's left edge.
-    static let commentGap: CGFloat = 10
+    /// Gap between the badge edge and the bubble's tail tip (which points at the badge).
+    static let commentGap: CGFloat = 9
+    /// Speech-bubble tail: how far it juts toward the badge, and its base height.
+    static func commentTailW(forFont fs: CGFloat) -> CGFloat { fs * 0.62 }
+    static func commentTailH(forFont fs: CGFloat) -> CGFloat { fs * 0.66 }   // wider base = slightly blunter tip
 
     /// Badge radius in image pixels (matches the circle SceneRenderer draws).
     static func radius(for a: Annotation) -> CGFloat { a.strokeWidth * 4 + 8 }
@@ -34,7 +37,8 @@ enum StepGeometry {
         let r = radius(for: a)
         let fs = commentFontSize(for: a)
         let bubbleH = TextLayout.size(" ", fontSize: fs).height + 2 * commentPadV(forFont: fs)
-        return CGPoint(x: a.x + r + commentGap, y: a.y - bubbleH / 2)
+        // body left = badge edge + gap + tail width (tail tip sits `gap` from the badge)
+        return CGPoint(x: a.x + r + commentGap + commentTailW(forFont: fs), y: a.y - bubbleH / 2)
     }
 
     /// Top-left of the comment text (inside the bubble).

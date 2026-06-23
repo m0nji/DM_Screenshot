@@ -548,10 +548,15 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
         // NSTextView's own rounded background previews the committed bubble live).
         let bubble = editingStepComment
         tv.drawsBackground = bubble
-        tv.backgroundColor = bubble ? NSColor(white: 0.10, alpha: 0.82) : .clear
+        tv.backgroundColor = bubble ? NSColor(white: 0.13, alpha: 0.88) : .clear
         tv.textColor = bubble ? .white : NSColor(hex: editingColorHex)
         tv.insertionPointColor = bubble ? .white : NSColor(hex: editingColorHex)
-        if bubble { tv.wantsLayer = true; tv.layer?.masksToBounds = true }
+        if bubble {
+            tv.wantsLayer = true
+            tv.layer?.masksToBounds = true
+            tv.layer?.borderColor = NSColor(white: 1.0, alpha: 0.30).cgColor
+            tv.layer?.borderWidth = 1
+        }
         tv.font = TextLayout.font(ofSize: editingFontSize * scale)
         tv.string = initialText
         tv.isVerticallyResizable = true
