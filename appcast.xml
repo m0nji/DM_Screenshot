@@ -301,5 +301,13 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.4.16/DM_Screenshot-v0.4.16.dmg" type="application/octet-stream" sparkle:edSignature="ct2ikTNljdf9qi/id15c4N987nJS1q9rd/GNS/FKmSz8mtVZldAAXhEhOI1UMKj81u8vqKNzqwaYBa9ApKf6Aw==" length="2179848" />
 </item>
 
+<item>
+  <title>Version 0.4.17</title>
+  <description><![CDATA[<ul><li>change: The app icon now uses the colorful DM BrandDesign direction on macOS and Windows, with a full-bleed multi-size Windows export.</li></ul>]]></description>
+  <sparkle:version>0.4.17</sparkle:version>
+  <sparkle:shortVersionString>0.4.17</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.4.17/DM_Screenshot-v0.4.17.dmg" type="application/octet-stream" sparkle:edSignature="rlgyZcBtAAuJ4VWDPBA0eTJ6bwtFByBKVliGmGmLB1m7oQyB6Fjqep8V6V4//DGqeRMezEHCQJjSPampXGzJBw==" length="2293861" />
+</item>
+
 </channel>
 </rss>
