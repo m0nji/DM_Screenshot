@@ -4,6 +4,9 @@ All notable changes to DM_Screenshot. Newest version first. Always written in En
 
 ## [Unreleased]
 
+## 0.4.10 – 2026-06-23
+- change: A numbered step's comment now sits in a translucent speech bubble with a pointed tail toward the number, set off by a clear gap, and stays readable on any background (macOS + Windows)
+
 ## 0.4.9 – 2026-06-23
 - feat: Numbered steps can now carry an optional comment typed right next to the badge; the number and its comment move and resize together, and an empty comment leaves just the numbered circle (macOS + Windows)
 - feat: The Quick-Edit toolbar gains the Ellipse and numbered-Step tools, and the Copy-to-clipboard button now sits at the far right of the action group (macOS + Windows)
