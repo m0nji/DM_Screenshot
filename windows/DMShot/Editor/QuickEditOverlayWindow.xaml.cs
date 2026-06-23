@@ -122,7 +122,9 @@ public partial class QuickEditOverlayWindow : Window
         (ToolKind.Select,      "M6,3 L6,19.5 L10.2,15.3 L13.2,21.5 L15.6,20.4 L12.6,14.4 L18.5,14.4 Z", true),
         (ToolKind.Arrow,       "M5.5,18.5 L18.5,5.5 M18.5,5.5 L11.5,5.5 M18.5,5.5 L18.5,12.5", false),
         (ToolKind.Rectangle,   "M4.5,6.5 L19.5,6.5 L19.5,17.5 L4.5,17.5 Z", false),
+        (ToolKind.Ellipse,     "M12,6 C16.7,6 19.5,8.7 19.5,12 C19.5,15.3 16.7,18 12,18 C7.3,18 4.5,15.3 4.5,12 C4.5,8.7 7.3,6 12,6 Z", false),
         (ToolKind.Highlighter, "M3.5,20.6 L3.5,16.9 L13.4,7 L17.3,10.9 L7.4,20.8 Z M13.7,6.7 L16.5,3.9 L20.4,7.8 L17.6,10.6 Z", true),
+        (ToolKind.Step,        "M9,4.5 L7.5,19.5 M16.5,4.5 L15,19.5 M5,9.5 L18.5,9.5 M4.5,14.5 L18,14.5", false),
         (ToolKind.Text,        "M5,5 L19,5 M12,5 L12,19.5 M9,19.5 L15,19.5", false),
         (ToolKind.Blur,        "M5,5 L8,5 L8,8 L5,8 Z M10.5,5 L13.5,5 L13.5,8 L10.5,8 Z M16,5 L19,5 L19,8 L16,8 Z M5,10.5 L8,10.5 L8,13.5 L5,13.5 Z M10.5,10.5 L13.5,10.5 L13.5,13.5 L10.5,13.5 Z M16,10.5 L19,10.5 L19,13.5 L16,13.5 Z M5,16 L8,16 L8,19 L5,19 Z M10.5,16 L13.5,16 L13.5,19 L10.5,19 Z M16,16 L19,16 L19,19 L16,19 Z", true),
     };
@@ -166,10 +168,10 @@ public partial class QuickEditOverlayWindow : Window
         row.Children.Add(IconAction(Icon(UndoGeo, false), Loc.Instance["undo"], () => Canvas.Model.Undo()));
         row.Children.Add(Divider());
         // Icon-only actions (no text labels), matching the macOS Quick-Edit toolbar.
-        row.Children.Add(IconAction(Icon(CopyGeo, false), Loc.Instance["copy"], () => CopyRequested?.Invoke()));
+        row.Children.Add(IconAction(Icon(CloseGeo, false), Loc.Instance["close"], CloseOverlay));
         row.Children.Add(IconAction(Icon(SaveGeo, false), Loc.Instance["save"], () => SaveRequested?.Invoke()));
         row.Children.Add(IconAction(Icon(MainGeo, false), Loc.Instance["quickEditEditInMain"], () => EditInMainRequested?.Invoke()));
-        row.Children.Add(IconAction(Icon(CloseGeo, false), Loc.Instance["close"], CloseOverlay));
+        row.Children.Add(IconAction(Icon(CopyGeo, false), Loc.Instance["copy"], () => CopyRequested?.Invoke()));
 
         return new Border
         {
@@ -193,7 +195,9 @@ public partial class QuickEditOverlayWindow : Window
         ToolKind.Select => "toolSelect",
         ToolKind.Arrow => "toolArrow",
         ToolKind.Rectangle => "toolRect",
+        ToolKind.Ellipse => "toolEllipse",
         ToolKind.Highlighter => "toolHighlighter",
+        ToolKind.Step => "toolStep",
         ToolKind.Text => "toolText",
         ToolKind.Blur => "toolBlur",
         _ => "toolSelect",
