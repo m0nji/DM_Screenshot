@@ -253,5 +253,13 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.4.9/DM_Screenshot-v0.4.9.dmg" type="application/octet-stream" sparkle:edSignature="44c2ZVxhwmpCbMBNYoBRhOUY2OXixKa7ITgXuvvwzRmAtWdTkqmYpup/pfHUkHImDG/i7RmBq/7CYIx7v6o/Cw==" length="2157482" />
 </item>
 
+<item>
+  <title>Version 0.4.10</title>
+  <description><![CDATA[<ul><li>change: A numbered step's comment now sits in a translucent speech bubble with a pointed tail toward the number, set off by a clear gap, and stays readable on any background (macOS + Windows)</li></ul>]]></description>
+  <sparkle:version>0.4.10</sparkle:version>
+  <sparkle:shortVersionString>0.4.10</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.4.10/DM_Screenshot-v0.4.10.dmg" type="application/octet-stream" sparkle:edSignature="qd4McJLkxLIvjgyGJa4RjSl1D0jDyceBT3TVOxZ6rMCcBjemyABYHhRSPO4WTzdcikTHeVHbrYP19mmOp+PADA==" length="2162090" />
+</item>
+
 </channel>
 </rss>
