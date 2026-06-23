@@ -86,6 +86,13 @@ public static class Renderer
                     var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
                     g.DrawString(a.StepNumber.ToString(), f, tb, new RectangleF(x0, y0, d, d), sf);
                 }
+                if (!string.IsNullOrEmpty(a.Text))
+                {
+                    using var cb = new SolidBrush(color);
+                    using var cf = new Font("Segoe UI", (float)StepGeometry.CommentFontSize(a), System.Drawing.FontStyle.Bold);
+                    var origin = StepGeometry.CommentOrigin(a);
+                    g.DrawString(a.Text, cf, cb, (float)(origin.X - ox), (float)(origin.Y - oy));
+                }
                 break;
             case ToolKind.Blur:
                 DrawMosaic(g, baseImage, a, ox, oy);
@@ -153,6 +160,16 @@ public static class Renderer
                     System.Globalization.CultureInfo.InvariantCulture, System.Windows.FlowDirection.LeftToRight,
                     new System.Windows.Media.Typeface("Segoe UI"), d * 0.5, System.Windows.Media.Brushes.White, 1.0);
                 dc.DrawText(ft, new System.Windows.Point(a.X0 + d / 2 - ft.Width / 2, a.Y0 + d / 2 - ft.Height / 2));
+                if (!string.IsNullOrEmpty(a.Text))
+                {
+                    var co = StepGeometry.CommentOrigin(a);
+                    var cft = new System.Windows.Media.FormattedText(a.Text,
+                        System.Globalization.CultureInfo.InvariantCulture, System.Windows.FlowDirection.LeftToRight,
+                        new System.Windows.Media.Typeface(new System.Windows.Media.FontFamily("Segoe UI"),
+                            System.Windows.FontStyles.Normal, System.Windows.FontWeights.Bold, System.Windows.FontStretches.Normal),
+                        StepGeometry.CommentFontSize(a), brush, 1.0);
+                    dc.DrawText(cft, new System.Windows.Point(co.X, co.Y));
+                }
                 break;
             case ToolKind.Text:
                 var t = new System.Windows.Media.FormattedText(a.Text,
