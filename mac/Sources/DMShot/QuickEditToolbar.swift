@@ -62,10 +62,10 @@ struct QuickEditToolbar: View {
             Divider().frame(height: 22)
             Button(action: onClose) { Image(systemName: "xmark") }
                 .buttonStyle(.plain).help(tr(.close))
-            Button(action: onSave) { Image(systemName: "square.and.arrow.down") }
-                .buttonStyle(.plain).help(tr(.save)).disabled(model.image == nil)
             Button(action: onEditInMain) { Image(systemName: "macwindow") }
                 .buttonStyle(.plain).help(tr(.editInMainWindow))
+            Button(action: onSave) { Image(systemName: "square.and.arrow.down") }
+                .buttonStyle(.plain).help(tr(.save)).disabled(model.image == nil)
             Button(action: onCopy) { Image(systemName: "doc.on.doc") }
                 .buttonStyle(.plain).help(tr(.copy)).disabled(model.image == nil)
         }

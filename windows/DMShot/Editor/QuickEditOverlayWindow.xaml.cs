@@ -169,8 +169,8 @@ public partial class QuickEditOverlayWindow : Window
         row.Children.Add(Divider());
         // Icon-only actions (no text labels), matching the macOS Quick-Edit toolbar.
         row.Children.Add(IconAction(Icon(CloseGeo, false), Loc.Instance["close"], CloseOverlay));
-        row.Children.Add(IconAction(Icon(SaveGeo, false), Loc.Instance["save"], () => SaveRequested?.Invoke()));
         row.Children.Add(IconAction(Icon(MainGeo, false), Loc.Instance["quickEditEditInMain"], () => EditInMainRequested?.Invoke()));
+        row.Children.Add(IconAction(Icon(SaveGeo, false), Loc.Instance["save"], () => SaveRequested?.Invoke()));
         row.Children.Add(IconAction(Icon(CopyGeo, false), Loc.Instance["copy"], () => CopyRequested?.Invoke()));
 
         return new Border
