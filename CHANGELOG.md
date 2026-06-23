@@ -4,6 +4,9 @@ All notable changes to DM_Screenshot. Newest version first. Always written in En
 
 ## [Unreleased]
 
+## 0.4.14 – 2026-06-23
+- change: In the Quick-Edit toolbar, the Save and "Edit in main window" buttons swapped places (macOS + Windows)
+
 ## 0.4.13 – 2026-06-23
 - change: The numbered-step comment bubble is now translucent so the capture shows through behind it (macOS + Windows)
 
