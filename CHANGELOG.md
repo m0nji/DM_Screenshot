@@ -4,6 +4,9 @@ All notable changes to DM_Screenshot. Newest version first. Always written in En
 
 ## [Unreleased]
 
+## 0.4.12 – 2026-06-23
+- change: The numbered-step comment bubble now has a softer speech-bubble shape — the whole left side is one rounded arrow pointing at the number, with rounded shoulders and tip (macOS + Windows)
+
 ## 0.4.10 – 2026-06-23
 - change: A numbered step's comment now sits in a translucent speech bubble with a pointed tail toward the number, set off by a clear gap, and stays readable on any background (macOS + Windows)
 
