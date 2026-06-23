@@ -4,6 +4,9 @@ All notable changes to DM_Screenshot. Newest version first. Always written in En
 
 ## [Unreleased]
 
+## 0.4.13 – 2026-06-23
+- change: The numbered-step comment bubble is now translucent so the capture shows through behind it (macOS + Windows)
+
 ## 0.4.12 – 2026-06-23
 - change: The numbered-step comment bubble now has a softer speech-bubble shape — the whole left side is one rounded arrow pointing at the number, with rounded shoulders and tip (macOS + Windows)
 
