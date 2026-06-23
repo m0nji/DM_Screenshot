@@ -14,6 +14,9 @@ $ErrorActionPreference = 'Stop'
 $repo = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 $out  = Join-Path $repo 'windows/DMShot/Resources/AppIcon.ico'
 $sizes = 16, 20, 24, 32, 40, 48, 64, 128, 256
+# Windows taskbar/Explorer icons have no safe-area margin, so scale the art up to fill
+# the canvas (macOS keeps the inset via AppIcon.svg). 824px squircle -> ~1000px on 1024.
+$WIN_FILL = 1.214
 
 function C([byte]$r, [byte]$g, [byte]$b, [double]$a = 1.0) {
     [Windows.Media.Color]::FromArgb([byte]([math]::Round($a * 255)), $r, $g, $b)
@@ -63,6 +66,7 @@ function Render-Png([int]$N) {
     $dc  = $dv.RenderOpen()
 
     $dc.PushTransform((New-Object Windows.Media.ScaleTransform(($N / 1024.0), ($N / 1024.0))))
+    $dc.PushTransform((New-Object Windows.Media.ScaleTransform($WIN_FILL, $WIN_FILL, 512, 512)))
 
     $plate = New-Object Windows.Media.RectangleGeometry((New-Object Windows.Rect(100, 100, 824, 824)), 185, 185)
     $dc.DrawGeometry((VBrush @(@(0.0, (C 0x24 0x24 0x2d)), @(1.0, (C 0x08 0x08 0x0d)))), $null, $plate)
@@ -91,7 +95,8 @@ function Render-Png([int]$N) {
     $dc.Pop()
     Draw-Mark $dc (MarkPen (C 0xf5 0xf5 0xf7 0.86) 40)
 
-    $dc.Pop()
+    $dc.Pop()  # WIN_FILL
+    $dc.Pop()  # size scale
     $dc.Close()
     $rtb.Render($dv)
 
