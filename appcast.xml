@@ -243,5 +243,15 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.4.8/DM_Screenshot-v0.4.8.dmg" type="application/octet-stream" sparkle:edSignature="S5suKsDIl9iX99wPJZfyT220R/OfwFcsSMaRxrHtXCPBehWJEryGv4m7ERGKtbjWcL8m19LDUEknVpohw7rhAA==" length="2152787" />
 </item>
 
+<item>
+  <title>Version 0.4.9</title>
+  <description><![CDATA[<ul><li>feat: Numbered steps can now carry an optional comment typed right next to the badge; the number and its comment move and resize together, and an empty comment leaves just the numbered circle (macOS + Windows)</li>
+<li>feat: The Quick-Edit toolbar gains the Ellipse and numbered-Step tools, and the Copy-to-clipboard button now sits at the far right of the action group (macOS + Windows)</li>
+<li>fix: The numbered-step counter now resets correctly after Undo, so a removed number is reused instead of the count climbing (macOS + Windows)</li></ul>]]></description>
+  <sparkle:version>0.4.9</sparkle:version>
+  <sparkle:shortVersionString>0.4.9</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.4.9/DM_Screenshot-v0.4.9.dmg" type="application/octet-stream" sparkle:edSignature="44c2ZVxhwmpCbMBNYoBRhOUY2OXixKa7ITgXuvvwzRmAtWdTkqmYpup/pfHUkHImDG/i7RmBq/7CYIx7v6o/Cw==" length="2157482" />
+</item>
+
 </channel>
 </rss>
