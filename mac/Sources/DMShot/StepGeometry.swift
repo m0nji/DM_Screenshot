@@ -8,10 +8,18 @@ import CoreGraphics
 /// (a.x / a.y) is the badge CENTRE.
 enum StepGeometry {
     /// Gap between the badge edge and the bubble's tail tip (which points at the badge).
-    static let commentGap: CGFloat = 9
-    /// Speech-bubble tail: how far it juts toward the badge, and its base height.
-    static func commentTailW(forFont fs: CGFloat) -> CGFloat { fs * 0.62 }
-    static func commentTailH(forFont fs: CGFloat) -> CGFloat { fs * 0.66 }   // wider base = slightly blunter tip
+    static let commentGap: CGFloat = 13
+    /// Single-line reference bubble height — the tail metrics scale off this so they
+    /// are constant per font (the inline editor and the rendered bubble agree, and a
+    /// multi-line comment stays sane).
+    static func commentRefH(forFont fs: CGFloat) -> CGFloat {
+        TextLayout.size(" ", fontSize: fs).height + 2 * commentPadV(forFont: fs)
+    }
+    /// Speech-bubble tail (Variant A2): the WHOLE left side is one wide arrow whose
+    /// tip juts toward the badge; the two shoulders and the tip are all rounded.
+    static func commentTailLen(forFont fs: CGFloat) -> CGFloat { commentRefH(forFont: fs) * 0.47 }
+    static func commentShoulderR(forFont fs: CGFloat) -> CGFloat { commentRefH(forFont: fs) * 0.25 }
+    static func commentTipR(forFont fs: CGFloat) -> CGFloat { commentRefH(forFont: fs) * 0.20 }
 
     /// Badge radius in image pixels (matches the circle SceneRenderer draws).
     static func radius(for a: Annotation) -> CGFloat { a.strokeWidth * 4 + 8 }
@@ -36,9 +44,9 @@ enum StepGeometry {
     static func bubbleOrigin(for a: Annotation) -> CGPoint {
         let r = radius(for: a)
         let fs = commentFontSize(for: a)
-        let bubbleH = TextLayout.size(" ", fontSize: fs).height + 2 * commentPadV(forFont: fs)
-        // body left = badge edge + gap + tail width (tail tip sits `gap` from the badge)
-        return CGPoint(x: a.x + r + commentGap + commentTailW(forFont: fs), y: a.y - bubbleH / 2)
+        // body left = badge edge + gap + tail length (the tail tip sits `gap` from the badge)
+        return CGPoint(x: a.x + r + commentGap + commentTailLen(forFont: fs),
+                       y: a.y - commentRefH(forFont: fs) / 2)
     }
 
     /// Top-left of the comment text (inside the bubble).

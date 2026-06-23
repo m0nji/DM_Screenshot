@@ -94,8 +94,8 @@ public static class Renderer
                     float padH = (float)StepGeometry.CommentPadH(fs), padV = (float)StepGeometry.CommentPadV(fs);
                     var bo = StepGeometry.BubbleOrigin(a);
                     var brect = new RectangleF((float)(bo.X - ox), (float)(bo.Y - oy), csz.Width + 2 * padH, csz.Height + 2 * padV);
-                    float tailW = (float)StepGeometry.CommentTailW(fs), tailH = (float)StepGeometry.CommentTailH(fs);
-                    using (var path = StepBubblePath(brect, tailW, tailH))
+                    float tipLen = (float)StepGeometry.CommentTailLen(fs), shR = (float)StepGeometry.CommentShoulderR(fs), tipR = (float)StepGeometry.CommentTipR(fs);
+                    using (var path = StepBubblePath(brect, tipLen, shR, tipR))
                     {
                         using (var bub = new SolidBrush(Color.FromArgb(224, 33, 33, 33)))
                             g.FillPath(bub, path);
@@ -137,22 +137,40 @@ public static class Renderer
     /// <summary>Rounded comment-bubble path with a SHARPER (smaller-radius) left
     /// side and a fully rounded right side, so it reads as pointing back toward
     /// the badge.</summary>
-    private static System.Drawing.Drawing2D.GraphicsPath StepBubblePath(RectangleF r, float tailW, float tailH)
+    private static System.Drawing.Drawing2D.GraphicsPath StepBubblePath(RectangleF r, float tipLen, float shoulderR, float tipR)
     {
         float rR = Math.Min(r.Height / 2f, r.Width / 2f);          // right: pill end
-        float rL = Math.Min(r.Height * 0.28f, r.Width - rR);       // left corners
+        float sh = Math.Min(shoulderR, r.Height / 2f - 0.5f);      // shoulder fillet (clamped)
         float cy = r.Top + r.Height / 2f;
-        float tipX = r.Left - tailW;
+        var tip = new PointF(r.Left - tipLen, cy);
+        var a = new PointF(r.Left, r.Top);        // top shoulder
+        var b = new PointF(r.Left, r.Bottom);     // bottom shoulder
+        float bx = tip.X - b.X, by = tip.Y - b.Y; float bl = MathF.Max(1e-3f, MathF.Sqrt(bx * bx + by * by)); bx /= bl; by /= bl;  // b->tip
+        float ax = tip.X - a.X, ay = tip.Y - a.Y; float al = MathF.Max(1e-3f, MathF.Sqrt(ax * ax + ay * ay)); ax /= al; ay /= al;  // a->tip
+        var bp = new PointF(b.X + sh * bx, b.Y + sh * by);         // after bottom shoulder toward tip
+        var tb = new PointF(tip.X - tipR * bx, tip.Y - tipR * by); // before tip (bottom side)
+        var ta = new PointF(tip.X - tipR * ax, tip.Y - tipR * ay); // before tip (top side)
+        var ap = new PointF(a.X + sh * ax, a.Y + sh * ay);         // after top shoulder toward tip
         var p = new System.Drawing.Drawing2D.GraphicsPath();
-        p.AddArc(r.Left, r.Top, 2 * rL, 2 * rL, 180, 90);                      // top-left
-        p.AddArc(r.Right - 2 * rR, r.Top, 2 * rR, 2 * rR, 270, 90);            // top-right
-        p.AddArc(r.Right - 2 * rR, r.Bottom - 2 * rR, 2 * rR, 2 * rR, 0, 90);  // bottom-right
-        p.AddArc(r.Left, r.Bottom - 2 * rL, 2 * rL, 2 * rL, 90, 90);           // bottom-left
-        // left edge -> tail base (bottom) -> tip (points at the badge) -> tail base (top)
-        p.AddLine(r.Left, cy + tailH / 2, tipX, cy);
-        p.AddLine(tipX, cy, r.Left, cy - tailH / 2);
+        p.AddLine(r.Left + sh, r.Top, r.Right - rR, r.Top);                       // top edge
+        p.AddArc(r.Right - 2 * rR, r.Top, 2 * rR, 2 * rR, 270, 90);               // top-right (pill)
+        p.AddArc(r.Right - 2 * rR, r.Bottom - 2 * rR, 2 * rR, 2 * rR, 0, 90);     // bottom-right (pill)
+        p.AddLine(r.Right - rR, r.Bottom, r.Left + sh, r.Bottom);                 // bottom edge
+        AddQuad(p, new PointF(r.Left + sh, r.Bottom), b, bp);                     // bottom shoulder (rounded)
+        p.AddLine(bp, tb);                                                        // lower arrow edge
+        AddQuad(p, tb, tip, ta);                                                  // arrow tip (rounded)
+        p.AddLine(ta, ap);                                                        // upper arrow edge
+        AddQuad(p, ap, a, new PointF(r.Left + sh, r.Top));                        // top shoulder (rounded)
         p.CloseFigure();
         return p;
+    }
+
+    // Append a quadratic Bézier (P0, control C, P2) to the path as an equivalent cubic.
+    private static void AddQuad(System.Drawing.Drawing2D.GraphicsPath p, PointF p0, PointF c, PointF p2)
+    {
+        var c1 = new PointF(p0.X + 2f / 3f * (c.X - p0.X), p0.Y + 2f / 3f * (c.Y - p0.Y));
+        var c2 = new PointF(p2.X + 2f / 3f * (c.X - p2.X), p2.Y + 2f / 3f * (c.Y - p2.Y));
+        p.AddBezier(p0, c1, c2, p2);
     }
 
     // Live-canvas path: draw onto a WPF DrawingContext. Mirrors DrawGdi shape-by-shape.
@@ -210,17 +228,9 @@ public static class Renderer
                     var bpen = new System.Windows.Media.Pen(
                         new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(77, 255, 255, 255)),
                         Math.Max(2, cfs * 0.08));
+                    // NOTE: this WPF path is currently unused (the live canvas renders via the GDI
+                    // path). Body only here; the GDI path draws the full A2 arrow bubble.
                     dc.DrawRoundedRectangle(bub, bpen, brect, brect.Height * 0.4, brect.Height * 0.4);
-                    double tw = StepGeometry.CommentTailW(cfs), th = StepGeometry.CommentTailH(cfs);
-                    double tcy = brect.Top + brect.Height / 2;
-                    var tail = new System.Windows.Media.StreamGeometry();
-                    using (var tc = tail.Open())
-                    {
-                        tc.BeginFigure(new System.Windows.Point(brect.Left, tcy - th / 2), true, true);
-                        tc.LineTo(new System.Windows.Point(brect.Left - tw, tcy), true, false);
-                        tc.LineTo(new System.Windows.Point(brect.Left, tcy + th / 2), true, false);
-                    }
-                    dc.DrawGeometry(bub, null, tail);
                     var to = StepGeometry.CommentTextOrigin(a);
                     dc.DrawText(cft, new System.Windows.Point(to.X, to.Y));
                 }

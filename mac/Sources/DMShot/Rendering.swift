@@ -131,8 +131,9 @@ enum SceneRenderer {
         let fontSize = StepGeometry.commentFontSize(for: a)
         let path = stepBubblePath(
             body: bubble,
-            tailW: StepGeometry.commentTailW(forFont: fontSize),
-            tailH: StepGeometry.commentTailH(forFont: fontSize))
+            tipLen: StepGeometry.commentTailLen(forFont: fontSize),
+            shoulderR: StepGeometry.commentShoulderR(forFont: fontSize),
+            tipR: StepGeometry.commentTipR(forFont: fontSize))
         NSColor(white: 0.13, alpha: 0.88).setFill()
         path.fill()
         // Light hairline so the bubble stays visible on dark backgrounds too.
@@ -152,28 +153,27 @@ enum SceneRenderer {
             options: [.usesLineFragmentOrigin, .usesFontLeading])
     }
 
-    /// Rounded speech bubble for a step comment: rounded corners + a pointed tail
-    /// on the LEFT-centre that juts toward the badge, so the comment reads as
-    /// belonging to the number. `body` is the rounded-rect part; the tail tip sits
-    /// `tailW` to its left.
-    private static func stepBubblePath(body r: CGRect, tailW: CGFloat, tailH: CGFloat) -> NSBezierPath {
+    /// Speech bubble for a step comment (Variant A2): the right side is a pill, and
+    /// the WHOLE left side is one wide arrow pointing at the badge — its two shoulders
+    /// (where the top/bottom edges meet the arrow) and its tip are all rounded so the
+    /// shape flows. `body` is the rounded-rect text area; the tip sits `tipLen` to its
+    /// left, at the vertical centre.
+    private static func stepBubblePath(body r: CGRect, tipLen: CGFloat, shoulderR: CGFloat, tipR: CGFloat) -> NSBezierPath {
         let rR = min(r.height / 2, r.width / 2)            // right: pill end
-        let rL = min(r.height * 0.28, r.width - rR)        // left corners
+        let sh = min(shoulderR, r.height / 2 - 0.5)        // shoulder fillet (clamped to fit)
         let cy = r.midY
-        let tipX = r.minX - tailW
+        let tip = CGPoint(x: r.minX - tipLen, y: cy)
+        let topShoulder = CGPoint(x: r.minX, y: r.minY)
+        let bottomShoulder = CGPoint(x: r.minX, y: r.maxY)
         let p = NSBezierPath()
-        p.move(to: CGPoint(x: r.minX + rL, y: r.minY))
+        p.move(to: CGPoint(x: r.minX + sh, y: r.minY))                                               // top edge (after top shoulder)
         p.line(to: CGPoint(x: r.maxX - rR, y: r.minY))
-        p.appendArc(from: CGPoint(x: r.maxX, y: r.minY), to: CGPoint(x: r.maxX, y: r.minY + rR), radius: rR)  // TR
-        p.line(to: CGPoint(x: r.maxX, y: r.maxY - rR))
-        p.appendArc(from: CGPoint(x: r.maxX, y: r.maxY), to: CGPoint(x: r.maxX - rR, y: r.maxY), radius: rR)  // BR
-        p.line(to: CGPoint(x: r.minX + rL, y: r.maxY))
-        p.appendArc(from: CGPoint(x: r.minX, y: r.maxY), to: CGPoint(x: r.minX, y: r.maxY - rL), radius: rL)  // BL
-        p.line(to: CGPoint(x: r.minX, y: cy + tailH / 2))   // left edge down to the tail base
-        p.line(to: CGPoint(x: tipX, y: cy))                 // out to the tail tip (points at the badge)
-        p.line(to: CGPoint(x: r.minX, y: cy - tailH / 2))   // back to the tail base
-        p.line(to: CGPoint(x: r.minX, y: r.minY + rL))
-        p.appendArc(from: CGPoint(x: r.minX, y: r.minY), to: CGPoint(x: r.minX + rL, y: r.minY), radius: rL)  // TL
+        p.appendArc(from: CGPoint(x: r.maxX, y: r.minY), to: CGPoint(x: r.maxX, y: cy), radius: rR)  // top-right (pill)
+        p.appendArc(from: CGPoint(x: r.maxX, y: r.maxY), to: CGPoint(x: r.maxX - rR, y: r.maxY), radius: rR)  // bottom-right (pill)
+        p.line(to: CGPoint(x: r.minX + sh, y: r.maxY))                                               // bottom edge (toward bottom shoulder)
+        p.appendArc(from: bottomShoulder, to: tip, radius: sh)                                       // bottom shoulder (rounded)
+        p.appendArc(from: tip, to: topShoulder, radius: tipR)                                        // arrow tip (rounded)
+        p.appendArc(from: topShoulder, to: CGPoint(x: r.maxX - rR, y: r.minY), radius: sh)           // top shoulder (rounded)
         p.close()
         return p
     }
