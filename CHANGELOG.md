@@ -4,6 +4,9 @@ All notable changes to DM_Screenshot. Newest version first. Always written in En
 
 ## [Unreleased]
 
+## 0.4.17 – 2026-06-23
+- change: The app icon now uses the colorful DM BrandDesign direction on macOS and Windows, with a full-bleed multi-size Windows export.
+
 ## 0.4.16 – 2026-06-23
 - fix: The Windows taskbar/Explorer app icon now fills the full icon canvas and ships every size as its own crisp frame, so it no longer looks small, cropped or pixellated (Windows)
 
