@@ -548,7 +548,7 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
         // NSTextView's own rounded background previews the committed bubble live).
         let bubble = editingStepComment
         tv.drawsBackground = bubble
-        tv.backgroundColor = bubble ? NSColor(white: 0.13, alpha: 0.88) : .clear
+        tv.backgroundColor = bubble ? NSColor(white: 0.13, alpha: 0.75) : .clear
         tv.textColor = bubble ? .white : NSColor(hex: editingColorHex)
         tv.insertionPointColor = bubble ? .white : NSColor(hex: editingColorHex)
         if bubble {

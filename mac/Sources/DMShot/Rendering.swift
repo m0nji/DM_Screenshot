@@ -134,7 +134,7 @@ enum SceneRenderer {
             tipLen: StepGeometry.commentTailLen(forFont: fontSize),
             shoulderR: StepGeometry.commentShoulderR(forFont: fontSize),
             tipR: StepGeometry.commentTipR(forFont: fontSize))
-        NSColor(white: 0.13, alpha: 0.88).setFill()
+        NSColor(white: 0.13, alpha: 0.75).setFill()
         path.fill()
         // Light hairline so the bubble stays visible on dark backgrounds too.
         NSColor(white: 1.0, alpha: 0.30).setStroke()

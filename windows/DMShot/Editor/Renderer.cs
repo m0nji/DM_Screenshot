@@ -97,7 +97,7 @@ public static class Renderer
                     float tipLen = (float)StepGeometry.CommentTailLen(fs), shR = (float)StepGeometry.CommentShoulderR(fs), tipR = (float)StepGeometry.CommentTipR(fs);
                     using (var path = StepBubblePath(brect, tipLen, shR, tipR))
                     {
-                        using (var bub = new SolidBrush(Color.FromArgb(224, 33, 33, 33)))
+                        using (var bub = new SolidBrush(Color.FromArgb(191, 33, 33, 33)))
                             g.FillPath(bub, path);
                         // Light hairline so the bubble stays visible on dark backgrounds too.
                         using (var bpen = new Pen(Color.FromArgb(77, 255, 255, 255), Math.Max(2f, fs * 0.08f)))
@@ -224,7 +224,7 @@ public static class Renderer
                     var bo = StepGeometry.BubbleOrigin(a);
                     double padH = StepGeometry.CommentPadH(cfs), padV = StepGeometry.CommentPadV(cfs);
                     var brect = new System.Windows.Rect(bo.X, bo.Y, cft.Width + 2 * padH, cft.Height + 2 * padV);
-                    var bub = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(224, 33, 33, 33));
+                    var bub = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(191, 33, 33, 33));
                     var bpen = new System.Windows.Media.Pen(
                         new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(77, 255, 255, 255)),
                         Math.Max(2, cfs * 0.08));
