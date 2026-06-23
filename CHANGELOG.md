@@ -4,6 +4,9 @@ All notable changes to DM_Screenshot. Newest version first. Always written in En
 
 ## [Unreleased]
 
+## 0.4.15 – 2026-06-23
+- fix: Toolbar tooltips no longer stop working after the first annotation — in both the Quick-Edit overlay and the main editor they keep appearing for the whole session (macOS)
+
 ## 0.4.14 – 2026-06-23
 - change: In the Quick-Edit toolbar, the Save and "Edit in main window" buttons swapped places (macOS + Windows)
 
