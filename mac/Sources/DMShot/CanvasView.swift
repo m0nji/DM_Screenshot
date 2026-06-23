@@ -28,6 +28,7 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
     private var editingColorHex: String = "#EF4444"
     private var textDragStart: CGPoint?      // image-space start of a text-box drag
     private var textDragRect: CGRect?        // current dragged box (image space), for the rubber band
+    private var editingStepFresh = false     // true while editing a JUST-placed step's comment
     private var toolObserver: AnyCancellable?
 
     init(model: EditorModel, pad: CGFloat = 24) {
@@ -118,7 +119,13 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
         t.translateX(by: -vr.minX, yBy: -vr.minY)
         t.concat()
         var shapes = model.annotations
-        if let id = editingExistingID { shapes.removeAll { $0.id == id } }
+        if let id = editingExistingID, let idx = shapes.firstIndex(where: { $0.id == id }) {
+            if shapes[idx].kind == .step {
+                shapes[idx].text = ""      // keep the badge; the live editor shows the comment
+            } else {
+                shapes.remove(at: idx)     // text annotation: hidden entirely while editing
+            }
+        }
         if let draft { shapes.append(draft) }
         SceneRenderer.draw(image: image, annotations: shapes)
         NSGraphicsContext.restoreGraphicsState()
@@ -251,9 +258,15 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
 
         switch model.tool {
         case .select:
-            if event.clickCount == 2, let hit = textAnnotationHit(p) {
-                beginTextEditing(existing: hit)
-                return
+            if event.clickCount == 2 {
+                if let hit = textAnnotationHit(p) {
+                    beginTextEditing(existing: hit)
+                    return
+                }
+                if let step = stepAnnotationHit(p) {
+                    beginStepCommentEditing(for: step, fresh: false)
+                    return
+                }
             }
             if let selected = selectedAnnotation(),
                let handle = hitSelectionHandle(p, in: selected) {
@@ -283,6 +296,8 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
             var a = makeAnnotation(kind: .step, at: p)
             a.stepLabel = model.stepCounter
             model.add(a)
+            beginStepCommentEditing(for: a, fresh: true)
+            return
         case .arrow, .underline:
             draft = makeAnnotation(kind: model.tool == .arrow ? .arrow : .underline, at: p)
         case .rect, .ellipse, .highlighter, .blur:
@@ -486,6 +501,7 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
     }
 
     private func beginNewTextEditing(at origin: CGPoint, fontSize: CGFloat) {
+        editingStepFresh = false
         editingExistingID = nil
         editingOrigin = origin
         editingColorHex = model.colorHex
@@ -494,12 +510,30 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
     }
 
     private func beginTextEditing(existing a: Annotation) {
+        editingStepFresh = false
         model.selectedID = a.id
         editingExistingID = a.id
         editingOrigin = CGPoint(x: a.x, y: a.y)
         editingColorHex = a.colorHex
         editingFontSize = TextLayout.fontSize(forStroke: a.strokeWidth)
         presentTextEditor(initialText: a.text)
+    }
+
+    private func beginStepCommentEditing(for a: Annotation, fresh: Bool) {
+        model.selectedID = a.id
+        editingExistingID = a.id
+        editingStepFresh = fresh
+        editingColorHex = a.colorHex
+        editingFontSize = StepGeometry.commentFontSize(for: a)
+        editingOrigin = StepGeometry.commentOrigin(for: a)
+        presentTextEditor(initialText: a.text)
+    }
+
+    private func stepAnnotationHit(_ p: CGPoint) -> Annotation? {
+        for a in model.annotations.reversed() where a.kind == .step {
+            if StepGeometry.bounds(for: a).insetBy(dx: -4, dy: -4).contains(p) { return a }
+        }
+        return nil
     }
 
     private func presentTextEditor(initialText: String) {
@@ -544,14 +578,25 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
         let raw = tv.string
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         let existingID = editingExistingID
+        let isStep = existingID
+            .flatMap { id in model.annotations.first { $0.id == id } }?.kind == .step
+        let fresh = editingStepFresh
         textEditor = nil
         editingExistingID = nil
+        editingStepFresh = false
         tv.removeFromSuperview()
         if window?.firstResponder === tv { window?.makeFirstResponder(self) }
 
         if commit {
             if let id = existingID {
-                if trimmed.isEmpty {
+                if isStep {
+                    // A step keeps its badge even when the comment is empty. A
+                    // just-placed step folds the comment into its add (one undo);
+                    // a re-edit records its own undo step.
+                    let text = trimmed.isEmpty ? "" : raw
+                    model.update(id, record: !fresh) { $0.text = text }
+                    model.selectedID = id
+                } else if trimmed.isEmpty {
                     model.remove(id)
                 } else {
                     model.update(id) { $0.text = raw }
