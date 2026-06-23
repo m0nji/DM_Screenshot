@@ -70,7 +70,7 @@ struct EditorColorPicker: View {
                 .overlay(Circle().stroke(.secondary, lineWidth: 1))
         }
         .buttonStyle(.plain)
-        .help(tr(.color))
+        .dmTooltip(tr(.color))
         .popover(isPresented: $open) {
             EditorColorPalette(model: model, onPick: { open = false })
         }

@@ -52,6 +52,7 @@ struct EditorView: View {
             }
         }
         .frame(minWidth: 900, minHeight: 560)
+        .dmTooltipLayer()
     }
 
     private var toolbar: some View {
@@ -67,7 +68,7 @@ struct EditorView: View {
                     Button { model.tool = spec.tool } label: {
                         Image(systemName: spec.icon).frame(width: 18)
                     }
-                    .help(tr(spec.help))
+                    .dmTooltip(tr(spec.help))
                     .buttonStyle(ToolButtonStyle(active: model.tool == spec.tool))
                     .disabled(model.image == nil)
                 }
@@ -79,9 +80,9 @@ struct EditorView: View {
                 Divider().frame(height: 22)
 
                 Button(action: model.undo) { Image(systemName: "arrow.uturn.backward") }
-                    .help(tr(.undo))
+                    .dmTooltip(tr(.undo))
                 Button(action: model.redo) { Image(systemName: "arrow.uturn.forward") }
-                    .help(tr(.redo))
+                    .dmTooltip(tr(.redo))
                 Divider().frame(height: 22)
 
                 Text("\(Int(model.viewRect.width)) × \(Int(model.viewRect.height)) \(tr(.pixelsSuffix))")
@@ -90,7 +91,7 @@ struct EditorView: View {
                     .buttonStyle(.plain)
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                    .help(tr(.resetZoomToFit))
+                    .dmTooltip(tr(.resetZoomToFit))
                     .fixedSize()
                     .disabled(model.image == nil)
             }
@@ -174,7 +175,7 @@ struct EditorView: View {
                         }
                         .buttonStyle(.plain)
                         .padding(4)
-                        .help("Delete this capture")
+                        .dmTooltip("Delete this capture")
                     }
                 }
                 .overlay(alignment: .bottomLeading) {

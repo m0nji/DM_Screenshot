@@ -35,6 +35,7 @@ struct QuickEditToolbar: View {
                     .background(panelBackground)
             }
         }
+        .dmTooltipLayer()
     }
 
     private var toolbarRow: some View {
@@ -43,7 +44,7 @@ struct QuickEditToolbar: View {
                 Button { model.tool = spec.tool } label: {
                     Image(systemName: spec.icon).frame(width: 18)
                 }
-                .help(tr(spec.help))
+                .dmTooltip(tr(spec.help))
                 .buttonStyle(ToolButtonStyle(active: model.tool == spec.tool))
                 .disabled(model.image == nil)
             }
@@ -53,21 +54,21 @@ struct QuickEditToolbar: View {
                     .frame(width: 20, height: 20)
                     .overlay(Circle().stroke(.secondary, lineWidth: 1))
             }
-            .buttonStyle(.plain).help(tr(.color))
+            .buttonStyle(.plain).dmTooltip(tr(.color))
             Divider().frame(height: 22)
             EditorContextualSlider(model: model)   // always visible so size/blur strength can be set in advance
             Divider().frame(height: 22)
             Button(action: model.undo) { Image(systemName: "arrow.uturn.backward") }
-                .buttonStyle(.plain).help(tr(.undo)).disabled(model.image == nil)
+                .buttonStyle(.plain).dmTooltip(tr(.undo)).disabled(model.image == nil)
             Divider().frame(height: 22)
             Button(action: onClose) { Image(systemName: "xmark") }
-                .buttonStyle(.plain).help(tr(.close))
+                .buttonStyle(.plain).dmTooltip(tr(.close))
             Button(action: onEditInMain) { Image(systemName: "macwindow") }
-                .buttonStyle(.plain).help(tr(.editInMainWindow))
+                .buttonStyle(.plain).dmTooltip(tr(.editInMainWindow))
             Button(action: onSave) { Image(systemName: "square.and.arrow.down") }
-                .buttonStyle(.plain).help(tr(.save)).disabled(model.image == nil)
+                .buttonStyle(.plain).dmTooltip(tr(.save)).disabled(model.image == nil)
             Button(action: onCopy) { Image(systemName: "doc.on.doc") }
-                .buttonStyle(.plain).help(tr(.copy)).disabled(model.image == nil)
+                .buttonStyle(.plain).dmTooltip(tr(.copy)).disabled(model.image == nil)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
