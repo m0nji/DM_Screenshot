@@ -4,6 +4,11 @@ All notable changes to DM_Screenshot. Newest version first. Always written in En
 
 ## [Unreleased]
 
+## 0.4.9 – 2026-06-23
+- feat: Numbered steps can now carry an optional comment typed right next to the badge; the number and its comment move and resize together, and an empty comment leaves just the numbered circle (macOS + Windows)
+- feat: The Quick-Edit toolbar gains the Ellipse and numbered-Step tools, and the Copy-to-clipboard button now sits at the far right of the action group (macOS + Windows)
+- fix: The numbered-step counter now resets correctly after Undo, so a removed number is reused instead of the count climbing (macOS + Windows)
+
 ## 0.4.8 – 2026-06-22
 - change: The macOS menu bar icon now uses the modern DM Screenshot mark, matching the new app icon while staying a monochrome template symbol for light/dark menu bars (macOS)
 
