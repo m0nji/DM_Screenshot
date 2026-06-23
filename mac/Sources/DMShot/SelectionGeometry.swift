@@ -175,6 +175,8 @@ enum SelectionGeometry {
         switch annotation.kind {
         case .text:
             return bounds(for: annotation).insetBy(dx: -4, dy: -4)
+        case .step:
+            return StepGeometry.bounds(for: annotation).insetBy(dx: -4, dy: -4)
         default:
             let pad = annotation.strokeWidth + 4
             return annotation.normalizedRect.insetBy(dx: -pad, dy: -pad)

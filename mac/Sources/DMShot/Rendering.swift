@@ -107,7 +107,7 @@ enum SceneRenderer {
     }
 
     private static func drawStep(_ a: Annotation, color: NSColor) {
-        let radius = a.strokeWidth * 4 + 8
+        let radius = StepGeometry.radius(for: a)
         let center = CGPoint(x: a.x, y: a.y)
         let circle = NSBezierPath(ovalIn: CGRect(
             x: center.x - radius, y: center.y - radius,
@@ -125,6 +125,21 @@ enum SceneRenderer {
             ])
         let size = str.size()
         str.draw(at: CGPoint(x: center.x - size.width / 2, y: center.y - size.height / 2))
+
+        // Optional comment hanging to the right of the badge.
+        guard !a.text.isEmpty else { return }
+        let fontSize = StepGeometry.commentFontSize(for: a)
+        let comment = NSAttributedString(
+            string: a.text,
+            attributes: [
+                .foregroundColor: color,
+                .font: TextLayout.font(ofSize: fontSize),
+            ])
+        let csize = TextLayout.size(a.text, fontSize: fontSize)
+        let origin = StepGeometry.commentOrigin(for: a)
+        comment.draw(
+            with: CGRect(x: origin.x, y: origin.y, width: csize.width, height: csize.height),
+            options: [.usesLineFragmentOrigin, .usesFontLeading])
     }
 
     private static func drawText(_ a: Annotation, color: NSColor) {
