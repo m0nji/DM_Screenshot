@@ -32,6 +32,7 @@ public sealed class CanvasControl : FrameworkElement
     // Inline text editing
     private TextBox? _textBox;
     private Annotation? _editingAnno;     // existing annotation being re-edited (null for a new one)
+    private bool _editingStepFresh;       // true while editing a JUST-placed step's comment
     private Point _editOrigin;            // image-space top-left of the text
     private double _editFontSize;         // on-image font size
     private uint _editColor;
@@ -153,7 +154,10 @@ public sealed class CanvasControl : FrameworkElement
         dc.PushTransform(new ScaleTransform(_scale, _scale));
 
         IEnumerable<Annotation> anns = Model.Annotations;
-        if (_editingAnno is not null) anns = anns.Where(a => !ReferenceEquals(a, _editingAnno));
+        if (_editingAnno is { Kind: ToolKind.Step } editingStep)
+            anns = anns.Select(a => ReferenceEquals(a, editingStep) ? StripComment(a) : a);
+        else if (_editingAnno is not null)
+            anns = anns.Where(a => !ReferenceEquals(a, _editingAnno));
         if (_draft is not null) anns = anns.Concat(new[] { _draft });
         using (var comp = Renderer.RenderComposite(_source, anns))
             dc.DrawImage(ImageInterop.ToBitmapSource(comp), new Rect(0, 0, _w, _h));
@@ -280,6 +284,11 @@ public sealed class CanvasControl : FrameworkElement
                     TextLayout.FontSizeForStroke(dbl.StrokeWidth), dbl.ColorArgb, dbl.Text);
                 return;
             }
+            if (dbl is { Kind: ToolKind.Step } step)
+            {
+                BeginStepComment(step, fresh: false);
+                return;
+            }
         }
 
         if (ActiveTool == ToolKind.Text)
@@ -390,6 +399,7 @@ public sealed class CanvasControl : FrameworkElement
         }
         Model.Add(d);
         SetSelected(d);   // auto-select the fresh shape so size/colour edits apply to it immediately
+        if (d.Kind == ToolKind.Step) BeginStepComment(d, fresh: true);
     }
 
     // ===== Edits applied to the current selection =====
@@ -431,9 +441,18 @@ public sealed class CanvasControl : FrameworkElement
     }
 
     // ===== Inline text editing =====
+    private static Annotation StripComment(Annotation a) { var c = a.Clone(); c.Text = ""; return c; }
+
+    private void BeginStepComment(Annotation step, bool fresh)
+    {
+        BeginTextEdit(step, StepGeometry.CommentOrigin(step), StepGeometry.CommentFontSize(step), step.ColorArgb, step.Text);
+        _editingStepFresh = fresh;
+    }
+
     private void BeginTextEdit(Annotation? existing, Point imageOrigin, double fontSize, uint color, string initial)
     {
         CommitTextEdit();   // safety: never two editors at once
+        _editingStepFresh = false;   // plain text edits clear the flag; BeginStepComment sets it after this returns
         _editingAnno = existing;
         _editOrigin = imageOrigin;
         _editFontSize = fontSize;
@@ -486,9 +505,20 @@ public sealed class CanvasControl : FrameworkElement
         RemoveVisualChild(tb);
         RemoveLogicalChild(tb);
 
+        bool wasFresh = _editingStepFresh;
+        _editingStepFresh = false;
         if (existing is not null)
         {
-            if (trimmed.Length == 0) Model.Remove(existing);
+            if (existing.Kind == ToolKind.Step)
+            {
+                // A step keeps its badge even when the comment is empty. A
+                // just-placed step folds the comment into its Add command (one
+                // undo); a re-edit records its own undo step.
+                if (wasFresh) { existing.Text = raw; InvalidateVisual(); ContentChanged?.Invoke(); }
+                else Model.Mutate(existing, a => a.Text = raw);
+                SetSelected(existing);
+            }
+            else if (trimmed.Length == 0) Model.Remove(existing);
             else { Model.Mutate(existing, a => a.Text = raw); SetSelected(existing); }
         }
         else if (trimmed.Length != 0)
