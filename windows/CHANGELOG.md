@@ -4,6 +4,7 @@ All notable changes to DM_Screenshot for Windows. Newest version first. Always w
 
 ## [Unreleased]
 - fix: The taskbar/Explorer app icon now fills the full icon canvas and ships every size as its own crisp frame, so it no longer looks small, cropped or pixellated (Windows)
+- change: The app is now called "DM Screenshot" (no underscore) in window titles, the tray tooltip and the Start-menu shortcut, matching the other DM apps; settings and auto-update are unchanged (Windows)
 
 ## 0.2.8 – 2026-06-20
 - feat: DM_Screenshot is now available in German as well as English — switch live (no restart) under Settings → Language; English stays the default (Windows)

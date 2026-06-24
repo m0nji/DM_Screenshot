@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleDisplayName</key>
-	<string>DM_Screenshot</string>
+	<string>DM Screenshot</string>
 	<key>CFBundleExecutable</key>
 	<string>DMShot</string>
 	<key>CFBundleIconFile</key>
@@ -13,7 +13,7 @@
 	<key>CFBundleIdentifier</key>
 	<string>de.dmscreenshot.app</string>
 	<key>CFBundleName</key>
-	<string>DM_Screenshot</string>
+	<string>DM Screenshot</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>

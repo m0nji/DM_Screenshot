@@ -64,7 +64,7 @@ jobs:
           set -euo pipefail
           cd mac
           DMSHOT_SIGN_ID="$SIGN_ID" ./build_app.sh release
-          APP=build/DM_Screenshot.app
+          APP="build/DM Screenshot.app"
           FW="$APP/Contents/Frameworks/Sparkle.framework"
           # Sign Sparkle's nested helpers first (deepest → out), hardened runtime + timestamp.
           for N in \
@@ -93,17 +93,17 @@ jobs:
           notarize() { xcrun notarytool submit "$1" --key "$KEY" --key-id "$APPLE_API_KEY_ID" --issuer "$APPLE_API_ISSUER" --wait; }
 
           # 1) Notarize + staple the .app itself.
-          ditto -c -k --keepParent build/DM_Screenshot.app "$RUNNER_TEMP/app.zip"
+          ditto -c -k --keepParent "build/DM Screenshot.app" "$RUNNER_TEMP/app.zip"
           notarize "$RUNNER_TEMP/app.zip"
-          xcrun stapler staple build/DM_Screenshot.app
+          xcrun stapler staple "build/DM Screenshot.app"
 
           # 2) Build a drag-to-install DMG (app + /Applications symlink).
           STAGE="$RUNNER_TEMP/dmg"
           mkdir -p "$STAGE"
-          cp -R build/DM_Screenshot.app "$STAGE/"
+          cp -R "build/DM Screenshot.app" "$STAGE/"
           ln -s /Applications "$STAGE/Applications"
           DMG="build/DM_Screenshot-${GITHUB_REF_NAME}.dmg"
-          hdiutil create -volname "DM_Screenshot" -srcfolder "$STAGE" -ov -format UDZO "$DMG"
+          hdiutil create -volname "DM Screenshot" -srcfolder "$STAGE" -ov -format UDZO "$DMG"
 
           # 3) Sign + notarize + staple the DMG so the download itself passes Gatekeeper.
           codesign --force --sign "$SIGN_ID" --timestamp "$DMG"
@@ -117,7 +117,7 @@ jobs:
         run: |
           set -euo pipefail
           ASSET="mac/build/DM_Screenshot-${GITHUB_REF_NAME}.dmg"
-          NOTES="DM_Screenshot ${GITHUB_REF_NAME} — signed & notarized macOS build. Download the .dmg, open it, and drag DM_Screenshot into the Applications folder."
+          NOTES="DM Screenshot ${GITHUB_REF_NAME} — signed & notarized macOS build. Download the .dmg, open it, and drag DM Screenshot into the Applications folder."
           if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
             gh release upload "${GITHUB_REF_NAME}" "$ASSET" --clobber
           else
@@ -215,7 +215,7 @@ jobs:
             --packVersion "$VERSION" \
             --packDir publish \
             --mainExe DMShot.exe \
-            --packTitle "DM_Screenshot" \
+            --packTitle "DM Screenshot" \
             --packAuthors "DM" \
             --icon windows/DMShot/Resources/AppIcon.ico
           # Append the Velopack assets to the existing GitHub Release for this tag.

@@ -241,7 +241,7 @@ public partial class App : Application
         if (!global::Windows.Graphics.Capture.GraphicsCaptureSession.IsSupported())
         {
             MessageBox.Show(Loc.Instance["videoUnsupportedMessage"],
-                "DM_Screenshot", MessageBoxButton.OK, MessageBoxImage.Warning);
+                "DM Screenshot", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
@@ -258,7 +258,7 @@ public partial class App : Application
         {
             recorder.Dispose();
             if (ReferenceEquals(_recorder, recorder)) _recorder = null;
-            MessageBox.Show(Loc.Instance["videoStartFailedMessage"], "DM_Screenshot",
+            MessageBox.Show(Loc.Instance["videoStartFailedMessage"], "DM Screenshot",
                 MessageBoxButton.OK, MessageBoxImage.Warning);
             return;                                                 // no phantom recording (V2)
         }

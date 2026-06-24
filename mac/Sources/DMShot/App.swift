@@ -101,7 +101,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             return true
         }
         image.isTemplate = true
-        image.accessibilityDescription = "DM_Screenshot"
+        image.accessibilityDescription = "DM Screenshot"
         return image
     }
 
@@ -265,7 +265,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                     frame.show(regionGlobal: region)
                     self.recordingFrame = frame
                 }
-                // Get DM_Screenshot out of the way (and out of the recording): hide
+                // Get DM Screenshot out of the way (and out of the recording): hide
                 // the app so the user's app returns to front. The Stop control and
                 // the region frame stay visible (canHide = false).
                 NSApp.hide(nil)
@@ -407,7 +407,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 contentRect: NSRect(x: 0, y: 0, width: 1100, height: 720),
                 styleMask: [.titled, .closable, .miniaturizable, .resizable],
                 backing: .buffered, defer: false)
-            win.title = "DM_Screenshot"
+            win.title = "DM Screenshot"
             win.contentView = NSHostingView(rootView: view)
             win.delegate = self
             win.isReleasedWhenClosed = false

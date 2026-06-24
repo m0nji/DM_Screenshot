@@ -9,7 +9,7 @@ echo "==> swift build -c $CONFIG"
 swift build -c "$CONFIG"
 
 BIN="$(swift build -c "$CONFIG" --show-bin-path)/DMShot"
-APP="build/DM_Screenshot.app"
+APP="build/DM Screenshot.app"
 
 echo "==> assembling $APP"
 rm -rf "$APP"

@@ -58,8 +58,8 @@ final class Localizer: ObservableObject {
         case .sectionLanguage:      return ("Language", "Sprache")
         case .sectionUpdates:       return ("Updates", "Updates")
         case .launchAtLogin:        return ("Launch at login", "Beim Anmelden starten")
-        case .launchAtLoginHelp:    return ("Start DM_Screenshot automatically when you log in.",
-                                            "DM_Screenshot automatisch beim Anmelden starten.")
+        case .launchAtLoginHelp:    return ("Start DM Screenshot automatically when you log in.",
+                                            "DM Screenshot automatisch beim Anmelden starten.")
         case .comingSoon:           return ("Coming soon", "Bald verfügbar")
         case .afterCapture:         return ("After capture", "Nach der Aufnahme")
         case .afterCaptureHelp:     return ("What happens right after a screenshot is taken.",
@@ -116,8 +116,8 @@ final class Localizer: ObservableObject {
         case .menuQuit:             return ("Quit", "Beenden")
         case .permTitle:            return ("Screen Recording Required", "Bildschirmaufnahme erforderlich")
         case .permBody:             return (
-            "Allow DM_Screenshot under System Settings → Privacy & Security → Screen Recording. macOS only applies a newly granted permission after a restart — if you have already allowed it, relaunch now.",
-            "Erlaube DM_Screenshot unter Systemeinstellungen → Datenschutz & Sicherheit → Bildschirmaufnahme. macOS übernimmt eine neu erteilte Berechtigung erst nach einem Neustart — falls du sie bereits erlaubt hast, starte jetzt neu.")
+            "Allow DM Screenshot under System Settings → Privacy & Security → Screen Recording. macOS only applies a newly granted permission after a restart — if you have already allowed it, relaunch now.",
+            "Erlaube DM Screenshot unter Systemeinstellungen → Datenschutz & Sicherheit → Bildschirmaufnahme. macOS übernimmt eine neu erteilte Berechtigung erst nach einem Neustart — falls du sie bereits erlaubt hast, starte jetzt neu.")
         case .relaunchNow:          return ("Relaunch Now", "Jetzt neu starten")
         case .openSystemSettings:   return ("Open System Settings", "Systemeinstellungen öffnen")
         case .copy:                 return ("Copy", "Kopieren")
@@ -159,7 +159,7 @@ final class Localizer: ObservableObject {
         case .discard:              return ("Discard", "Verwerfen")
         case .createGIF:            return ("Create GIF", "GIF erstellen")
         case .estimatedGIFSize:     return ("Estimated GIF size: %@", "Geschätzte GIF-Größe: %@")
-        case .gifViewerTitle:       return ("DM_Screenshot — GIF", "DM_Screenshot — GIF")
+        case .gifViewerTitle:       return ("DM Screenshot — GIF", "DM Screenshot — GIF")
         case .ok:                   return ("OK", "OK")
         case .cancel:               return ("Cancel", "Abbrechen")
         }

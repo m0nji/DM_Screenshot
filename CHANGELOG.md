@@ -3,6 +3,7 @@
 All notable changes to DM_Screenshot. Newest version first. Always written in English.
 
 ## [Unreleased]
+- change: The app is now called "DM Screenshot" (no underscore) to match the other DM apps — this affects the display name, window titles and installer/shortcut titles only; the bundle identifier, existing permissions, auto-update and saved screenshot filenames (still `DM_Screenshot_…`) are unchanged (macOS + Windows)
 
 ## 0.4.17 – 2026-06-23
 - change: The app icon now uses the colorful DM BrandDesign direction on macOS and Windows, with a full-bleed multi-size Windows export.

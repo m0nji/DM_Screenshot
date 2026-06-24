@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ed="clr-namespace:DMShot.Editor"
         xmlns:loc="clr-namespace:DMShot.Localization"
-        Title="DM_Screenshot" Width="1100" Height="750" MinWidth="900" MinHeight="560"
+        Title="DM Screenshot" Width="1100" Height="750" MinWidth="900" MinHeight="560"
         Background="{StaticResource DmBackground}" Icon="/Resources/AppIcon.ico"
         TextOptions.TextFormattingMode="Ideal" UseLayoutRounding="True">
   <Window.Resources>

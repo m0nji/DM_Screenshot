@@ -34,11 +34,11 @@ final class LocalizationTests: XCTestCase {
         let loc = Localizer(language: .english)
         XCTAssertEqual(loc.string(.resetZoomToFit), "Reset zoom to fit")
         XCTAssertEqual(loc.string(.estimatedGIFSize), "Estimated GIF size: %@")
-        XCTAssertEqual(loc.string(.gifViewerTitle), "DM_Screenshot — GIF")
+        XCTAssertEqual(loc.string(.gifViewerTitle), "DM Screenshot — GIF")
 
         loc.language = .german
         XCTAssertEqual(loc.string(.resetZoomToFit), "Zoom auf Fenstergröße zurücksetzen")
         XCTAssertEqual(loc.string(.estimatedGIFSize), "Geschätzte GIF-Größe: %@")
-        XCTAssertEqual(loc.string(.gifViewerTitle), "DM_Screenshot — GIF")
+        XCTAssertEqual(loc.string(.gifViewerTitle), "DM Screenshot — GIF")
     }
 }

@@ -47,7 +47,7 @@ public sealed class Loc : INotifyPropertyChanged
         ["sectionLanguage"] = "Language",
         ["sectionUpdates"] = "Updates",
         ["launchAtLogin"] = "Launch at login",
-        ["launchAtLoginHelp"] = "Start DM_Screenshot automatically when you sign in.",
+        ["launchAtLoginHelp"] = "Start DM Screenshot automatically when you sign in.",
         ["showLoupe"] = "Zoom loupe",
         ["showLoupeHelp"] = "Show a magnifier while selecting an area, for pixel-precise edges.",
         ["afterCapture"] = "After capture",
@@ -58,7 +58,7 @@ public sealed class Loc : INotifyPropertyChanged
         ["version"] = "Version",
         ["versionHelp"] = "Installed version.",
         ["checkForUpdates"] = "Check for Updates",
-        ["updatesDisabled"] = "Automatic updates work in the installed version of DM_Screenshot.",
+        ["updatesDisabled"] = "Automatic updates work in the installed version of DM Screenshot.",
         ["checkingForUpdates"] = "Checking for updates…",
         ["upToDate"] = "You’re up to date.",
         ["updateAvailable"] = "Version {0} is available.",
@@ -129,7 +129,7 @@ public sealed class Loc : INotifyPropertyChanged
         ["hex"] = "Hex",
         ["ok"] = "OK",
         ["cancel"] = "Cancel",
-        ["trayTooltip"] = "DM_Screenshot",
+        ["trayTooltip"] = "DM Screenshot",
     };
 
     public static readonly IReadOnlyDictionary<string, string> De = new Dictionary<string, string>
@@ -140,7 +140,7 @@ public sealed class Loc : INotifyPropertyChanged
         ["sectionLanguage"] = "Sprache",
         ["sectionUpdates"] = "Updates",
         ["launchAtLogin"] = "Beim Anmelden starten",
-        ["launchAtLoginHelp"] = "DM_Screenshot automatisch beim Anmelden starten.",
+        ["launchAtLoginHelp"] = "DM Screenshot automatisch beim Anmelden starten.",
         ["showLoupe"] = "Zoom-Lupe",
         ["showLoupeHelp"] = "Beim Auswählen eines Bereichs eine Lupe für pixelgenaue Kanten anzeigen.",
         ["afterCapture"] = "Nach der Aufnahme",
@@ -151,7 +151,7 @@ public sealed class Loc : INotifyPropertyChanged
         ["version"] = "Version",
         ["versionHelp"] = "Installierte Version.",
         ["checkForUpdates"] = "Nach Updates suchen",
-        ["updatesDisabled"] = "Automatische Updates funktionieren in der installierten Version von DM_Screenshot.",
+        ["updatesDisabled"] = "Automatische Updates funktionieren in der installierten Version von DM Screenshot.",
         ["checkingForUpdates"] = "Suche nach Updates…",
         ["upToDate"] = "Du bist auf dem neuesten Stand.",
         ["updateAvailable"] = "Version {0} ist verfügbar.",
@@ -222,6 +222,6 @@ public sealed class Loc : INotifyPropertyChanged
         ["hex"] = "Hex",
         ["ok"] = "OK",
         ["cancel"] = "Abbrechen",
-        ["trayTooltip"] = "DM_Screenshot",
+        ["trayTooltip"] = "DM Screenshot",
     };
 }
