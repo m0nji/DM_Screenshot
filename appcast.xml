@@ -309,5 +309,13 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.4.17/DM_Screenshot-v0.4.17.dmg" type="application/octet-stream" sparkle:edSignature="rlgyZcBtAAuJ4VWDPBA0eTJ6bwtFByBKVliGmGmLB1m7oQyB6Fjqep8V6V4//DGqeRMezEHCQJjSPampXGzJBw==" length="2293861" />
 </item>
 
+<item>
+  <title>Version 0.4.18</title>
+  <description><![CDATA[<ul><li>change: The app is now called "DM Screenshot" (no underscore) to match the other DM apps — this affects the display name, window titles and installer/shortcut titles only; the bundle identifier, existing permissions, auto-update and saved screenshot filenames (still `DM_Screenshot_…`) are unchanged (macOS + Windows)</li></ul>]]></description>
+  <sparkle:version>0.4.18</sparkle:version>
+  <sparkle:shortVersionString>0.4.18</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.4.18/DM_Screenshot-v0.4.18.dmg" type="application/octet-stream" sparkle:edSignature="YXp0OVFtxfs/yCYcmnm0LeLAwd2CWc6+xsSOJkU1Vf8IB7Q6/AXXcF1sQbvAc/z0xXcKgqOegxX46BzghVS5Cw==" length="2294320" />
+</item>
+
 </channel>
 </rss>
