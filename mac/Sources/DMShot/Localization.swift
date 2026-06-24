@@ -8,6 +8,7 @@ enum L: CaseIterable {
     case settingsTitle, sectionGeneral, sectionShortcuts, sectionLanguage, sectionUpdates
     case launchAtLogin, launchAtLoginHelp, comingSoon
     case afterCapture, afterCaptureHelp, afterCaptureMainWindow, afterCaptureQuickEdit
+    case design, designHelp, designStandard, designBlack
     case showLoupe, showLoupeHelp
     case languageLabel, languageHelp
     // Settings — updates
@@ -66,6 +67,11 @@ final class Localizer: ObservableObject {
                                             "Was direkt nach einem Screenshot passiert.")
         case .afterCaptureMainWindow: return ("Open main window", "Hauptfenster öffnen")
         case .afterCaptureQuickEdit:  return ("Show Quick-Edit bar", "Schnellbearbeitungsleiste anzeigen")
+        case .design:               return ("Design", "Gestaltung")
+        case .designHelp:           return ("Choose the visual style for DM Screenshot.",
+                                            "Wähle den visuellen Stil für DM Screenshot.")
+        case .designStandard:       return ("Standard Design", "Standard-Design")
+        case .designBlack:          return ("Black Utility", "Black-Utility-Design")
         case .showLoupe:            return ("Zoom loupe", "Zoom-Lupe")
         case .showLoupeHelp:        return ("Show a magnifier while selecting an area, for pixel-precise edges.",
                                             "Beim Auswählen eines Bereichs eine Lupe für pixelgenaue Kanten anzeigen.")

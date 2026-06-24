@@ -6,6 +6,7 @@ import SwiftUI
 final class CanvasNSView: NSView, NSTextViewDelegate {
     let model: EditorModel
     let pad: CGFloat
+    var appDesign: AppDesign
     private var scale: CGFloat = 1
     private var offset: CGPoint = .zero
 
@@ -32,9 +33,10 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
     private var editingStepComment = false   // true while editing a step's comment (white text in a bubble)
     private var toolObserver: AnyCancellable?
 
-    init(model: EditorModel, pad: CGFloat = 24) {
+    init(model: EditorModel, pad: CGFloat = 24, appDesign: AppDesign = .black) {
         self.model = model
         self.pad = pad
+        self.appDesign = appDesign
         super.init(frame: .zero)
         // Confine all drawing to the canvas. NSView.clipsToBounds defaults to
         // false on macOS 10.14+, so without this a zoomed-in image (whose drawn
@@ -104,7 +106,7 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
     }
 
     override func draw(_ dirtyRect: NSRect) {
-        NSColor.dmBlackApp.setFill()
+        appDesign.appNSColor.setFill()
         bounds.fill()
         guard let image = model.image else { return }
         recomputeTransform()
@@ -656,12 +658,13 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
 /// SwiftUI wrapper around the AppKit canvas.
 struct CanvasView: NSViewRepresentable {
     @ObservedObject var model: EditorModel
+    var appDesign: AppDesign = .black
     var pad: CGFloat = 24
 
     func makeCoordinator() -> Coordinator { Coordinator() }
 
     func makeNSView(context: Context) -> CanvasNSView {
-        let view = CanvasNSView(model: model, pad: pad)
+        let view = CanvasNSView(model: model, pad: pad, appDesign: appDesign)
         // Redraw on ANY model change (covers undo/redo, tool/color edits).
         context.coordinator.cancellable = model.objectWillChange.sink { [weak view] _ in
             DispatchQueue.main.async { view?.refresh() }
@@ -669,7 +672,10 @@ struct CanvasView: NSViewRepresentable {
         return view
     }
 
-    func updateNSView(_ nsView: CanvasNSView, context: Context) { nsView.refresh() }
+    func updateNSView(_ nsView: CanvasNSView, context: Context) {
+        nsView.appDesign = appDesign
+        nsView.refresh()
+    }
 
     final class Coordinator { var cancellable: AnyCancellable? }
 }

@@ -18,6 +18,7 @@ private struct QuickEditOverlayView: View {
     let screenFrameGlobal: CGRect    // the capture screen's frame (global, bottom-left)
     let visibleFrameGlobal: CGRect   // the screen's visibleFrame (excl. menu bar + Dock)
     let captureFrameGlobal: CGRect   // the capture's rect (global, bottom-left)
+    let appDesign: AppDesign
     let onCopy: () -> Void
     let onSave: () -> Void
     let onEditInMain: () -> Void
@@ -33,7 +34,7 @@ private struct QuickEditOverlayView: View {
                     .onTapGesture { model.selectedID = nil }  // deselect, never close
 
                 // Framed capture, positioned in place.
-                CanvasView(model: model, pad: 0)
+                CanvasView(model: model, appDesign: appDesign, pad: 0)
                     .frame(width: localCapture.width, height: localCapture.height)
                     .clipShape(RoundedRectangle(cornerRadius: 10))
                     .overlay(RoundedRectangle(cornerRadius: 10)
@@ -42,7 +43,7 @@ private struct QuickEditOverlayView: View {
                     .position(x: localCapture.midX, y: localCapture.midY)
 
                 QuickEditToolbar(
-                    model: model, onCopy: onCopy, onSave: onSave,
+                    model: model, appDesign: appDesign, onCopy: onCopy, onSave: onSave,
                     onEditInMain: onEditInMain, onClose: onClose)
                     .fixedSize()
                     .background(GeometryReader { proxy in
@@ -92,17 +93,19 @@ final class QuickEditOverlay {
     private let model: EditorModel
     private let captureFrameGlobal: CGRect
     private let screen: NSScreen
+    private let appDesign: AppDesign
     private let onCopy: () -> Void
     private let onSave: () -> Void
     private let onEditInMain: () -> Void
     private let onClose: () -> Void
 
-    init(model: EditorModel, captureFrameGlobal: CGRect, screen: NSScreen,
+    init(model: EditorModel, captureFrameGlobal: CGRect, screen: NSScreen, appDesign: AppDesign,
          onCopy: @escaping () -> Void, onSave: @escaping () -> Void,
          onEditInMain: @escaping () -> Void, onClose: @escaping () -> Void) {
         self.model = model
         self.captureFrameGlobal = captureFrameGlobal
         self.screen = screen
+        self.appDesign = appDesign
         self.onCopy = onCopy
         self.onSave = onSave
         self.onEditInMain = onEditInMain
@@ -116,6 +119,7 @@ final class QuickEditOverlay {
             screenFrameGlobal: screen.frame,
             visibleFrameGlobal: screen.visibleFrame,
             captureFrameGlobal: captureFrameGlobal,
+            appDesign: appDesign,
             onCopy: onCopy, onSave: onSave, onEditInMain: onEditInMain,
             onClose: { [weak self] in self?.close(); self?.onClose() })
         let win = OverlayWindow(

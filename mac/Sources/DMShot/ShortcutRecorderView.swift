@@ -4,6 +4,8 @@ import SwiftUI
 /// Renders a shortcut as DM_Workspace-style key-caps.
 struct KeyCapsView: View {
     let caps: [String]
+    let appDesign: AppDesign
+
     var body: some View {
         HStack(spacing: 3) {
             ForEach(Array(caps.enumerated()), id: \.offset) { _, cap in
@@ -13,11 +15,11 @@ struct KeyCapsView: View {
                     .padding(.vertical, 2)
                     .background(
                         RoundedRectangle(cornerRadius: 5)
-                            .fill(Color(nsColor: NSColor(white: 0.18, alpha: 1)))
+                            .fill(appDesign.controlFillColor)
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: 5)
-                            .stroke(Color(nsColor: NSColor(white: 0.32, alpha: 1)), lineWidth: 1)
+                            .stroke(appDesign.borderControlColor.opacity(0.72), lineWidth: 1)
                     )
             }
         }
@@ -29,6 +31,7 @@ struct KeyCapsView: View {
 /// (validation/persistence happens in the store).
 struct ShortcutRecorderView: View {
     @Binding var shortcut: Shortcut
+    let appDesign: AppDesign
     var onCapture: (Shortcut) -> Void
 
     @State private var recording = false
@@ -42,7 +45,7 @@ struct ShortcutRecorderView: View {
                         .font(.system(size: 12))
                         .foregroundStyle(Color.dmAccent)
                 } else {
-                    KeyCapsView(caps: shortcut.keyCaps)
+                    KeyCapsView(caps: shortcut.keyCaps, appDesign: appDesign)
                 }
             }
             .frame(minWidth: 96, minHeight: 24)
@@ -50,7 +53,7 @@ struct ShortcutRecorderView: View {
             .padding(.vertical, 3)
             .background(
                 RoundedRectangle(cornerRadius: 7)
-                    .stroke(recording ? Color.dmAccent : Color(nsColor: NSColor(white: 0.3, alpha: 1)),
+                    .stroke(recording ? Color.dmAccent : appDesign.borderControlColor.opacity(0.72),
                             lineWidth: 1)
             )
         }

@@ -10,6 +10,7 @@ let editorPalette = [
 struct EditorColorPalette: View {
     @ObservedObject var model: EditorModel
     @ObservedObject private var localizer = Localizer.shared
+    let appDesign: AppDesign
     var onPick: () -> Void = {}
 
     var body: some View {
@@ -25,7 +26,7 @@ struct EditorColorPalette: View {
                     } label: {
                         Circle().fill(Color(nsColor: NSColor(hex: hex)))
                             .frame(width: 22, height: 22)
-                            .overlay(Circle().stroke(.white.opacity(0.4)))
+                            .overlay(Circle().stroke(appDesign.borderColor.opacity(0.8)))
                     }
                     .buttonStyle(.plain)
                 }
@@ -59,6 +60,7 @@ struct EditorColorPalette: View {
 /// Color swatch popover bound to the editor model; applies to the current selection.
 struct EditorColorPicker: View {
     @ObservedObject var model: EditorModel
+    let appDesign: AppDesign
     @State private var open = false
 
     var body: some View {
@@ -67,12 +69,12 @@ struct EditorColorPicker: View {
         } label: {
             Circle().fill(Color(nsColor: NSColor(hex: model.colorHex)))
                 .frame(width: 20, height: 20)
-                .overlay(Circle().stroke(.secondary, lineWidth: 1))
+                .overlay(Circle().stroke(appDesign.borderColor, lineWidth: 1))
         }
         .buttonStyle(.plain)
         .dmTooltip(tr(.color))
         .popover(isPresented: $open) {
-            EditorColorPalette(model: model, onPick: { open = false })
+            EditorColorPalette(model: model, appDesign: appDesign, onPick: { open = false })
         }
     }
 }
@@ -81,6 +83,7 @@ struct EditorColorPicker: View {
 struct EditorContextualSlider: View {
     @ObservedObject var model: EditorModel
     @ObservedObject private var localizer = Localizer.shared
+    let appDesign: AppDesign
 
     private var blurContext: Bool {
         model.tool == .blur
@@ -91,19 +94,19 @@ struct EditorContextualSlider: View {
         let _ = localizer.language  // re-render on language change
         if blurContext {
             HStack(spacing: 6) {
-                Text(tr(.blur)).font(.caption).foregroundStyle(.secondary).fixedSize()
+                Text(tr(.blur)).font(.caption).foregroundStyle(appDesign.textMutedColor).fixedSize()
                 Slider(value: $model.blurStrength, in: 2...60).frame(width: 90)
                     .tint(.dmAccent)
                     .onChange(of: model.blurStrength) { _, v in applyBlur(v) }
-                Text("\(Int(model.blurStrength))").font(.caption).monospacedDigit().fixedSize()
+                Text("\(Int(model.blurStrength))").font(.caption).foregroundStyle(appDesign.textMutedColor).monospacedDigit().fixedSize()
             }
         } else {
             HStack(spacing: 6) {
-                Text(tr(.size)).font(.caption).foregroundStyle(.secondary).fixedSize()
+                Text(tr(.size)).font(.caption).foregroundStyle(appDesign.textMutedColor).fixedSize()
                 Slider(value: $model.strokeWidth, in: 1...20).frame(width: 90)
                     .tint(.dmAccent)
                     .onChange(of: model.strokeWidth) { _, v in applyStroke(v) }
-                Text("\(Int(model.strokeWidth))\(tr(.pixelsSuffix))").font(.caption).monospacedDigit().fixedSize()
+                Text("\(Int(model.strokeWidth))\(tr(.pixelsSuffix))").font(.caption).foregroundStyle(appDesign.textMutedColor).monospacedDigit().fixedSize()
             }
         }
     }

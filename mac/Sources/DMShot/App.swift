@@ -45,6 +45,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 self?.settingsWindow?.title = tr(.settingsTitle)
             }
             .store(in: &cancellables)
+        appSettings.$appDesign
+            .receive(on: RunLoop.main)
+            .sink { [weak self] design in
+                self?.applyDesignToWindows(design)
+            }
+            .store(in: &cancellables)
         overlay.onComplete = { [weak self] image, frame in self?.deliver(image, at: frame) }
         showEditor()
         updater.start()
@@ -360,6 +366,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             model: model,
             captureFrameGlobal: captureFrame,
             screen: screen,
+            appDesign: appSettings.appDesign,
             onCopy: { [weak self] in self?.copyCurrent(); self?.dismissQuickEdit() },
             onSave: { [weak self] in self?.saveCurrent() },
             onEditInMain: { [weak self] in self?.dismissQuickEdit(); self?.showEditor() },
@@ -393,7 +400,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     @objc private func showEditor() {
         if editorWindow == nil {
             let view = EditorView(
-                model: model, history: history,
+                model: model, history: history, settings: appSettings,
                 onCopy: { [weak self] in self?.copyCurrent() },
                 onSave: { [weak self] in self?.saveCurrent() },
                 onCaptureFull: { [weak self] in self?.captureFull() },
@@ -408,7 +415,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 styleMask: [.titled, .closable, .miniaturizable, .resizable],
                 backing: .buffered, defer: false)
             win.title = "DM Screenshot"
-            configureBlackUtilityWindow(win)
+            configureWindow(win, design: appSettings.appDesign)
             win.contentView = NSHostingView(rootView: view)
             win.delegate = self
             win.isReleasedWhenClosed = false
@@ -426,7 +433,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 contentRect: NSRect(x: 0, y: 0, width: 640, height: 420),
                 styleMask: [.titled, .closable], backing: .buffered, defer: false)
             win.title = tr(.settingsTitle)
-            configureBlackUtilityWindow(win)
+            configureWindow(win, design: appSettings.appDesign)
             win.contentView = NSHostingView(rootView: SettingsView(
                 store: shortcutStore, settings: appSettings, appVersion: version, updater: updater))
             win.delegate = self
@@ -438,11 +445,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         NSApp.activate(ignoringOtherApps: true)
     }
 
-    private func configureBlackUtilityWindow(_ win: NSWindow) {
-        win.backgroundColor = .dmBlackApp
+    private func configureWindow(_ win: NSWindow, design: AppDesign) {
+        win.backgroundColor = design.appNSColor
         win.titlebarAppearsTransparent = true
         win.titleVisibility = .visible
         win.appearance = NSAppearance(named: .darkAqua)
+    }
+
+    private func applyDesignToWindows(_ design: AppDesign) {
+        [editorWindow, settingsWindow].compactMap { $0 }.forEach { configureWindow($0, design: design) }
     }
 
     func windowShouldClose(_ sender: NSWindow) -> Bool {

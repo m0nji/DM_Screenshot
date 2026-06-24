@@ -26,6 +26,23 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertEqual(AppSettingsStore(defaults: d).afterCapture, .mainWindow)
     }
 
+    func testDefaultDesignIsBlackUtility() {
+        XCTAssertEqual(AppSettingsStore(defaults: fresh()).appDesign, .black)
+    }
+
+    func testPersistsDesignAcrossInstances() {
+        let d = fresh()
+        let s = AppSettingsStore(defaults: d)
+        s.appDesign = .standard
+        XCTAssertEqual(AppSettingsStore(defaults: d).appDesign, .standard)
+    }
+
+    func testUnknownDesignFallsBackToBlackUtility() {
+        let d = fresh()
+        d.set("bogus", forKey: AppSettingsStore.appDesignKey)
+        XCTAssertEqual(AppSettingsStore(defaults: d).appDesign, .black)
+    }
+
     func testLaunchAtLoginDefaultsToFalse() {
         XCTAssertFalse(AppSettingsStore(defaults: fresh()).launchAtLogin)
     }
