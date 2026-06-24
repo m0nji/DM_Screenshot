@@ -4,6 +4,10 @@ All notable changes to DM_Screenshot. Newest version first. Always written in En
 
 ## [Unreleased]
 
+## 0.4.20 – 2026-06-24
+- feat: Settings now lets you switch DM Screenshot between Standard Design and Black Utility; Standard keeps the pre-black native macOS feel while Black Utility keeps the pure-black layered chrome (macOS)
+- change: Standard Design now restores the pre-black gray app/canvas and settings surfaces, native macOS switches, native Quick-Edit material and the orange sidebar hover state (macOS)
+
 ## 0.4.19 – 2026-06-24
 - change: The new Black Utility BrandDesign is applied across the editor, Settings and Quick-Edit surfaces, with pure black app chrome, brighter layered control frames, softer orange accent states and matching Windows theme tokens (macOS + Windows)
 
