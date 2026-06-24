@@ -3,18 +3,24 @@
 
   <!-- ===== DM family palette ===== -->
   <Color x:Key="AccentColor">#C97B4A</Color>
-  <SolidColorBrush x:Key="DmBackground" Color="#1F1F24"/>
-  <SolidColorBrush x:Key="DmSurface" Color="#26262C"/>
-  <SolidColorBrush x:Key="DmSurfaceAlt" Color="#1A1A1F"/>
-  <SolidColorBrush x:Key="DmSurfaceLight" Color="#2E2E36"/>
+  <SolidColorBrush x:Key="DmBackground" Color="#000000"/>
+  <SolidColorBrush x:Key="DmSurface" Color="#060606"/>
+  <SolidColorBrush x:Key="DmSurfaceAlt" Color="#000000"/>
+  <SolidColorBrush x:Key="DmSurfaceLight" Color="#0A0A0B"/>
   <SolidColorBrush x:Key="DmAccent" Color="#C97B4A"/>
-  <SolidColorBrush x:Key="DmAccentTint" Color="#FF8A4C" Opacity="0.14"/>
+  <SolidColorBrush x:Key="DmAccentTint" Color="#C97B4A" Opacity="0.10"/>
   <!-- Label/icon colour on top of an accent fill. White (never near-black) — a dark
        label on the muted orange reads as muted/disabled; white keeps active states crisp. -->
   <SolidColorBrush x:Key="DmOnAccent" Color="#FFFFFF"/>
-  <SolidColorBrush x:Key="DmText" Color="#EDEDED"/>
-  <SolidColorBrush x:Key="DmTextDim" Color="#9A9AA2"/>
-  <SolidColorBrush x:Key="DmBorder" Color="#3A3A42"/>
+  <SolidColorBrush x:Key="DmText" Color="#E6E6EA"/>
+  <SolidColorBrush x:Key="DmTextDim" Color="#8B8C94"/>
+  <SolidColorBrush x:Key="DmBorder" Color="#222226"/>
+  <SolidColorBrush x:Key="DmBorderControl" Color="#3A3A42"/>
+  <SolidColorBrush x:Key="DmBorderHover" Color="#4A4A52"/>
+  <SolidColorBrush x:Key="DmBorderControlOuter" Color="White" Opacity="0.10"/>
+  <SolidColorBrush x:Key="DmBorderControlHighlight" Color="White" Opacity="0.16"/>
+  <SolidColorBrush x:Key="DmControlShadow" Color="Black" Opacity="0.55"/>
+  <SolidColorBrush x:Key="DmSwitchOn" Color="#C97B4A" Opacity="0.18"/>
 
   <!-- ===== Base text ===== -->
   <Style TargetType="TextBlock">
@@ -45,8 +51,8 @@
   <!-- ===== Default (neutral) button ===== -->
   <Style TargetType="Button">
     <Setter Property="Foreground" Value="{StaticResource DmText}"/>
-    <Setter Property="Background" Value="{StaticResource DmSurface}"/>
-    <Setter Property="BorderBrush" Value="{StaticResource DmBorder}"/>
+    <Setter Property="Background" Value="{StaticResource DmSurfaceAlt}"/>
+    <Setter Property="BorderBrush" Value="{StaticResource DmBorderControl}"/>
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="Padding" Value="10,5"/>
     <Setter Property="Cursor" Value="Hand"/>
@@ -61,8 +67,8 @@
           </Border>
           <ControlTemplate.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
-              <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource DmAccent}"/>
               <Setter TargetName="Bd" Property="Background" Value="{StaticResource DmSurfaceLight}"/>
+              <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource DmBorderHover}"/>
             </Trigger>
             <Trigger Property="IsPressed" Value="True">
               <Setter TargetName="Bd" Property="Opacity" Value="0.8"/>
@@ -107,7 +113,8 @@
   <!-- ===== Toolbar icon command button (Copy/Save/Undo/Redo) ===== -->
   <Style x:Key="IconButton" TargetType="Button">
     <Setter Property="Foreground" Value="{StaticResource DmText}"/>
-    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="Background" Value="{StaticResource DmSurfaceAlt}"/>
+    <Setter Property="BorderBrush" Value="{StaticResource DmBorderControl}"/>
     <Setter Property="Cursor" Value="Hand"/>
     <Setter Property="Height" Value="30"/>
     <Setter Property="MinWidth" Value="34"/>
@@ -116,13 +123,14 @@
       <Setter.Value>
         <ControlTemplate TargetType="Button">
           <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="7"
-                  BorderBrush="Transparent" BorderThickness="1">
+                  BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1">
             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
                               Margin="{TemplateBinding Padding}"/>
           </Border>
           <ControlTemplate.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
               <Setter TargetName="Bd" Property="Background" Value="{StaticResource DmSurfaceLight}"/>
+              <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource DmBorderHover}"/>
             </Trigger>
             <Trigger Property="IsPressed" Value="True">
               <Setter TargetName="Bd" Property="Opacity" Value="0.7"/>
@@ -136,7 +144,7 @@
     </Setter>
   </Style>
 
-  <!-- ===== Tool selector (RadioButton): filled orange + dark icon when active ===== -->
+  <!-- ===== Tool selector (RadioButton): black chip + soft accent state when active ===== -->
   <Style x:Key="ToolRadio" TargetType="RadioButton">
     <Setter Property="Foreground" Value="{StaticResource DmText}"/>
     <Setter Property="Cursor" Value="Hand"/>
@@ -145,17 +153,19 @@
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="RadioButton">
-          <Border x:Name="Bd" Background="Transparent" CornerRadius="7"
-                  BorderBrush="Transparent" BorderThickness="1">
+          <Border x:Name="Bd" Background="{StaticResource DmSurfaceAlt}" CornerRadius="7"
+                  BorderBrush="{StaticResource DmBorderControl}" BorderThickness="1">
             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
           </Border>
           <ControlTemplate.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
-              <Setter TargetName="Bd" Property="Background" Value="#3A3A44"/>
+              <Setter TargetName="Bd" Property="Background" Value="{StaticResource DmSurfaceLight}"/>
+              <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource DmBorderHover}"/>
             </Trigger>
             <Trigger Property="IsChecked" Value="True">
-              <Setter TargetName="Bd" Property="Background" Value="{StaticResource DmAccent}"/>
-              <Setter Property="Foreground" Value="{StaticResource DmOnAccent}"/>
+              <Setter TargetName="Bd" Property="Background" Value="{StaticResource DmAccentTint}"/>
+              <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource DmAccent}"/>
+              <Setter Property="Foreground" Value="{StaticResource DmText}"/>
             </Trigger>
           </ControlTemplate.Triggers>
         </ControlTemplate>
@@ -166,8 +176,8 @@
   <!-- ===== Sidebar button (icon + label, left aligned) ===== -->
   <Style x:Key="SidebarButton" TargetType="Button">
     <Setter Property="Foreground" Value="{StaticResource DmText}"/>
-    <Setter Property="Background" Value="{StaticResource DmSurface}"/>
-    <Setter Property="BorderBrush" Value="{StaticResource DmBorder}"/>
+    <Setter Property="Background" Value="{StaticResource DmSurfaceAlt}"/>
+    <Setter Property="BorderBrush" Value="{StaticResource DmBorderControl}"/>
     <Setter Property="Cursor" Value="Hand"/>
     <Setter Property="Height" Value="38"/>
     <Setter Property="FontSize" Value="13"/>
@@ -192,7 +202,7 @@
     </Setter>
   </Style>
 
-  <!-- ===== Settings nav item: orange fill + dark text when selected ===== -->
+  <!-- ===== Settings nav item: black row + soft accent selected state ===== -->
   <Style x:Key="NavItem" TargetType="ListBoxItem">
     <Setter Property="Foreground" Value="{StaticResource DmText}"/>
     <Setter Property="Cursor" Value="Hand"/>
@@ -201,8 +211,8 @@
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="ListBoxItem">
-          <Border x:Name="Bd" Background="Transparent" CornerRadius="8" Padding="12,9"
-                  BorderThickness="1" BorderBrush="Transparent">
+          <Border x:Name="Bd" Background="{StaticResource DmSurfaceAlt}" CornerRadius="8" Padding="12,9"
+                  BorderThickness="1" BorderBrush="{StaticResource DmBorderControl}">
             <ContentPresenter VerticalAlignment="Center"/>
           </Border>
           <ControlTemplate.Triggers>
@@ -211,9 +221,9 @@
               <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource DmAccent}"/>
             </Trigger>
             <Trigger Property="IsSelected" Value="True">
-              <Setter TargetName="Bd" Property="Background" Value="{StaticResource DmAccent}"/>
+              <Setter TargetName="Bd" Property="Background" Value="{StaticResource DmAccentTint}"/>
               <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource DmAccent}"/>
-              <Setter Property="Foreground" Value="{StaticResource DmOnAccent}"/>
+              <Setter Property="Foreground" Value="{StaticResource DmText}"/>
             </Trigger>
           </ControlTemplate.Triggers>
         </ControlTemplate>
@@ -228,7 +238,7 @@
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="Thumb">
-          <Ellipse Width="15" Height="15" Fill="#F2F2F4" Stroke="{StaticResource DmAccent}" StrokeThickness="2"/>
+          <Ellipse Width="15" Height="15" Fill="{StaticResource DmText}" Stroke="{StaticResource DmAccent}" StrokeThickness="2"/>
         </ControlTemplate>
       </Setter.Value>
     </Setter>
@@ -437,7 +447,7 @@
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="Thumb">
-          <Border CornerRadius="4" Background="#55FFFFFF" Margin="2"/>
+          <Border CornerRadius="4" Background="#44FFFFFF" Margin="2"/>
         </ControlTemplate>
       </Setter.Value>
     </Setter>

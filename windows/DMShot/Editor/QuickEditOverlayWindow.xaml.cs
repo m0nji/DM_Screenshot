@@ -175,9 +175,9 @@ public partial class QuickEditOverlayWindow : Window
 
         return new Border
         {
-            Background = new SolidColorBrush(WColor.FromArgb(0xF7, 0x1E, 0x1E, 0x22)),
+            Background = new SolidColorBrush(WColor.FromArgb(0xF7, 0x06, 0x06, 0x06)),
             CornerRadius = new CornerRadius(14),
-            BorderBrush = new SolidColorBrush(WColor.FromArgb(0x26, 0xFF, 0xFF, 0xFF)),
+            BorderBrush = new SolidColorBrush(WColor.FromArgb(0xFF, 0x22, 0x22, 0x26)),
             BorderThickness = new Thickness(1),
             Child = row,
         };
@@ -226,7 +226,7 @@ public partial class QuickEditOverlayWindow : Window
     private static UIElement Divider() => new Border
     {
         Width = 1, Margin = new Thickness(5, 7, 5, 7),
-        Background = new SolidColorBrush(WColor.FromArgb(0x2E, 0xFF, 0xFF, 0xFF)),
+        Background = new SolidColorBrush(WColor.FromArgb(0xFF, 0x22, 0x22, 0x26)),
     };
 
     // ===== Toolbar control styles (parsed once) =====
@@ -236,15 +236,16 @@ public partial class QuickEditOverlayWindow : Window
     private static readonly Style ToolToggleStyle = S(
 @"<Style xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation' xmlns:x='http://schemas.microsoft.com/winfx/2006/xaml' TargetType='RadioButton'>
   <Setter Property='Width' Value='36'/><Setter Property='Height' Value='32'/><Setter Property='Margin' Value='2,0'/>
-  <Setter Property='Foreground' Value='#E8E8EA'/><Setter Property='Cursor' Value='Hand'/>
+  <Setter Property='Foreground' Value='#E6E6EA'/><Setter Property='Cursor' Value='Hand'/>
+  <Setter Property='Background' Value='#000000'/><Setter Property='BorderBrush' Value='#3A3A42'/>
   <Setter Property='Template'><Setter.Value>
     <ControlTemplate TargetType='RadioButton'>
-      <Border x:Name='b' CornerRadius='7' Background='Transparent'>
+      <Border x:Name='b' CornerRadius='7' Background='{TemplateBinding Background}' BorderBrush='{TemplateBinding BorderBrush}' BorderThickness='1'>
         <ContentPresenter HorizontalAlignment='Center' VerticalAlignment='Center'/>
       </Border>
       <ControlTemplate.Triggers>
-        <Trigger Property='IsMouseOver' Value='True'><Setter TargetName='b' Property='Background' Value='#34343C'/></Trigger>
-        <Trigger Property='IsChecked' Value='True'><Setter TargetName='b' Property='Background' Value='#C97B4A'/><Setter Property='Foreground' Value='#FFFFFF'/></Trigger>
+        <Trigger Property='IsMouseOver' Value='True'><Setter TargetName='b' Property='Background' Value='#0A0A0B'/><Setter TargetName='b' Property='BorderBrush' Value='#4A4A52'/></Trigger>
+        <Trigger Property='IsChecked' Value='True'><Setter TargetName='b' Property='Background' Value='#22C97B4A'/><Setter TargetName='b' Property='BorderBrush' Value='#C97B4A'/><Setter Property='Foreground' Value='#F8F8FA'/></Trigger>
       </ControlTemplate.Triggers>
     </ControlTemplate>
   </Setter.Value></Setter>
@@ -253,15 +254,16 @@ public partial class QuickEditOverlayWindow : Window
     private static readonly Style IconButtonStyle = S(
 @"<Style xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation' xmlns:x='http://schemas.microsoft.com/winfx/2006/xaml' TargetType='Button'>
   <Setter Property='Width' Value='36'/><Setter Property='Height' Value='32'/><Setter Property='Margin' Value='2,0'/>
-  <Setter Property='Foreground' Value='#E8E8EA'/><Setter Property='Cursor' Value='Hand'/>
+  <Setter Property='Foreground' Value='#E6E6EA'/><Setter Property='Cursor' Value='Hand'/>
+  <Setter Property='Background' Value='#000000'/><Setter Property='BorderBrush' Value='#3A3A42'/>
   <Setter Property='Template'><Setter.Value>
     <ControlTemplate TargetType='Button'>
-      <Border x:Name='b' CornerRadius='7' Background='Transparent'>
+      <Border x:Name='b' CornerRadius='7' Background='{TemplateBinding Background}' BorderBrush='{TemplateBinding BorderBrush}' BorderThickness='1'>
         <ContentPresenter HorizontalAlignment='Center' VerticalAlignment='Center'/>
       </Border>
       <ControlTemplate.Triggers>
-        <Trigger Property='IsMouseOver' Value='True'><Setter TargetName='b' Property='Background' Value='#34343C'/></Trigger>
-        <Trigger Property='IsPressed' Value='True'><Setter TargetName='b' Property='Background' Value='#41414B'/></Trigger>
+        <Trigger Property='IsMouseOver' Value='True'><Setter TargetName='b' Property='Background' Value='#0A0A0B'/><Setter TargetName='b' Property='BorderBrush' Value='#4A4A52'/></Trigger>
+        <Trigger Property='IsPressed' Value='True'><Setter TargetName='b' Property='Background' Value='#111113'/></Trigger>
       </ControlTemplate.Triggers>
     </ControlTemplate>
   </Setter.Value></Setter>
@@ -299,13 +301,13 @@ public partial class QuickEditOverlayWindow : Window
     {
         _sizeLabel = new TextBlock
         {
-            Foreground = new SolidColorBrush(WColor.FromRgb(0x9A, 0x9A, 0xA2)),
+            Foreground = new SolidColorBrush(WColor.FromRgb(0x8B, 0x8C, 0x94)),
             VerticalAlignment = VerticalAlignment.Center, FontSize = 12, Margin = new Thickness(4, 0, 6, 0),
         };
         _sizeSlider = new System.Windows.Controls.Slider { Width = 90, VerticalAlignment = VerticalAlignment.Center };
         _sizeValue = new TextBlock
         {
-            Foreground = new SolidColorBrush(WColor.FromRgb(0xE8, 0xE8, 0xEA)),
+            Foreground = new SolidColorBrush(WColor.FromRgb(0xE6, 0xE6, 0xEA)),
             VerticalAlignment = VerticalAlignment.Center, FontSize = 12, Width = 30,
             Margin = new Thickness(6, 0, 2, 0), FontFamily = new WFF("Consolas"),
         };
@@ -369,7 +371,7 @@ public partial class QuickEditOverlayWindow : Window
         stack.Children.Add(row);
         var flyoutBar = new Border
         {
-            Background = new SolidColorBrush(WColor.FromArgb(0xF2, 0x2A, 0x2A, 0x2A)),
+            Background = new SolidColorBrush(WColor.FromArgb(0xF7, 0x06, 0x06, 0x06)),
             CornerRadius = new CornerRadius(0, 0, 12, 12), Child = content,
         };
         stack.Children.Add(flyoutBar);

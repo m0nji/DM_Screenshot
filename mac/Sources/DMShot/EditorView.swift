@@ -49,9 +49,11 @@ struct EditorView: View {
                 resizeHandle
                 CanvasView(model: model)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color.dmBlackApp)
             }
         }
         .frame(minWidth: 900, minHeight: 560)
+        .background(Color.dmBlackApp)
         .dmTooltipLayer()
     }
 
@@ -59,10 +61,12 @@ struct EditorView: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 6) {
                 Button(action: onCopy) { Label(tr(.copy), systemImage: "doc.on.doc") }
+                    .buttonStyle(BlackUtilityButtonStyle())
                     .disabled(model.image == nil)
                 Button(action: onSave) { Label(tr(.save), systemImage: "square.and.arrow.down") }
+                    .buttonStyle(BlackUtilityButtonStyle())
                     .disabled(model.image == nil)
-                Divider().frame(height: 22)
+                Divider().frame(height: 22).background(Color.dmBlackBorder)
 
                 ForEach(toolSpecs, id: \.tool) { spec in
                     Button { model.tool = spec.tool } label: {
@@ -72,25 +76,27 @@ struct EditorView: View {
                     .buttonStyle(ToolButtonStyle(active: model.tool == spec.tool))
                     .disabled(model.image == nil)
                 }
-                Divider().frame(height: 22)
+                Divider().frame(height: 22).background(Color.dmBlackBorder)
 
                 EditorColorPicker(model: model)
-                Divider().frame(height: 22)
+                Divider().frame(height: 22).background(Color.dmBlackBorder)
                 EditorContextualSlider(model: model)
-                Divider().frame(height: 22)
+                Divider().frame(height: 22).background(Color.dmBlackBorder)
 
                 Button(action: model.undo) { Image(systemName: "arrow.uturn.backward") }
                     .dmTooltip(tr(.undo))
+                    .buttonStyle(ToolButtonStyle(active: false))
                 Button(action: model.redo) { Image(systemName: "arrow.uturn.forward") }
                     .dmTooltip(tr(.redo))
-                Divider().frame(height: 22)
+                    .buttonStyle(ToolButtonStyle(active: false))
+                Divider().frame(height: 22).background(Color.dmBlackBorder)
 
                 Text("\(Int(model.viewRect.width)) × \(Int(model.viewRect.height)) \(tr(.pixelsSuffix))")
-                    .font(.caption).foregroundStyle(.secondary).fixedSize()
+                    .font(.caption).foregroundStyle(Color.dmBlackTextMuted).fixedSize()
                 Button("\(model.zoomPercent)%") { model.resetZoom() }
                     .buttonStyle(.plain)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.dmBlackTextMuted)
                     .dmTooltip(tr(.resetZoomToFit))
                     .fixedSize()
                     .disabled(model.image == nil)
@@ -98,6 +104,7 @@ struct EditorView: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
         }
+        .background(Color.dmBlackPanel)
     }
 
     // A sidebar capture button with a fixed-width icon column (so every label lines
@@ -117,8 +124,7 @@ struct EditorView: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .buttonStyle(.bordered)
-            .controlSize(.large)
+            .buttonStyle(BlackUtilityButtonStyle())
             .overlay(
                 RoundedRectangle(cornerRadius: 6, style: .continuous)
                     .stroke(Color.dmAccent, lineWidth: 1)
@@ -134,7 +140,7 @@ struct EditorView: View {
             CaptureButton(title: tr(.editorSelection), icon: "selection.pin.in.out", action: onCaptureArea)
             CaptureButton(title: tr(.editorVideoFullScreen), icon: "video", action: onVideoFull)
             CaptureButton(title: tr(.editorVideoSection), icon: "video.badge.plus", action: onVideoArea)
-            Text(tr(.historyHeader)).font(.caption2).foregroundStyle(.secondary)
+            Text(tr(.historyHeader)).font(.caption2).foregroundStyle(Color.dmBlackTextMuted)
                 .frame(maxWidth: .infinity, alignment: .leading)
             ScrollView {
                 VStack(spacing: 8) {
@@ -149,6 +155,7 @@ struct EditorView: View {
             CaptureButton(title: tr(.settings), icon: "gearshape", action: onOpenSettings)
         }
         .padding(8)
+        .background(Color.dmBlackPanel)
     }
 
     @ViewBuilder
@@ -205,7 +212,7 @@ struct EditorView: View {
             .frame(maxHeight: .infinity)
             .overlay(
                 Rectangle()
-                    .fill(Color(nsColor: .separatorColor))
+                    .fill(Color.dmBlackBorder)
                     .frame(width: 1)
             )
             .contentShape(Rectangle())

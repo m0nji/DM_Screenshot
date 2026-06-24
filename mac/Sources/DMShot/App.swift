@@ -408,6 +408,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 styleMask: [.titled, .closable, .miniaturizable, .resizable],
                 backing: .buffered, defer: false)
             win.title = "DM Screenshot"
+            configureBlackUtilityWindow(win)
             win.contentView = NSHostingView(rootView: view)
             win.delegate = self
             win.isReleasedWhenClosed = false
@@ -425,6 +426,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 contentRect: NSRect(x: 0, y: 0, width: 640, height: 420),
                 styleMask: [.titled, .closable], backing: .buffered, defer: false)
             win.title = tr(.settingsTitle)
+            configureBlackUtilityWindow(win)
             win.contentView = NSHostingView(rootView: SettingsView(
                 store: shortcutStore, settings: appSettings, appVersion: version, updater: updater))
             win.delegate = self
@@ -434,6 +436,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         }
         settingsWindow?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+    }
+
+    private func configureBlackUtilityWindow(_ win: NSWindow) {
+        win.backgroundColor = .dmBlackApp
+        win.titlebarAppearsTransparent = true
+        win.titleVisibility = .visible
+        win.appearance = NSAppearance(named: .darkAqua)
     }
 
     func windowShouldClose(_ sender: NSWindow) -> Bool {

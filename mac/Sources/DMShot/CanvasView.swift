@@ -104,7 +104,7 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
     }
 
     override func draw(_ dirtyRect: NSRect) {
-        NSColor(white: 0.12, alpha: 1).setFill()
+        NSColor.dmBlackApp.setFill()
         bounds.fill()
         guard let image = model.image else { return }
         recomputeTransform()

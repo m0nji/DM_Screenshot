@@ -45,22 +45,25 @@ struct SettingsView: View {
             }
             .padding(10)
             .frame(width: 180)
-            .background(Color(nsColor: NSColor(white: 0.13, alpha: 1)))
+            .background(Color.dmBlackPanel)
 
-            Divider()
+            Divider().background(Color.dmBlackBorder)
 
             // Detail
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    Text(tr(section.titleKey)).font(.title2).bold()
+                    Text(tr(section.titleKey)).font(.title2).bold().foregroundStyle(Color.dmBlackTextStrong)
                     detail
                     Spacer()
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(24)
             }
+            .background(Color.dmBlackApp)
         }
         .frame(width: 640, height: 420)
+        .background(Color.dmBlackApp)
+        .foregroundStyle(Color.dmBlackText)
         .sheet(isPresented: $showWhatsNew) {
             WhatsNewSheet(versions: Changelog.bundled()) { showWhatsNew = false }
         }
@@ -78,14 +81,12 @@ struct SettingsView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 7)
-                .background(RoundedRectangle(cornerRadius: 7).fill(active ? Color.dmAccent : Color.clear))
-                // Orange hover border on non-active rows, matching the Windows sidebar.
+                .modifier(BlackUtilityControlChrome(active: active, cornerRadius: 7))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 7)
-                        .stroke(Color.dmAccent, lineWidth: 1)
-                        .opacity(!active && hovered ? 1 : 0)
+                    RoundedRectangle(cornerRadius: 7, style: .continuous)
+                        .stroke(hovered && !active ? Color.dmAccent.opacity(0.46) : Color.clear, lineWidth: 1)
                 )
-                .foregroundStyle(active ? Color.dmOnAccent : Color.primary)
+                .foregroundStyle(active ? Color.dmBlackTextStrong : Color.dmBlackText)
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -98,7 +99,7 @@ struct SettingsView: View {
             settingRow(tr(.launchAtLogin), tr(.launchAtLoginHelp)) {
                 Toggle("", isOn: launchAtLoginBinding)
                     .labelsHidden()
-                    .toggleStyle(.switch)
+                    .toggleStyle(BlackUtilityToggleStyle())
             }
             settingRow(tr(.afterCapture), tr(.afterCaptureHelp)) {
                 Picker("", selection: $settings.afterCapture) {
@@ -112,7 +113,7 @@ struct SettingsView: View {
             settingRow(tr(.showLoupe), tr(.showLoupeHelp)) {
                 Toggle("", isOn: $settings.showLoupe)
                     .labelsHidden()
-                    .toggleStyle(.switch)
+                    .toggleStyle(BlackUtilityToggleStyle())
             }
         case .shortcuts:
             shortcutsDetail
@@ -132,7 +133,7 @@ struct SettingsView: View {
         case .updates:
             settingRow(tr(.version), tr(.versionHelp)) {
                 Button(appVersion) { showWhatsNew = true }
-                    .buttonStyle(.plain).foregroundStyle(.secondary)
+                    .buttonStyle(.plain).foregroundStyle(Color.dmBlackTextMuted)
             }
             updateStatusRow
             Button(tr(.checkForUpdates)) { updater.check() }
@@ -140,7 +141,7 @@ struct SettingsView: View {
                 .disabled(updater.state == .checking)
             if case .disabled = updater.state {
                 Text(tr(.updatesInstalledOnly))
-                    .font(.caption).foregroundStyle(.secondary)
+                    .font(.caption).foregroundStyle(Color.dmBlackTextMuted)
             }
         }
     }
@@ -162,17 +163,17 @@ struct SettingsView: View {
         switch updater.state {
         case .checking:
             Label(tr(.checkingForUpdates), systemImage: "arrow.triangle.2.circlepath")
-                .font(.callout).foregroundStyle(.secondary)
+                .font(.callout).foregroundStyle(Color.dmBlackTextMuted)
         case .upToDate:
             Label(tr(.upToDate), systemImage: "checkmark.circle")
-                .font(.callout).foregroundStyle(.secondary)
+                .font(.callout).foregroundStyle(Color.dmBlackTextMuted)
         case let .available(version, notes):
             VStack(alignment: .leading, spacing: 8) {
                 Text(String(format: tr(.updateAvailable), version))
                     .font(.callout.weight(.semibold)).foregroundStyle(Color.dmAccent)
                 if let latest = notes.first {
                     ForEach(Array(latest.entries.prefix(3).enumerated()), id: \.offset) { _, e in
-                        Text("• \(e.text)").font(.caption).foregroundStyle(.secondary)
+                        Text("• \(e.text)").font(.caption).foregroundStyle(Color.dmBlackTextMuted)
                     }
                     Button(tr(.whatsNew)) { showWhatsNew = true }.buttonStyle(.plain)
                         .font(.caption).foregroundStyle(Color.dmAccent)
@@ -183,21 +184,21 @@ struct SettingsView: View {
         case let .downloading(percent):
             VStack(alignment: .leading, spacing: 4) {
                 ProgressView(value: Double(percent), total: 100)
-                Text(String(format: tr(.downloading), percent)).font(.caption).foregroundStyle(.secondary)
+                Text(String(format: tr(.downloading), percent)).font(.caption).foregroundStyle(Color.dmBlackTextMuted)
             }
         case .extracting:
-            Label(tr(.preparing), systemImage: "shippingbox").font(.callout).foregroundStyle(.secondary)
+            Label(tr(.preparing), systemImage: "shippingbox").font(.callout).foregroundStyle(Color.dmBlackTextMuted)
         case let .readyToInstall(version):
             VStack(alignment: .leading, spacing: 8) {
-                Text(String(format: tr(.readyToInstall), version)).font(.callout).foregroundStyle(.secondary)
+                Text(String(format: tr(.readyToInstall), version)).font(.callout).foregroundStyle(Color.dmBlackTextMuted)
                 Button(tr(.restartToInstall)) { updater.relaunch() }
                     .buttonStyle(AccentFilledButtonStyle())
             }
         case let .error(message):
             VStack(alignment: .leading, spacing: 4) {
                 Label(tr(.couldntCheckUpdates), systemImage: "exclamationmark.triangle")
-                    .font(.callout).foregroundStyle(.secondary)
-                Text(message).font(.caption2).foregroundStyle(.secondary)
+                    .font(.callout).foregroundStyle(Color.dmBlackTextMuted)
+                Text(message).font(.caption2).foregroundStyle(Color.dmBlackTextMuted)
             }
         case .idle, .disabled:
             EmptyView()
@@ -209,8 +210,8 @@ struct SettingsView: View {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(action.title)
-                        Text(action.subtitle).font(.caption).foregroundStyle(.secondary)
+                        Text(action.title).foregroundStyle(Color.dmBlackTextStrong)
+                        Text(action.subtitle).font(.caption).foregroundStyle(Color.dmBlackTextMuted)
                     }
                     Spacer()
                     ShortcutRecorderView(
@@ -229,9 +230,9 @@ struct SettingsView: View {
         }
 
         Button(tr(.resetToDefaults)) { store.reset(); lastError = [:] }
-            .buttonStyle(.bordered)
+            .buttonStyle(BlackUtilityButtonStyle())
             .padding(.top, 4)
-        Text(tr(.shortcutsHint)).font(.caption).foregroundStyle(.secondary).padding(.top, 2)
+        Text(tr(.shortcutsHint)).font(.caption).foregroundStyle(Color.dmBlackTextMuted).padding(.top, 2)
     }
 
     @State private var lastError: [ShortcutAction: String] = [:]
@@ -259,8 +260,8 @@ struct SettingsView: View {
     ) -> some View {
         HStack(alignment: .top) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                Text(subtitle).font(.caption).foregroundStyle(.secondary)
+                Text(title).foregroundStyle(Color.dmBlackTextStrong)
+                Text(subtitle).font(.caption).foregroundStyle(Color.dmBlackTextMuted)
             }
             Spacer()
             trailing()
@@ -276,33 +277,34 @@ struct WhatsNewSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text(tr(.whatsNew)).font(.title3.weight(.semibold))
+                Text(tr(.whatsNew)).font(.title3.weight(.semibold)).foregroundStyle(Color.dmBlackTextStrong)
                 Spacer()
                 Button(tr(.done), action: onClose).buttonStyle(AccentFilledButtonStyle())
             }.padding()
-            Divider()
+            Divider().background(Color.dmBlackBorder)
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     if versions.isEmpty {
-                        Text(tr(.noChangelog)).foregroundStyle(.secondary)
+                        Text(tr(.noChangelog)).foregroundStyle(Color.dmBlackTextMuted)
                     }
                     ForEach(Array(versions.enumerated()), id: \.offset) { _, v in
                         VStack(alignment: .leading, spacing: 6) {
                             HStack(spacing: 8) {
-                                Text("v\(v.version)").font(.headline)
+                                Text("v\(v.version)").font(.headline).foregroundStyle(Color.dmBlackTextStrong)
                                 if !v.date.isEmpty {
-                                    Text(v.date).font(.caption).foregroundStyle(.secondary)
+                                    Text(v.date).font(.caption).foregroundStyle(Color.dmBlackTextMuted)
                                 }
                             }
                             ForEach(Array(v.entries.enumerated()), id: \.offset) { _, e in
-                                Text("• \(e.text)").font(.callout).foregroundStyle(.secondary)
+                                Text("• \(e.text)").font(.callout).foregroundStyle(Color.dmBlackTextMuted)
                             }
                         }
                     }
                 }.padding().frame(maxWidth: .infinity, alignment: .leading)
             }
+            .background(Color.dmBlackApp)
         }
         .frame(width: 460, height: 420)
-        .background(Color(nsColor: NSColor(white: 0.13, alpha: 1)))
+        .background(Color.dmBlackApp)
     }
 }

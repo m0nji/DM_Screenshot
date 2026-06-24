@@ -48,27 +48,27 @@ struct QuickEditToolbar: View {
                 .buttonStyle(ToolButtonStyle(active: model.tool == spec.tool))
                 .disabled(model.image == nil)
             }
-            Divider().frame(height: 22)
+            Divider().frame(height: 22).background(Color.dmBlackBorder)
             Button { toggle(.color) } label: {
                 Circle().fill(Color(nsColor: NSColor(hex: model.colorHex)))
                     .frame(width: 20, height: 20)
-                    .overlay(Circle().stroke(.secondary, lineWidth: 1))
+                    .overlay(Circle().stroke(Color.dmBlackBorder, lineWidth: 1))
             }
-            .buttonStyle(.plain).dmTooltip(tr(.color))
-            Divider().frame(height: 22)
+            .buttonStyle(ToolButtonStyle(active: flyout == .color)).dmTooltip(tr(.color))
+            Divider().frame(height: 22).background(Color.dmBlackBorder)
             EditorContextualSlider(model: model)   // always visible so size/blur strength can be set in advance
-            Divider().frame(height: 22)
+            Divider().frame(height: 22).background(Color.dmBlackBorder)
             Button(action: model.undo) { Image(systemName: "arrow.uturn.backward") }
-                .buttonStyle(.plain).dmTooltip(tr(.undo)).disabled(model.image == nil)
-            Divider().frame(height: 22)
+                .buttonStyle(ToolButtonStyle(active: false)).dmTooltip(tr(.undo)).disabled(model.image == nil)
+            Divider().frame(height: 22).background(Color.dmBlackBorder)
             Button(action: onClose) { Image(systemName: "xmark") }
-                .buttonStyle(.plain).dmTooltip(tr(.close))
+                .buttonStyle(ToolButtonStyle(active: false)).dmTooltip(tr(.close))
             Button(action: onEditInMain) { Image(systemName: "macwindow") }
-                .buttonStyle(.plain).dmTooltip(tr(.editInMainWindow))
+                .buttonStyle(ToolButtonStyle(active: false)).dmTooltip(tr(.editInMainWindow))
             Button(action: onSave) { Image(systemName: "square.and.arrow.down") }
-                .buttonStyle(.plain).dmTooltip(tr(.save)).disabled(model.image == nil)
+                .buttonStyle(ToolButtonStyle(active: false)).dmTooltip(tr(.save)).disabled(model.image == nil)
             Button(action: onCopy) { Image(systemName: "doc.on.doc") }
-                .buttonStyle(.plain).dmTooltip(tr(.copy)).disabled(model.image == nil)
+                .buttonStyle(ToolButtonStyle(active: false)).dmTooltip(tr(.copy)).disabled(model.image == nil)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
@@ -77,9 +77,9 @@ struct QuickEditToolbar: View {
 
     private var panelBackground: some View {
         RoundedRectangle(cornerRadius: 12)
-            .fill(.ultraThinMaterial)
-            .overlay(RoundedRectangle(cornerRadius: 12).stroke(.white.opacity(0.12)))
-            .shadow(radius: 12, y: 4)
+            .fill(Color.dmBlackPanel.opacity(0.98))
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.dmBlackBorder))
+            .shadow(color: .black.opacity(0.55), radius: 18, y: 8)
     }
 
     private func toggle(_ f: Flyout) { flyout = (flyout == f) ? .none : f }
