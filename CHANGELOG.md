@@ -4,6 +4,9 @@ All notable changes to DM_Screenshot. Newest version first. Always written in En
 
 ## [Unreleased]
 
+## 0.4.19 – 2026-06-24
+- change: The new Black Utility BrandDesign is applied across the editor, Settings and Quick-Edit surfaces, with pure black app chrome, brighter layered control frames, softer orange accent states and matching Windows theme tokens (macOS + Windows)
+
 ## 0.4.18 – 2026-06-24
 - change: The app is now called "DM Screenshot" (no underscore) to match the other DM apps — this affects the display name, window titles and installer/shortcut titles only; the bundle identifier, existing permissions, auto-update and saved screenshot filenames (still `DM_Screenshot_…`) are unchanged (macOS + Windows)
 
