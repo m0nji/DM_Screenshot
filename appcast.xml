@@ -325,5 +325,14 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.4.19/DM_Screenshot-v0.4.19.dmg" type="application/octet-stream" sparkle:edSignature="YOz5jwMyY22IV++nFetyf+asgM4HUqIG0aaqN6W2HqfjxWHA5Jqr3yh/o1kTms8z2B5ZmtGtHeJfyL8arqEFAg==" length="2318610" />
 </item>
 
+<item>
+  <title>Version 0.4.20</title>
+  <description><![CDATA[<ul><li>feat: Settings now lets you switch DM Screenshot between Standard Design and Black Utility; Standard keeps the pre-black native macOS feel while Black Utility keeps the pure-black layered chrome (macOS)</li>
+<li>change: Standard Design now restores the pre-black gray app/canvas and settings surfaces, native macOS switches, native Quick-Edit material and the orange sidebar hover state (macOS)</li></ul>]]></description>
+  <sparkle:version>0.4.20</sparkle:version>
+  <sparkle:shortVersionString>0.4.20</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.4.20/DM_Screenshot-v0.4.20.dmg" type="application/octet-stream" sparkle:edSignature="WMXQ9iZVyLz/5wFaO6zj56k531/WAqoZc3Ry9A8zClmDZ1bwdNEFsEnataEegGZ+wc/11VVwjMLCuezmP7gVCA==" length="2343547" />
+</item>
+
 </channel>
 </rss>
