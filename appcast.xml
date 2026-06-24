@@ -317,5 +317,13 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.4.18/DM_Screenshot-v0.4.18.dmg" type="application/octet-stream" sparkle:edSignature="YXp0OVFtxfs/yCYcmnm0LeLAwd2CWc6+xsSOJkU1Vf8IB7Q6/AXXcF1sQbvAc/z0xXcKgqOegxX46BzghVS5Cw==" length="2294320" />
 </item>
 
+<item>
+  <title>Version 0.4.19</title>
+  <description><![CDATA[<ul><li>change: The new Black Utility BrandDesign is applied across the editor, Settings and Quick-Edit surfaces, with pure black app chrome, brighter layered control frames, softer orange accent states and matching Windows theme tokens (macOS + Windows)</li></ul>]]></description>
+  <sparkle:version>0.4.19</sparkle:version>
+  <sparkle:shortVersionString>0.4.19</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.4.19/DM_Screenshot-v0.4.19.dmg" type="application/octet-stream" sparkle:edSignature="YOz5jwMyY22IV++nFetyf+asgM4HUqIG0aaqN6W2HqfjxWHA5Jqr3yh/o1kTms8z2B5ZmtGtHeJfyL8arqEFAg==" length="2318610" />
+</item>
+
 </channel>
 </rss>
