@@ -1,0 +1,553 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!-- ===== DM family palette ===== -->
+  <Color x:Key="AccentColor">#C97B4A</Color>
+  <SolidColorBrush x:Key="DmBackground" Color="#000000"/>
+  <SolidColorBrush x:Key="DmSurface" Color="#060606"/>
+  <SolidColorBrush x:Key="DmSurfaceAlt" Color="#000000"/>
+  <SolidColorBrush x:Key="DmSurfaceLight" Color="#0A0A0B"/>
+  <SolidColorBrush x:Key="DmAccent" Color="#C97B4A"/>
+  <SolidColorBrush x:Key="DmAccentTint" Color="#C97B4A" Opacity="0.10"/>
+  <!-- Label/icon colour on top of an accent fill. White (never near-black) — a dark
+       label on the muted orange reads as muted/disabled; white keeps active states crisp. -->
+  <SolidColorBrush x:Key="DmOnAccent" Color="#FFFFFF"/>
+  <SolidColorBrush x:Key="DmText" Color="#E6E6EA"/>
+  <SolidColorBrush x:Key="DmTextDim" Color="#8B8C94"/>
+  <SolidColorBrush x:Key="DmBorder" Color="#222226"/>
+  <SolidColorBrush x:Key="DmBorderControl" Color="#3A3A42"/>
+  <SolidColorBrush x:Key="DmBorderHover" Color="#4A4A52"/>
+  <SolidColorBrush x:Key="DmBorderControlOuter" Color="White" Opacity="0.10"/>
+  <SolidColorBrush x:Key="DmBorderControlHighlight" Color="White" Opacity="0.16"/>
+  <SolidColorBrush x:Key="DmControlShadow" Color="Black" Opacity="0.55"/>
+  <SolidColorBrush x:Key="DmSwitchOn" Color="#C97B4A" Opacity="0.18"/>
+
+  <!-- ===== Base text ===== -->
+  <Style TargetType="TextBlock">
+    <Setter Property="Foreground" Value="{StaticResource DmText}"/>
+    <Setter Property="TextOptions.TextFormattingMode" Value="Ideal"/>
+  </Style>
+
+  <!-- ===== Tooltip ===== -->
+  <!-- The default WPF tooltip has a light background; combined with the global light
+       TextBlock foreground above that gives white-on-white. Theme it dark app-wide. -->
+  <Style TargetType="ToolTip">
+    <Setter Property="Foreground" Value="{StaticResource DmText}"/>
+    <Setter Property="Background" Value="{StaticResource DmSurfaceLight}"/>
+    <Setter Property="BorderBrush" Value="{StaticResource DmBorder}"/>
+    <Setter Property="FontSize" Value="12"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ToolTip">
+          <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                  BorderThickness="1" CornerRadius="6" Padding="8,4">
+            <ContentPresenter/>
+          </Border>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- ===== Default (neutral) button ===== -->
+  <Style TargetType="Button">
+    <Setter Property="Foreground" Value="{StaticResource DmText}"/>
+    <Setter Property="Background" Value="{StaticResource DmSurfaceAlt}"/>
+    <Setter Property="BorderBrush" Value="{StaticResource DmBorderControl}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="Padding" Value="10,5"/>
+    <Setter Property="Cursor" Value="Hand"/>
+    <Setter Property="FontSize" Value="13"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="Button">
+          <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="7"
+                  BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
+            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                              Margin="{TemplateBinding Padding}"/>
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="Bd" Property="Background" Value="{StaticResource DmSurfaceLight}"/>
+              <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource DmBorderHover}"/>
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+              <Setter TargetName="Bd" Property="Opacity" Value="0.8"/>
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+              <Setter TargetName="Bd" Property="Opacity" Value="0.4"/>
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- ===== Accent (filled orange, dark label) button ===== -->
+  <Style x:Key="AccentButton" TargetType="Button">
+    <Setter Property="Foreground" Value="{StaticResource DmOnAccent}"/>
+    <Setter Property="Background" Value="{StaticResource DmAccent}"/>
+    <Setter Property="Padding" Value="14,7"/>
+    <Setter Property="Cursor" Value="Hand"/>
+    <Setter Property="FontSize" Value="13"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="Button">
+          <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="7">
+            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                              Margin="{TemplateBinding Padding}"/>
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsPressed" Value="True">
+              <Setter TargetName="Bd" Property="Opacity" Value="0.85"/>
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+              <Setter TargetName="Bd" Property="Opacity" Value="0.4"/>
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- ===== Toolbar icon command button (Copy/Save/Undo/Redo) ===== -->
+  <Style x:Key="IconButton" TargetType="Button">
+    <Setter Property="Foreground" Value="{StaticResource DmText}"/>
+    <Setter Property="Background" Value="{StaticResource DmSurfaceAlt}"/>
+    <Setter Property="BorderBrush" Value="{StaticResource DmBorderControl}"/>
+    <Setter Property="Cursor" Value="Hand"/>
+    <Setter Property="Height" Value="30"/>
+    <Setter Property="MinWidth" Value="34"/>
+    <Setter Property="Padding" Value="8,0"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="Button">
+          <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="7"
+                  BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1">
+            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                              Margin="{TemplateBinding Padding}"/>
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="Bd" Property="Background" Value="{StaticResource DmSurfaceLight}"/>
+              <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource DmBorderHover}"/>
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+              <Setter TargetName="Bd" Property="Opacity" Value="0.7"/>
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+              <Setter TargetName="Bd" Property="Opacity" Value="0.4"/>
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- ===== Tool selector (RadioButton): black chip + soft accent state when active ===== -->
+  <Style x:Key="ToolRadio" TargetType="RadioButton">
+    <Setter Property="Foreground" Value="{StaticResource DmText}"/>
+    <Setter Property="Cursor" Value="Hand"/>
+    <Setter Property="Width" Value="34"/>
+    <Setter Property="Height" Value="28"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="RadioButton">
+          <Border x:Name="Bd" Background="{StaticResource DmSurfaceAlt}" CornerRadius="7"
+                  BorderBrush="{StaticResource DmBorderControl}" BorderThickness="1">
+            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="Bd" Property="Background" Value="{StaticResource DmSurfaceLight}"/>
+              <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource DmBorderHover}"/>
+            </Trigger>
+            <Trigger Property="IsChecked" Value="True">
+              <Setter TargetName="Bd" Property="Background" Value="{StaticResource DmAccentTint}"/>
+              <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource DmAccent}"/>
+              <Setter Property="Foreground" Value="{StaticResource DmText}"/>
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- ===== Sidebar button (icon + label, left aligned) ===== -->
+  <Style x:Key="SidebarButton" TargetType="Button">
+    <Setter Property="Foreground" Value="{StaticResource DmText}"/>
+    <Setter Property="Background" Value="{StaticResource DmSurfaceAlt}"/>
+    <Setter Property="BorderBrush" Value="{StaticResource DmBorderControl}"/>
+    <Setter Property="Cursor" Value="Hand"/>
+    <Setter Property="Height" Value="38"/>
+    <Setter Property="FontSize" Value="13"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="Button">
+          <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="8"
+                  BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1">
+            <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center" Margin="12,0"/>
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource DmAccent}"/>
+              <Setter TargetName="Bd" Property="Background" Value="{StaticResource DmSurfaceLight}"/>
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+              <Setter TargetName="Bd" Property="Opacity" Value="0.8"/>
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- ===== Settings nav item: black row + soft accent selected state ===== -->
+  <Style x:Key="NavItem" TargetType="ListBoxItem">
+    <Setter Property="Foreground" Value="{StaticResource DmText}"/>
+    <Setter Property="Cursor" Value="Hand"/>
+    <Setter Property="Margin" Value="0,2"/>
+    <Setter Property="FontSize" Value="14"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ListBoxItem">
+          <Border x:Name="Bd" Background="{StaticResource DmSurfaceAlt}" CornerRadius="8" Padding="12,9"
+                  BorderThickness="1" BorderBrush="{StaticResource DmBorderControl}">
+            <ContentPresenter VerticalAlignment="Center"/>
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="Bd" Property="Background" Value="{StaticResource DmSurfaceLight}"/>
+              <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource DmAccent}"/>
+            </Trigger>
+            <Trigger Property="IsSelected" Value="True">
+              <Setter TargetName="Bd" Property="Background" Value="{StaticResource DmAccentTint}"/>
+              <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource DmAccent}"/>
+              <Setter Property="Foreground" Value="{StaticResource DmText}"/>
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- ===== Slider: dark track, orange fill, light knob (default WPF slider is light) ===== -->
+  <Style x:Key="SliderThumb" TargetType="Thumb">
+    <Setter Property="OverridesDefaultStyle" Value="True"/>
+    <Setter Property="Cursor" Value="Hand"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="Thumb">
+          <Ellipse Width="15" Height="15" Fill="{StaticResource DmText}" Stroke="{StaticResource DmAccent}" StrokeThickness="2"/>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+  <Style TargetType="Slider">
+    <Setter Property="Foreground" Value="{StaticResource DmAccent}"/>
+    <Setter Property="Height" Value="22"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="Slider">
+          <Grid VerticalAlignment="Center">
+            <Border Height="4" CornerRadius="2" Background="{StaticResource DmSurfaceLight}" VerticalAlignment="Center"/>
+            <Track x:Name="PART_Track">
+              <Track.DecreaseRepeatButton>
+                <RepeatButton Command="Slider.DecreaseLarge" Focusable="False" IsTabStop="False">
+                  <RepeatButton.Template>
+                    <ControlTemplate TargetType="RepeatButton">
+                      <Border Height="4" CornerRadius="2" Background="{StaticResource DmAccent}" VerticalAlignment="Center"/>
+                    </ControlTemplate>
+                  </RepeatButton.Template>
+                </RepeatButton>
+              </Track.DecreaseRepeatButton>
+              <Track.IncreaseRepeatButton>
+                <RepeatButton Command="Slider.IncreaseLarge" Focusable="False" IsTabStop="False">
+                  <RepeatButton.Template>
+                    <ControlTemplate TargetType="RepeatButton"><Border Background="Transparent"/></ControlTemplate>
+                  </RepeatButton.Template>
+                </RepeatButton>
+              </Track.IncreaseRepeatButton>
+              <Track.Thumb>
+                <Thumb Style="{StaticResource SliderThumb}"/>
+              </Track.Thumb>
+            </Track>
+          </Grid>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsEnabled" Value="False">
+              <Setter Property="Opacity" Value="0.4"/>
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- ===== Checkbox: dark box, orange fill + white tick when checked ===== -->
+  <Style TargetType="CheckBox">
+    <Setter Property="Foreground" Value="{StaticResource DmText}"/>
+    <Setter Property="Cursor" Value="Hand"/>
+    <Setter Property="FontSize" Value="14"/>
+    <Setter Property="VerticalContentAlignment" Value="Center"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="CheckBox">
+          <StackPanel Orientation="Horizontal" Background="Transparent">
+            <Border x:Name="box" Width="18" Height="18" CornerRadius="4" VerticalAlignment="Center"
+                    Background="{StaticResource DmSurfaceAlt}" BorderBrush="{StaticResource DmBorder}" BorderThickness="1">
+              <Path x:Name="tick" Data="M4,9.5 L8,13.5 L14.5,5.5" Stroke="{StaticResource DmOnAccent}" StrokeThickness="2"
+                    StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                    Stretch="Uniform" Margin="3.5" Visibility="Collapsed"/>
+            </Border>
+            <ContentPresenter Margin="9,0,0,0" VerticalAlignment="Center"/>
+          </StackPanel>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsChecked" Value="True">
+              <Setter TargetName="box" Property="Background" Value="{StaticResource DmAccent}"/>
+              <Setter TargetName="box" Property="BorderBrush" Value="{StaticResource DmAccent}"/>
+              <Setter TargetName="tick" Property="Visibility" Value="Visible"/>
+            </Trigger>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="box" Property="BorderBrush" Value="{StaticResource DmAccent}"/>
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+              <Setter Property="Opacity" Value="0.4"/>
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- ===== Radio button: dark ring, orange ring + dot when checked ===== -->
+  <Style TargetType="RadioButton">
+    <Setter Property="Foreground" Value="{StaticResource DmText}"/>
+    <Setter Property="Cursor" Value="Hand"/>
+    <Setter Property="FontSize" Value="14"/>
+    <Setter Property="VerticalContentAlignment" Value="Center"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="RadioButton">
+          <StackPanel Orientation="Horizontal" Background="Transparent">
+            <Grid Width="18" Height="18" VerticalAlignment="Center">
+              <Ellipse x:Name="ring" Fill="{StaticResource DmSurfaceAlt}" Stroke="{StaticResource DmBorder}" StrokeThickness="1"/>
+              <Ellipse x:Name="dot" Width="8" Height="8" Fill="{StaticResource DmAccent}" Visibility="Collapsed"/>
+            </Grid>
+            <ContentPresenter Margin="9,0,0,0" VerticalAlignment="Center"/>
+          </StackPanel>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsChecked" Value="True">
+              <Setter TargetName="ring" Property="Stroke" Value="{StaticResource DmAccent}"/>
+              <Setter TargetName="dot" Property="Visibility" Value="Visible"/>
+            </Trigger>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="ring" Property="Stroke" Value="{StaticResource DmAccent}"/>
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+              <Setter Property="Opacity" Value="0.4"/>
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- ===== Dark combo box (the default WPF dropdown is light/white) ===== -->
+  <ControlTemplate x:Key="DmComboToggle" TargetType="ToggleButton">
+    <Border x:Name="bd" CornerRadius="6" Background="{StaticResource DmSurfaceAlt}"
+            BorderBrush="{StaticResource DmBorder}" BorderThickness="1">
+      <Path HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0"
+            Data="M0,0 L4,4 L8,0" Stroke="{StaticResource DmText}" StrokeThickness="1.6"
+            StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+    </Border>
+    <ControlTemplate.Triggers>
+      <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource DmAccent}"/></Trigger>
+      <Trigger Property="IsChecked" Value="True"><Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource DmAccent}"/></Trigger>
+    </ControlTemplate.Triggers>
+  </ControlTemplate>
+  <Style TargetType="ComboBox">
+    <Setter Property="Foreground" Value="{StaticResource DmText}"/>
+    <Setter Property="FontSize" Value="13"/>
+    <Setter Property="Height" Value="32"/>
+    <Setter Property="Cursor" Value="Hand"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ComboBox">
+          <Grid>
+            <ToggleButton Template="{StaticResource DmComboToggle}" Focusable="False" ClickMode="Press"
+                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"/>
+            <ContentPresenter Margin="10,0,28,0" VerticalAlignment="Center" HorizontalAlignment="Left"
+                              IsHitTestVisible="False"
+                              Content="{TemplateBinding SelectionBoxItem}"
+                              ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"/>
+            <Popup x:Name="PART_Popup" Placement="Bottom" Focusable="False" AllowsTransparency="True"
+                   IsOpen="{TemplateBinding IsDropDownOpen}" PopupAnimation="Slide">
+              <Border Background="{StaticResource DmSurface}" BorderBrush="{StaticResource DmBorder}"
+                      BorderThickness="1" CornerRadius="6" Margin="0,4,0,0" Padding="2"
+                      MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}">
+                <ScrollViewer MaxHeight="260"><ItemsPresenter/></ScrollViewer>
+              </Border>
+            </Popup>
+          </Grid>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+  <Style TargetType="ComboBoxItem">
+    <Setter Property="Foreground" Value="{StaticResource DmText}"/>
+    <Setter Property="FontSize" Value="13"/>
+    <Setter Property="Cursor" Value="Hand"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ComboBoxItem">
+          <Border x:Name="bd" Background="Transparent" CornerRadius="5" Margin="2,1" Padding="9,7">
+            <ContentPresenter/>
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsHighlighted" Value="True"><Setter TargetName="bd" Property="Background" Value="{StaticResource DmSurfaceLight}"/></Trigger>
+            <Trigger Property="IsSelected" Value="True">
+              <Setter TargetName="bd" Property="Background" Value="{StaticResource DmAccent}"/>
+              <Setter Property="Foreground" Value="{StaticResource DmOnAccent}"/>
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- ===== Dark text box (hex / shortcut recorder) ===== -->
+  <Style x:Key="DmTextBox" TargetType="TextBox">
+    <Setter Property="Foreground" Value="{StaticResource DmText}"/>
+    <Setter Property="Background" Value="{StaticResource DmSurfaceAlt}"/>
+    <Setter Property="CaretBrush" Value="{StaticResource DmText}"/>
+    <Setter Property="BorderBrush" Value="{StaticResource DmBorder}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="Padding" Value="10,0"/>
+    <Setter Property="MinHeight" Value="32"/>
+    <Setter Property="FontSize" Value="13"/>
+    <Setter Property="VerticalContentAlignment" Value="Center"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="TextBox">
+          <Border Background="{TemplateBinding Background}" CornerRadius="6"
+                  BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
+            <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="Center"
+                          Padding="{TemplateBinding Padding}"/>
+          </Border>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+  <!-- Make every un-keyed TextBox dark too, so a newly-added field is never light. -->
+  <Style TargetType="TextBox" BasedOn="{StaticResource DmTextBox}"/>
+
+  <!-- ===== Dark, slim scrollbars ===== -->
+  <Style x:Key="SbThumb" TargetType="Thumb">
+    <Setter Property="OverridesDefaultStyle" Value="True"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="Thumb">
+          <Border CornerRadius="4" Background="#44FFFFFF" Margin="2"/>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+  <Style x:Key="SbPage" TargetType="RepeatButton">
+    <Setter Property="OverridesDefaultStyle" Value="True"/>
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="Focusable" Value="False"/>
+    <Setter Property="IsTabStop" Value="False"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="RepeatButton">
+          <Border Background="Transparent"/>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+  <Style TargetType="ScrollBar">
+    <Setter Property="Background" Value="{StaticResource DmSurfaceAlt}"/>
+    <Setter Property="Width" Value="11"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ScrollBar">
+          <Grid Background="{TemplateBinding Background}">
+            <Track x:Name="PART_Track" IsDirectionReversed="True">
+              <Track.DecreaseRepeatButton>
+                <RepeatButton Style="{StaticResource SbPage}" Command="ScrollBar.PageUpCommand"/>
+              </Track.DecreaseRepeatButton>
+              <Track.Thumb>
+                <Thumb Style="{StaticResource SbThumb}" MinHeight="24"/>
+              </Track.Thumb>
+              <Track.IncreaseRepeatButton>
+                <RepeatButton Style="{StaticResource SbPage}" Command="ScrollBar.PageDownCommand"/>
+              </Track.IncreaseRepeatButton>
+            </Track>
+          </Grid>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+    <Style.Triggers>
+      <Trigger Property="Orientation" Value="Horizontal">
+        <Setter Property="Width" Value="Auto"/>
+        <Setter Property="Height" Value="11"/>
+        <Setter Property="Template">
+          <Setter.Value>
+            <ControlTemplate TargetType="ScrollBar">
+              <Grid Background="{TemplateBinding Background}">
+                <Track x:Name="PART_Track">
+                  <Track.DecreaseRepeatButton>
+                    <RepeatButton Style="{StaticResource SbPage}" Command="ScrollBar.PageLeftCommand"/>
+                  </Track.DecreaseRepeatButton>
+                  <Track.Thumb>
+                    <Thumb Style="{StaticResource SbThumb}" MinWidth="24"/>
+                  </Track.Thumb>
+                  <Track.IncreaseRepeatButton>
+                    <RepeatButton Style="{StaticResource SbPage}" Command="ScrollBar.PageRightCommand"/>
+                  </Track.IncreaseRepeatButton>
+                </Track>
+              </Grid>
+            </ControlTemplate>
+          </Setter.Value>
+        </Setter>
+      </Trigger>
+    </Style.Triggers>
+  </Style>
+
+  <!-- ===== ScrollViewer: dark corner where both scrollbars meet ===== -->
+  <Style TargetType="ScrollViewer">
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ScrollViewer">
+          <Grid Background="{TemplateBinding Background}">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*"/>
+              <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+              <RowDefinition Height="*"/>
+              <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <ScrollContentPresenter Grid.Row="0" Grid.Column="0"
+                                    Margin="{TemplateBinding Padding}"
+                                    Content="{TemplateBinding Content}"
+                                    ContentTemplate="{TemplateBinding ContentTemplate}"
+                                    CanContentScroll="{TemplateBinding CanContentScroll}"/>
+            <ScrollBar x:Name="PART_VerticalScrollBar" Grid.Row="0" Grid.Column="1" Orientation="Vertical"
+                       Value="{TemplateBinding VerticalOffset}"
+                       Maximum="{TemplateBinding ScrollableHeight}"
+                       ViewportSize="{TemplateBinding ViewportHeight}"
+                       Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}"/>
+            <ScrollBar x:Name="PART_HorizontalScrollBar" Grid.Row="1" Grid.Column="0" Orientation="Horizontal"
+                       Value="{TemplateBinding HorizontalOffset}"
+                       Maximum="{TemplateBinding ScrollableWidth}"
+                       ViewportSize="{TemplateBinding ViewportWidth}"
+                       Visibility="{TemplateBinding ComputedHorizontalScrollBarVisibility}"/>
+            <Rectangle Grid.Row="1" Grid.Column="1" Fill="{StaticResource DmSurfaceAlt}"/>
+          </Grid>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+</ResourceDictionary>
