@@ -4,6 +4,10 @@ All notable changes to DM_Screenshot. Newest version first. Always written in En
 
 ## [Unreleased]
 
+## 0.4.21 – 2026-06-27
+- feat: Windows Settings now mirrors the macOS design controls with the Standard Design / Black Utility switcher, compact settings rows and switch-style toggles.
+- fix: The Windows tray icon now uses the modern DM Screenshot capture-corners and aperture mark instead of the old camera glyph.
+
 ## 0.4.20 – 2026-06-24
 - feat: Settings now lets you switch DM Screenshot between Standard Design and Black Utility; Standard keeps the pre-black native macOS feel while Black Utility keeps the pure-black layered chrome (macOS)
 - change: Standard Design now restores the pre-black gray app/canvas and settings surfaces, native macOS switches, native Quick-Edit material and the orange sidebar hover state (macOS)
