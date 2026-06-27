@@ -352,6 +352,46 @@
     </Setter>
   </Style>
 
+  <!-- ===== Switch toggle: macOS-like track/knob for binary settings ===== -->
+  <Style x:Key="SwitchToggle" TargetType="ToggleButton">
+    <Setter Property="Width" Value="52"/>
+    <Setter Property="Height" Value="28"/>
+    <Setter Property="Cursor" Value="Hand"/>
+    <Setter Property="Background" Value="{StaticResource DmSurfaceLight}"/>
+    <Setter Property="BorderBrush" Value="{StaticResource DmBorderControl}"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ToggleButton">
+          <Border x:Name="Track" CornerRadius="15"
+                  Background="{TemplateBinding Background}"
+                  BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1">
+            <Grid>
+              <Ellipse x:Name="Knob" Width="22" Height="22" Margin="3"
+                       HorizontalAlignment="Left" Fill="{StaticResource DmText}">
+                <Ellipse.Effect>
+                  <DropShadowEffect Color="Black" Opacity="0.45" BlurRadius="3" ShadowDepth="1"/>
+                </Ellipse.Effect>
+              </Ellipse>
+            </Grid>
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="Track" Property="BorderBrush" Value="{StaticResource DmBorderHover}"/>
+            </Trigger>
+            <Trigger Property="IsChecked" Value="True">
+              <Setter TargetName="Track" Property="Background" Value="{StaticResource DmSwitchOn}"/>
+              <Setter TargetName="Track" Property="BorderBrush" Value="{StaticResource DmAccent}"/>
+              <Setter TargetName="Knob" Property="HorizontalAlignment" Value="Right"/>
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+              <Setter TargetName="Track" Property="Opacity" Value="0.45"/>
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
   <!-- ===== Dark combo box (the default WPF dropdown is light/white) ===== -->
   <ControlTemplate x:Key="DmComboToggle" TargetType="ToggleButton">
     <Border x:Name="bd" CornerRadius="6" Background="{StaticResource DmSurfaceAlt}"

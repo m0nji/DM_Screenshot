@@ -9,6 +9,7 @@ using DMShot.History;
 using DMShot.Localization;
 using DMShot.Platform;
 using DMShot.Settings;
+using DMShot.Theme;
 using DMShot.Update;
 using DMShot.Video;
 namespace DMShot;
@@ -49,6 +50,7 @@ public partial class App : Application
 
         _settingsStore = SettingsStore.Default();
         _settings = _settingsStore.Load();
+        AppDesignTheme.Apply(_settings.AppDesign);
         // Seed the interface language from the persisted setting before any window
         // or the tray menu is built, so the first paint is already localized.
         Loc.Instance.Current = LanguageCodes.FromCode(_settings.Language);
@@ -91,7 +93,12 @@ public partial class App : Application
     private void OpenSettings()
     {
         var w = new SettingsWindow(_settings, _settingsStore, _updater);
-        w.Saved += s => { _settings = s; RegisterHotkeysFromSettings(); };
+        w.Saved += s =>
+        {
+            _settings = s;
+            AppDesignTheme.Apply(_settings.AppDesign);
+            RegisterHotkeysFromSettings();
+        };
         w.Show();
     }
 

@@ -3,12 +3,12 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:s="clr-namespace:DMShot.Settings"
         xmlns:loc="clr-namespace:DMShot.Localization"
-        Title="{loc:Tr settingsTitle}" Width="700" Height="460" Background="{StaticResource DmBackground}"
+        Title="{loc:Tr settingsTitle}" Width="640" Height="420" Background="{StaticResource DmBackground}"
         Icon="/Resources/AppIcon.ico" TextOptions.TextFormattingMode="Ideal" UseLayoutRounding="True"
         WindowStartupLocation="CenterScreen">
   <Grid>
     <Grid.ColumnDefinitions>
-      <ColumnDefinition Width="200"/>
+      <ColumnDefinition Width="180"/>
       <ColumnDefinition Width="*"/>
     </Grid.ColumnDefinitions>
 
@@ -45,7 +45,7 @@
 
     <!-- Content (scrollable so long panes — e.g. Updates with release notes — can reach
          their action buttons) -->
-    <ScrollViewer Grid.Column="1" Padding="28,24" VerticalScrollBarVisibility="Auto"
+    <ScrollViewer Grid.Column="1" Padding="24" VerticalScrollBarVisibility="Auto"
                   HorizontalScrollBarVisibility="Disabled">
       <StackPanel x:Name="Pane"/>
     </ScrollViewer>

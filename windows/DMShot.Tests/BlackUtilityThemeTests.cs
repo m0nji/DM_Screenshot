@@ -45,6 +45,28 @@ public class BlackUtilityThemeTests
         Assert.Contains("BorderBrush=\"{StaticResource DmBorder}\"", settings);
     }
 
+    [Fact]
+    public void WindowsSettingsExposeMacDesignSwitcherAndToggleParity()
+    {
+        var settingsModel = Read("windows/DMShot/Settings/Settings.cs");
+        var settingsWindow = Read("windows/DMShot/Settings/SettingsWindow.xaml.cs");
+        var theme = Read("windows/DMShot/Theme/DmTheme.xaml");
+        var loc = Read("windows/DMShot/Localization/Loc.cs");
+
+        Assert.Contains("public enum AppDesign { Standard, Black }", settingsModel);
+        Assert.Contains("public AppDesign AppDesign { get; set; } = AppDesign.Black;", settingsModel);
+        Assert.Contains("ShowDesignPicker()", settingsWindow);
+        Assert.Contains("Loc.Instance[\"design\"]", settingsWindow);
+        Assert.Contains("AppDesign.Standard", settingsWindow);
+        Assert.Contains("AppDesign.Black", settingsWindow);
+        Assert.Contains("Style x:Key=\"SwitchToggle\"", theme);
+        Assert.Contains("DmSwitchOn", theme);
+        Assert.Contains("[\"design\"] = \"Design\"", loc);
+        Assert.Contains("[\"designHelp\"] = \"Choose the visual style for DM Screenshot.\"", loc);
+        Assert.Contains("[\"designStandard\"] = \"Standard Design\"", loc);
+        Assert.Contains("[\"designBlack\"] = \"Black Utility\"", loc);
+    }
+
     private static string Read(string relativePath)
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);

@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using DMShot.Localization;
@@ -71,56 +72,34 @@ public partial class SettingsWindow : Window
         Pane.Children.Clear();
         Pane.Children.Add(SectionTitle(Loc.Instance["sectionGeneral"]));
 
-        var cb = new CheckBox
-        {
-            Content = Loc.Instance["launchAtLogin"], Foreground = Text, FontSize = 14,
-            IsChecked = LaunchAtLogin.Get()
-        };
-        cb.Checked += (_, _) => { _settings.LaunchAtLogin = true; LaunchAtLogin.Set(true); Commit(); };
-        cb.Unchecked += (_, _) => { _settings.LaunchAtLogin = false; LaunchAtLogin.Set(false); Commit(); };
-        Pane.Children.Add(cb);
-        Pane.Children.Add(new TextBlock
-        {
-            Text = Loc.Instance["launchAtLoginHelp"],
-            Foreground = TextDim, Margin = new Thickness(0, 6, 0, 0), TextWrapping = TextWrapping.Wrap
-        });
+        Pane.Children.Add(SettingRow(
+            Loc.Instance["launchAtLogin"],
+            Loc.Instance["launchAtLoginHelp"],
+            SwitchToggle(LaunchAtLogin.Get(), enabled =>
+            {
+                _settings.LaunchAtLogin = enabled;
+                LaunchAtLogin.Set(enabled);
+                Commit();
+            })));
 
-        Pane.Children.Add(new TextBlock
-        {
-            Text = Loc.Instance["afterCapture"], Foreground = Text, FontSize = 14,
-            Margin = new Thickness(0, 18, 0, 4)
-        });
-        // Two radio buttons rather than a ComboBox: a default WPF ComboBox dropdown renders
-        // with the system (light) popup theme — unreadable on this dark pane. Radio buttons
-        // inherit the same Foreground=Text styling as the launch-at-login checkbox.
-        var rbMain = new RadioButton
-        {
-            Content = Loc.Instance["afterCaptureMainWindow"], Foreground = Text, FontSize = 14, GroupName = "afterCapture",
-            Margin = new Thickness(0, 0, 0, 6), IsChecked = _settings.AfterCapture != AfterCaptureMode.QuickEdit
-        };
-        var rbQuick = new RadioButton
-        {
-            Content = Loc.Instance["afterCaptureQuickEdit"], Foreground = Text, FontSize = 14, GroupName = "afterCapture",
-            IsChecked = _settings.AfterCapture == AfterCaptureMode.QuickEdit
-        };
-        rbMain.Checked += (_, _) => { _settings.AfterCapture = AfterCaptureMode.MainWindow; Commit(); };
-        rbQuick.Checked += (_, _) => { _settings.AfterCapture = AfterCaptureMode.QuickEdit; Commit(); };
-        Pane.Children.Add(rbMain);
-        Pane.Children.Add(rbQuick);
+        Pane.Children.Add(SettingRow(
+            Loc.Instance["afterCapture"],
+            Loc.Instance["afterCaptureHelp"],
+            AfterCapturePicker()));
 
-        var cbLoupe = new CheckBox
-        {
-            Content = Loc.Instance["showLoupe"], Foreground = Text, FontSize = 14,
-            Margin = new Thickness(0, 18, 0, 0), IsChecked = _settings.ShowZoomLoupe
-        };
-        cbLoupe.Checked += (_, _) => { _settings.ShowZoomLoupe = true; Commit(); };
-        cbLoupe.Unchecked += (_, _) => { _settings.ShowZoomLoupe = false; Commit(); };
-        Pane.Children.Add(cbLoupe);
-        Pane.Children.Add(new TextBlock
-        {
-            Text = Loc.Instance["showLoupeHelp"],
-            Foreground = TextDim, Margin = new Thickness(0, 6, 0, 0), TextWrapping = TextWrapping.Wrap
-        });
+        Pane.Children.Add(SettingRow(
+            Loc.Instance["design"],
+            Loc.Instance["designHelp"],
+            ShowDesignPicker()));
+
+        Pane.Children.Add(SettingRow(
+            Loc.Instance["showLoupe"],
+            Loc.Instance["showLoupeHelp"],
+            SwitchToggle(_settings.ShowZoomLoupe, enabled =>
+            {
+                _settings.ShowZoomLoupe = enabled;
+                Commit();
+            })));
     }
 
     private void ShowShortcuts()
@@ -163,12 +142,6 @@ public partial class SettingsWindow : Window
         Pane.Children.Clear();
         Pane.Children.Add(SectionTitle(Loc.Instance["sectionLanguage"]));
 
-        Pane.Children.Add(new TextBlock
-        {
-            Text = Loc.Instance["languageHelp"], Foreground = TextDim,
-            Margin = new Thickness(0, 0, 0, 10), TextWrapping = TextWrapping.Wrap
-        });
-
         var combo = new ComboBox { Width = 220, HorizontalAlignment = HorizontalAlignment.Left };
         foreach (var lang in new[] { LocLanguage.English, LocLanguage.German })
             combo.Items.Add(new ComboBoxItem { Content = lang.DisplayName(), Tag = lang });
@@ -183,7 +156,7 @@ public partial class SettingsWindow : Window
                 Loc.Instance.Current = lang;
             }
         };
-        Pane.Children.Add(combo);
+        Pane.Children.Add(SettingRow(Loc.Instance["languageLabel"], Loc.Instance["languageHelp"], combo));
     }
 
     private void ShowUpdates()
@@ -257,6 +230,98 @@ public partial class SettingsWindow : Window
 
     private TextBlock Dim(string t) => new() { Text = t, Foreground = TextDim, TextWrapping = TextWrapping.Wrap };
     private TextBlock Info(string t) => new() { Text = t, Foreground = Text, FontSize = 14, Margin = new Thickness(0, 0, 0, 6) };
+
+    private FrameworkElement SettingRow(string title, string subtitle, FrameworkElement trailing)
+    {
+        var row = new Grid { Margin = new Thickness(0, 0, 0, 18) };
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+        var labels = new StackPanel { MaxWidth = 330 };
+        labels.Children.Add(new TextBlock
+        {
+            Text = title,
+            Foreground = Text,
+            FontSize = 14,
+            FontWeight = FontWeights.SemiBold
+        });
+        labels.Children.Add(new TextBlock
+        {
+            Text = subtitle,
+            Foreground = TextDim,
+            FontSize = 12,
+            Margin = new Thickness(0, 3, 18, 0),
+            TextWrapping = TextWrapping.Wrap
+        });
+        Grid.SetColumn(labels, 0);
+
+        trailing.VerticalAlignment = VerticalAlignment.Top;
+        trailing.Margin = new Thickness(18, 0, 0, 0);
+        Grid.SetColumn(trailing, 1);
+
+        row.Children.Add(labels);
+        row.Children.Add(trailing);
+        return row;
+    }
+
+    private ToggleButton SwitchToggle(bool isChecked, Action<bool> onChanged)
+    {
+        var toggle = new ToggleButton
+        {
+            IsChecked = isChecked,
+            Style = (Style)FindResource("SwitchToggle")
+        };
+        toggle.Checked += (_, _) => onChanged(true);
+        toggle.Unchecked += (_, _) => onChanged(false);
+        return toggle;
+    }
+
+    private ComboBox AfterCapturePicker() => Picker(
+        new[]
+        {
+            (Loc.Instance["afterCaptureMainWindow"], AfterCaptureMode.MainWindow),
+            (Loc.Instance["afterCaptureQuickEdit"], AfterCaptureMode.QuickEdit)
+        },
+        _settings.AfterCapture,
+        mode =>
+        {
+            if (_settings.AfterCapture == mode) return;
+            _settings.AfterCapture = mode;
+            Commit();
+        });
+
+    private ComboBox ShowDesignPicker() => Picker(
+        new[]
+        {
+            (Loc.Instance["designStandard"], AppDesign.Standard),
+            (Loc.Instance["designBlack"], AppDesign.Black)
+        },
+        _settings.AppDesign,
+        design =>
+        {
+            if (_settings.AppDesign == design) return;
+            _settings.AppDesign = design;
+            Commit();
+        });
+
+    private ComboBox Picker<T>(IReadOnlyList<(string Title, T Value)> items, T selected, Action<T> onChanged)
+        where T : notnull
+    {
+        var combo = new ComboBox { Width = 220, HorizontalAlignment = HorizontalAlignment.Right };
+        foreach (var item in items)
+            combo.Items.Add(new ComboBoxItem { Content = item.Title, Tag = item.Value });
+
+        var selectedItem = combo.Items
+            .Cast<ComboBoxItem>()
+            .FirstOrDefault(i => i.Tag is T value && EqualityComparer<T>.Default.Equals(value, selected));
+        combo.SelectedItem = selectedItem ?? combo.Items[0];
+        combo.SelectionChanged += (_, _) =>
+        {
+            if (combo.SelectedItem is ComboBoxItem item && item.Tag is T value)
+                onChanged(value);
+        };
+        return combo;
+    }
 
     private Button AccentButtonControl(string content, RoutedEventHandler onClick)
     {

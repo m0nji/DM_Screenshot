@@ -25,6 +25,7 @@ public class SettingsTests : IDisposable
         Assert.Equal("Ctrl+Shift+2", s.AreaHotkey);
         Assert.Equal(3, s.StrokeWidth);     // remembered-annotation defaults
         Assert.Equal(12, s.BlurStrength);
+        Assert.Equal(AppDesign.Black, s.AppDesign);
     }
 
     [Fact]
@@ -35,6 +36,14 @@ public class SettingsTests : IDisposable
         var loaded = store.Load();
         Assert.Equal(9, loaded.StrokeWidth);
         Assert.Equal(28, loaded.BlurStrength);
+    }
+
+    [Fact]
+    public void AppDesign_RoundTrip()
+    {
+        var store = new SettingsStore(_path);
+        store.Save(new Settings { AppDesign = AppDesign.Standard });
+        Assert.Equal(AppDesign.Standard, store.Load().AppDesign);
     }
 
     public void Dispose() { if (File.Exists(_path)) File.Delete(_path); }

@@ -1,6 +1,7 @@
 namespace DMShot.Settings;
 
 public enum AfterCaptureMode { MainWindow, QuickEdit }
+public enum AppDesign { Standard, Black }
 
 public sealed class Settings
 {
@@ -10,6 +11,7 @@ public sealed class Settings
     public string VideoAreaHotkey { get; set; } = "Ctrl+Alt+2";
     public bool LaunchAtLogin { get; set; } = false;
     public AfterCaptureMode AfterCapture { get; set; } = AfterCaptureMode.MainWindow;
+    public AppDesign AppDesign { get; set; } = AppDesign.Black;
     public bool ShowZoomLoupe { get; set; } = true;
     public string Language { get; set; } = "en";
 
