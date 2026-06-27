@@ -351,5 +351,14 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.4.22/DM_Screenshot-v0.4.22.dmg" type="application/octet-stream" sparkle:edSignature="lySbBJ1viUfAY5VlY3Ep+wo0wpnbLLSF+dc9v3oi7BRTBUae0RolwbKoXvLualR0ZjRdBP1m3ml4hvYmdNAzCQ==" length="2343659" />
 </item>
 
+<item>
+  <title>Version 0.4.23</title>
+  <description><![CDATA[<ul><li>fix: Windows now uses the shared BrandDesign layered control chrome for toolbar, sidebar, Settings navigation, combo boxes, text boxes and switches instead of flat bordered buttons.</li>
+<li>fix: Windows Standard Design and Black Utility now update loaded UI through dynamic theme resources, including Quick-Edit and the editor canvas, so hard-coded black/gray surfaces no longer override the selected design.</li></ul>]]></description>
+  <sparkle:version>0.4.23</sparkle:version>
+  <sparkle:shortVersionString>0.4.23</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.4.23/DM_Screenshot-v0.4.23.dmg" type="application/octet-stream" sparkle:edSignature="wnmfFsvTJW3X0lH9+7RftYDpxxwm8dsAMgfao8a0nVad92C83dKO0mlDF9I/Bw68BoWk2EAT/Jy9RENef8giBg==" length="2343877" />
+</item>
+
 </channel>
 </rss>
