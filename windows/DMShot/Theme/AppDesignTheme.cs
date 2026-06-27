@@ -9,8 +9,11 @@ public static class AppDesignTheme
     public static void Apply(AppDesign design)
     {
         if (Application.Current is null) return;
-        var resources = Application.Current.Resources;
+        Apply(Application.Current.Resources, design);
+    }
 
+    public static void Apply(ResourceDictionary resources, AppDesign design)
+    {
         SetBrush(resources, "DmBackground", design == AppDesign.Black ? "#000000" : "#1F1F1F");
         SetBrush(resources, "DmSurface", design == AppDesign.Black ? "#060606" : "#212121");
         SetBrush(resources, "DmSurfaceAlt", design == AppDesign.Black ? "#000000" : "#262629");
@@ -32,13 +35,9 @@ public static class AppDesignTheme
     private static void SetBrush(ResourceDictionary resources, string key, string hex, double opacity = 1)
     {
         if (ColorConverter.ConvertFromString(hex) is not Color color) return;
-        if (resources[key] is SolidColorBrush brush)
-        {
-            brush.Color = color;
-            brush.Opacity = opacity;
-            return;
-        }
 
-        resources[key] = new SolidColorBrush(color) { Opacity = opacity };
+        var brush = new SolidColorBrush(color) { Opacity = opacity };
+        if (brush.CanFreeze) brush.Freeze();
+        resources[key] = brush;
     }
 }

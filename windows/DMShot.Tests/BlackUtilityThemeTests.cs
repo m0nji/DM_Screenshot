@@ -1,4 +1,8 @@
 using System.IO;
+using System.Windows;
+using System.Windows.Media;
+using DMShot.Settings;
+using DMShot.Theme;
 using Xunit;
 
 public class BlackUtilityThemeTests
@@ -65,6 +69,23 @@ public class BlackUtilityThemeTests
         Assert.Contains("[\"designHelp\"] = \"Choose the visual style for DM Screenshot.\"", loc);
         Assert.Contains("[\"designStandard\"] = \"Standard Design\"", loc);
         Assert.Contains("[\"designBlack\"] = \"Black Utility\"", loc);
+    }
+
+    [Fact]
+    public void AppDesignThemeReplacesFrozenResourceBrushes()
+    {
+        var resources = new ResourceDictionary();
+        var frozen = new SolidColorBrush(Colors.Black);
+        frozen.Freeze();
+        resources["DmBackground"] = frozen;
+
+        AppDesignTheme.Apply(resources, AppDesign.Standard);
+
+        var replacement = Assert.IsType<SolidColorBrush>(resources["DmBackground"]);
+        Assert.NotSame(frozen, replacement);
+        Assert.Equal(Color.FromRgb(0x1F, 0x1F, 0x1F), replacement.Color);
+        Assert.Equal(1, replacement.Opacity);
+        Assert.True(replacement.IsFrozen);
     }
 
     private static string Read(string relativePath)
