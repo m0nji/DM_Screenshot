@@ -4,14 +4,14 @@
         xmlns:ed="clr-namespace:DMShot.Editor"
         xmlns:loc="clr-namespace:DMShot.Localization"
         Title="DM Screenshot" Width="1100" Height="750" MinWidth="900" MinHeight="560"
-        Background="{StaticResource DmBackground}" Icon="/Resources/AppIcon.ico"
+        Background="{DynamicResource DmBackground}" Icon="/Resources/AppIcon.ico"
         TextOptions.TextFormattingMode="Ideal" UseLayoutRounding="True">
   <Window.Resources>
     <!-- Vertical divider used between toolbar groups -->
     <Style x:Key="VDivider" TargetType="Rectangle">
       <Setter Property="Width" Value="1"/>
       <Setter Property="Height" Value="22"/>
-      <Setter Property="Fill" Value="{StaticResource DmBorder}"/>
+      <Setter Property="Fill" Value="{DynamicResource DmBorder}"/>
       <Setter Property="Margin" Value="7,0"/>
       <Setter Property="VerticalAlignment" Value="Center"/>
     </Style>
@@ -36,8 +36,8 @@
 
   <DockPanel>
     <!-- ===================== Toolbar ===================== -->
-    <Border DockPanel.Dock="Top" Background="{StaticResource DmBackground}"
-            BorderBrush="{StaticResource DmBorder}" BorderThickness="0,0,0,1">
+    <Border DockPanel.Dock="Top" Background="{DynamicResource DmBackground}"
+            BorderBrush="{DynamicResource DmBorder}" BorderThickness="0,0,0,1">
       <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
         <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="12,8">
 
@@ -70,7 +70,7 @@
           <Rectangle Style="{StaticResource VDivider}"/>
 
           <!-- Tools (grouped in a lighter pill) -->
-          <Border Background="{StaticResource DmSurfaceLight}" CornerRadius="9" Padding="3">
+          <Border Background="{DynamicResource DmSurfaceLight}" CornerRadius="9" Padding="3">
             <StackPanel Orientation="Horizontal">
               <RadioButton x:Name="ToolSelect" Style="{StaticResource ToolRadio}" GroupName="tools" Tag="Select" Checked="ToolChecked" IsChecked="True" ToolTip="{loc:Tr toolSelect}">
                 <Viewbox Width="18" Height="18"><Canvas Width="24" Height="24"><Path Data="M6,3 L6,19.5 L10.2,15.3 L13.2,21.5 L15.6,20.4 L12.6,14.4 L18.5,14.4 Z" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}"/></Canvas></Viewbox>
@@ -117,12 +117,12 @@
               </ControlTemplate>
             </Button.Template>
             <Grid Width="24" Height="24">
-              <Ellipse x:Name="SwatchFill" Fill="{StaticResource DmAccent}"/>
+              <Ellipse x:Name="SwatchFill" Fill="{DynamicResource DmAccent}"/>
               <Ellipse Stroke="#88FFFFFF" StrokeThickness="1.5"/>
             </Grid>
           </Button>
           <Popup x:Name="ColorPopup" PlacementTarget="{Binding ElementName=ColorSwatchButton}" Placement="Bottom" StaysOpen="False" AllowsTransparency="True">
-            <Border Background="{StaticResource DmSurface}" BorderBrush="{StaticResource DmBorder}" BorderThickness="1" CornerRadius="10" Padding="12" Margin="0,6,0,0">
+            <Border Background="{DynamicResource DmSurface}" BorderBrush="{DynamicResource DmBorder}" BorderThickness="1" CornerRadius="10" Padding="12" Margin="0,6,0,0">
               <StackPanel Width="176">
                 <UniformGrid Columns="4">
                   <Button Style="{StaticResource Swatch}" Background="#C97B4A" Tag="#C97B4A" Click="PaletteClick"/>
@@ -134,9 +134,9 @@
                   <Button Style="{StaticResource Swatch}" Background="#000000" Tag="#000000" Click="PaletteClick"/>
                   <Button Style="{StaticResource Swatch}" Background="#FFFFFF" Tag="#FFFFFF" Click="PaletteClick"/>
                 </UniformGrid>
-                <Rectangle Height="1" Fill="{StaticResource DmBorder}" Margin="0,10"/>
+                <Rectangle Height="1" Fill="{DynamicResource DmBorder}" Margin="0,10"/>
                 <StackPanel Orientation="Horizontal">
-                  <TextBlock Text="{loc:Tr hex}" Foreground="{StaticResource DmTextDim}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                  <TextBlock Text="{loc:Tr hex}" Foreground="{DynamicResource DmTextDim}" VerticalAlignment="Center" Margin="0,0,8,0"/>
                   <TextBox x:Name="HexBox" Style="{StaticResource DmTextBox}" Width="110" Text="#C97B4A" KeyDown="HexChanged"/>
                 </StackPanel>
               </StackPanel>
@@ -147,12 +147,12 @@
 
           <!-- Contextual slider: Size (default) or Blur -->
           <StackPanel x:Name="SizePanel" Orientation="Horizontal" VerticalAlignment="Center">
-            <TextBlock Text="{loc:Tr size}" Foreground="{StaticResource DmTextDim}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+            <TextBlock Text="{loc:Tr size}" Foreground="{DynamicResource DmTextDim}" VerticalAlignment="Center" Margin="0,0,6,0"/>
             <Slider x:Name="StrokeSlider" Width="96" Minimum="1" Maximum="20" Value="3" VerticalAlignment="Center"/>
             <TextBlock x:Name="StrokeVal" Text="3px" Width="34" Margin="6,0,0,0" VerticalAlignment="Center" FontFamily="Consolas"/>
           </StackPanel>
           <StackPanel x:Name="BlurPanel" Orientation="Horizontal" VerticalAlignment="Center" Visibility="Collapsed">
-            <TextBlock Text="{loc:Tr blur}" Foreground="{StaticResource DmTextDim}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+            <TextBlock Text="{loc:Tr blur}" Foreground="{DynamicResource DmTextDim}" VerticalAlignment="Center" Margin="0,0,6,0"/>
             <Slider x:Name="BlurSlider" Width="96" Minimum="4" Maximum="40" Value="12" VerticalAlignment="Center"/>
             <TextBlock x:Name="BlurVal" Text="12" Width="34" Margin="6,0,0,0" VerticalAlignment="Center" FontFamily="Consolas"/>
           </StackPanel>
@@ -169,10 +169,10 @@
 
           <Rectangle Style="{StaticResource VDivider}"/>
 
-          <TextBlock x:Name="DimText" Foreground="{StaticResource DmTextDim}" VerticalAlignment="Center" FontSize="12"/>
+          <TextBlock x:Name="DimText" Foreground="{DynamicResource DmTextDim}" VerticalAlignment="Center" FontSize="12"/>
           <Button x:Name="ZoomBtn" Content="100%" Click="ResetZoomClick" Cursor="Hand"
                   Background="Transparent" BorderThickness="0" Padding="8,2" Margin="8,0,0,0"
-                  Foreground="{StaticResource DmTextDim}" FontSize="12" ToolTip="{loc:Tr resetZoomToFit}"/>
+                  Foreground="{DynamicResource DmTextDim}" FontSize="12" ToolTip="{loc:Tr resetZoomToFit}"/>
         </StackPanel>
       </ScrollViewer>
     </Border>
@@ -186,8 +186,8 @@
       </Grid.ColumnDefinitions>
 
     <!-- ===================== Sidebar ===================== -->
-    <Border Grid.Column="0" Background="{StaticResource DmBackground}"
-            BorderBrush="{StaticResource DmBorder}" BorderThickness="0,0,1,0">
+    <Border Grid.Column="0" Background="{DynamicResource DmBackground}"
+            BorderBrush="{DynamicResource DmBorder}" BorderThickness="0,0,1,0">
       <DockPanel Margin="10">
         <Button DockPanel.Dock="Top" Style="{StaticResource SidebarButton}" Click="FullScreenClick" Margin="0,0,0,8">
           <StackPanel Orientation="Horizontal">
@@ -220,7 +220,7 @@
           </StackPanel>
         </Button>
 
-        <TextBlock DockPanel.Dock="Top" Text="{loc:Tr historyHeader}" Foreground="{StaticResource DmTextDim}"
+        <TextBlock DockPanel.Dock="Top" Text="{loc:Tr historyHeader}" Foreground="{DynamicResource DmTextDim}"
                    FontSize="11" FontWeight="SemiBold" Margin="2,0,0,6"/>
 
         <Button DockPanel.Dock="Bottom" Style="{StaticResource SidebarButton}" Click="SettingsClick" Margin="0,12,0,0">
@@ -245,7 +245,7 @@
                     </Border>
                     <ControlTemplate.Triggers>
                       <Trigger Property="IsSelected" Value="True">
-                        <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource DmAccent}"/>
+                        <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource DmAccent}"/>
                       </Trigger>
                     </ControlTemplate.Triggers>
                   </ControlTemplate>
@@ -291,11 +291,11 @@
 
     <!-- ===================== Splitter ===================== -->
     <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch"
-                  Background="{StaticResource DmBorder}" Cursor="SizeWE"
+                  Background="{DynamicResource DmBorder}" Cursor="SizeWE"
                   ResizeBehavior="PreviousAndNext" ResizeDirection="Columns"/>
 
     <!-- ===================== Canvas ===================== -->
-    <Border Grid.Column="2" Background="#141418" ClipToBounds="True">
+    <Border Grid.Column="2" Background="{DynamicResource DmBackground}" ClipToBounds="True">
       <ed:CanvasControl x:Name="Canvas" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ClipToBounds="True"/>
     </Border>
     </Grid>

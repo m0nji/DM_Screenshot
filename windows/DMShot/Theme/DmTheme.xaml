@@ -13,6 +13,7 @@
        label on the muted orange reads as muted/disabled; white keeps active states crisp. -->
   <SolidColorBrush x:Key="DmOnAccent" Color="#FFFFFF"/>
   <SolidColorBrush x:Key="DmText" Color="#E6E6EA"/>
+  <SolidColorBrush x:Key="DmTextStrong" Color="#F8F8FA"/>
   <SolidColorBrush x:Key="DmTextDim" Color="#8B8C94"/>
   <SolidColorBrush x:Key="DmBorder" Color="#222226"/>
   <SolidColorBrush x:Key="DmBorderControl" Color="#3A3A42"/>
@@ -21,10 +22,17 @@
   <SolidColorBrush x:Key="DmBorderControlHighlight" Color="White" Opacity="0.16"/>
   <SolidColorBrush x:Key="DmControlShadow" Color="Black" Opacity="0.55"/>
   <SolidColorBrush x:Key="DmSwitchOn" Color="#C97B4A" Opacity="0.18"/>
+  <LinearGradientBrush x:Key="DmControlChromeStroke" StartPoint="0,0" EndPoint="1,1">
+    <GradientStop Color="#29FFFFFF" Offset="0"/>
+    <GradientStop Color="#0AFFFFFF" Offset="0.48"/>
+    <GradientStop Color="#57000000" Offset="1"/>
+  </LinearGradientBrush>
+  <DropShadowEffect x:Key="DmControlChromeShadow" Color="Black" Opacity="0.55"
+                    BlurRadius="5" ShadowDepth="1"/>
 
   <!-- ===== Base text ===== -->
   <Style TargetType="TextBlock">
-    <Setter Property="Foreground" Value="{StaticResource DmText}"/>
+    <Setter Property="Foreground" Value="{DynamicResource DmText}"/>
     <Setter Property="TextOptions.TextFormattingMode" Value="Ideal"/>
   </Style>
 
@@ -32,9 +40,9 @@
   <!-- The default WPF tooltip has a light background; combined with the global light
        TextBlock foreground above that gives white-on-white. Theme it dark app-wide. -->
   <Style TargetType="ToolTip">
-    <Setter Property="Foreground" Value="{StaticResource DmText}"/>
-    <Setter Property="Background" Value="{StaticResource DmSurfaceLight}"/>
-    <Setter Property="BorderBrush" Value="{StaticResource DmBorder}"/>
+    <Setter Property="Foreground" Value="{DynamicResource DmText}"/>
+    <Setter Property="Background" Value="{DynamicResource DmSurfaceLight}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource DmBorder}"/>
     <Setter Property="FontSize" Value="12"/>
     <Setter Property="Template">
       <Setter.Value>
@@ -50,9 +58,9 @@
 
   <!-- ===== Default (neutral) button ===== -->
   <Style TargetType="Button">
-    <Setter Property="Foreground" Value="{StaticResource DmText}"/>
-    <Setter Property="Background" Value="{StaticResource DmSurfaceAlt}"/>
-    <Setter Property="BorderBrush" Value="{StaticResource DmBorderControl}"/>
+    <Setter Property="Foreground" Value="{DynamicResource DmText}"/>
+    <Setter Property="Background" Value="{DynamicResource DmSurfaceAlt}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource DmBorderControl}"/>
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="Padding" Value="10,5"/>
     <Setter Property="Cursor" Value="Hand"/>
@@ -60,21 +68,30 @@
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="Button">
-          <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="7"
-                  BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
-            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
-                              Margin="{TemplateBinding Padding}"/>
-          </Border>
+          <Grid x:Name="Root">
+            <Border x:Name="Shadow" Background="{TemplateBinding Background}" CornerRadius="7"
+                    BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
+                    Effect="{DynamicResource DmControlChromeShadow}"/>
+            <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="7"
+                    BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                Margin="{TemplateBinding Padding}"/>
+            </Border>
+            <Border CornerRadius="7" BorderBrush="{DynamicResource DmControlChromeStroke}"
+                    BorderThickness="{TemplateBinding BorderThickness}" IsHitTestVisible="False"/>
+          </Grid>
           <ControlTemplate.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
-              <Setter TargetName="Bd" Property="Background" Value="{StaticResource DmSurfaceLight}"/>
-              <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource DmBorderHover}"/>
+              <Setter TargetName="Bd" Property="Background" Value="{DynamicResource DmSurfaceLight}"/>
+              <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource DmBorderHover}"/>
+              <Setter TargetName="Shadow" Property="Background" Value="{DynamicResource DmSurfaceLight}"/>
+              <Setter TargetName="Shadow" Property="BorderBrush" Value="{DynamicResource DmBorderHover}"/>
             </Trigger>
             <Trigger Property="IsPressed" Value="True">
-              <Setter TargetName="Bd" Property="Opacity" Value="0.8"/>
+              <Setter TargetName="Root" Property="Opacity" Value="0.8"/>
             </Trigger>
             <Trigger Property="IsEnabled" Value="False">
-              <Setter TargetName="Bd" Property="Opacity" Value="0.4"/>
+              <Setter TargetName="Root" Property="Opacity" Value="0.4"/>
             </Trigger>
           </ControlTemplate.Triggers>
         </ControlTemplate>
@@ -84,8 +101,8 @@
 
   <!-- ===== Accent (filled orange, dark label) button ===== -->
   <Style x:Key="AccentButton" TargetType="Button">
-    <Setter Property="Foreground" Value="{StaticResource DmOnAccent}"/>
-    <Setter Property="Background" Value="{StaticResource DmAccent}"/>
+    <Setter Property="Foreground" Value="{DynamicResource DmOnAccent}"/>
+    <Setter Property="Background" Value="{DynamicResource DmAccent}"/>
     <Setter Property="Padding" Value="14,7"/>
     <Setter Property="Cursor" Value="Hand"/>
     <Setter Property="FontSize" Value="13"/>
@@ -112,9 +129,9 @@
 
   <!-- ===== Toolbar icon command button (Copy/Save/Undo/Redo) ===== -->
   <Style x:Key="IconButton" TargetType="Button">
-    <Setter Property="Foreground" Value="{StaticResource DmText}"/>
-    <Setter Property="Background" Value="{StaticResource DmSurfaceAlt}"/>
-    <Setter Property="BorderBrush" Value="{StaticResource DmBorderControl}"/>
+    <Setter Property="Foreground" Value="{DynamicResource DmText}"/>
+    <Setter Property="Background" Value="{DynamicResource DmSurfaceAlt}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource DmBorderControl}"/>
     <Setter Property="Cursor" Value="Hand"/>
     <Setter Property="Height" Value="30"/>
     <Setter Property="MinWidth" Value="34"/>
@@ -122,21 +139,30 @@
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="Button">
-          <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="7"
-                  BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1">
-            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
-                              Margin="{TemplateBinding Padding}"/>
-          </Border>
+          <Grid x:Name="Root">
+            <Border x:Name="Shadow" Background="{TemplateBinding Background}" CornerRadius="7"
+                    BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1"
+                    Effect="{DynamicResource DmControlChromeShadow}"/>
+            <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="7"
+                    BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                Margin="{TemplateBinding Padding}"/>
+            </Border>
+            <Border CornerRadius="7" BorderBrush="{DynamicResource DmControlChromeStroke}"
+                    BorderThickness="1" IsHitTestVisible="False"/>
+          </Grid>
           <ControlTemplate.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
-              <Setter TargetName="Bd" Property="Background" Value="{StaticResource DmSurfaceLight}"/>
-              <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource DmBorderHover}"/>
+              <Setter TargetName="Bd" Property="Background" Value="{DynamicResource DmSurfaceLight}"/>
+              <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource DmBorderHover}"/>
+              <Setter TargetName="Shadow" Property="Background" Value="{DynamicResource DmSurfaceLight}"/>
+              <Setter TargetName="Shadow" Property="BorderBrush" Value="{DynamicResource DmBorderHover}"/>
             </Trigger>
             <Trigger Property="IsPressed" Value="True">
-              <Setter TargetName="Bd" Property="Opacity" Value="0.7"/>
+              <Setter TargetName="Root" Property="Opacity" Value="0.7"/>
             </Trigger>
             <Trigger Property="IsEnabled" Value="False">
-              <Setter TargetName="Bd" Property="Opacity" Value="0.4"/>
+              <Setter TargetName="Root" Property="Opacity" Value="0.4"/>
             </Trigger>
           </ControlTemplate.Triggers>
         </ControlTemplate>
@@ -146,26 +172,39 @@
 
   <!-- ===== Tool selector (RadioButton): black chip + soft accent state when active ===== -->
   <Style x:Key="ToolRadio" TargetType="RadioButton">
-    <Setter Property="Foreground" Value="{StaticResource DmText}"/>
+    <Setter Property="Foreground" Value="{DynamicResource DmText}"/>
+    <Setter Property="Background" Value="{DynamicResource DmSurfaceAlt}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource DmBorderControl}"/>
     <Setter Property="Cursor" Value="Hand"/>
     <Setter Property="Width" Value="34"/>
     <Setter Property="Height" Value="28"/>
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="RadioButton">
-          <Border x:Name="Bd" Background="{StaticResource DmSurfaceAlt}" CornerRadius="7"
-                  BorderBrush="{StaticResource DmBorderControl}" BorderThickness="1">
-            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-          </Border>
+          <Grid>
+            <Border x:Name="Shadow" Background="{TemplateBinding Background}" CornerRadius="7"
+                    BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1"
+                    Effect="{DynamicResource DmControlChromeShadow}"/>
+            <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="7"
+                    BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <Border CornerRadius="7" BorderBrush="{DynamicResource DmControlChromeStroke}"
+                    BorderThickness="1" IsHitTestVisible="False"/>
+          </Grid>
           <ControlTemplate.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
-              <Setter TargetName="Bd" Property="Background" Value="{StaticResource DmSurfaceLight}"/>
-              <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource DmBorderHover}"/>
+              <Setter TargetName="Bd" Property="Background" Value="{DynamicResource DmSurfaceLight}"/>
+              <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource DmBorderHover}"/>
+              <Setter TargetName="Shadow" Property="Background" Value="{DynamicResource DmSurfaceLight}"/>
+              <Setter TargetName="Shadow" Property="BorderBrush" Value="{DynamicResource DmBorderHover}"/>
             </Trigger>
             <Trigger Property="IsChecked" Value="True">
-              <Setter TargetName="Bd" Property="Background" Value="{StaticResource DmAccentTint}"/>
-              <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource DmAccent}"/>
-              <Setter Property="Foreground" Value="{StaticResource DmText}"/>
+              <Setter TargetName="Bd" Property="Background" Value="{DynamicResource DmAccentTint}"/>
+              <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource DmAccent}"/>
+              <Setter TargetName="Shadow" Property="Background" Value="{DynamicResource DmAccentTint}"/>
+              <Setter TargetName="Shadow" Property="BorderBrush" Value="{DynamicResource DmAccent}"/>
+              <Setter Property="Foreground" Value="{DynamicResource DmTextStrong}"/>
             </Trigger>
           </ControlTemplate.Triggers>
         </ControlTemplate>
@@ -175,26 +214,35 @@
 
   <!-- ===== Sidebar button (icon + label, left aligned) ===== -->
   <Style x:Key="SidebarButton" TargetType="Button">
-    <Setter Property="Foreground" Value="{StaticResource DmText}"/>
-    <Setter Property="Background" Value="{StaticResource DmSurfaceAlt}"/>
-    <Setter Property="BorderBrush" Value="{StaticResource DmBorderControl}"/>
+    <Setter Property="Foreground" Value="{DynamicResource DmText}"/>
+    <Setter Property="Background" Value="{DynamicResource DmSurfaceAlt}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource DmBorderControl}"/>
     <Setter Property="Cursor" Value="Hand"/>
     <Setter Property="Height" Value="38"/>
     <Setter Property="FontSize" Value="13"/>
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="Button">
-          <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="8"
-                  BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1">
-            <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center" Margin="12,0"/>
-          </Border>
+          <Grid x:Name="Root">
+            <Border x:Name="Shadow" Background="{TemplateBinding Background}" CornerRadius="8"
+                    BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1"
+                    Effect="{DynamicResource DmControlChromeShadow}"/>
+            <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="8"
+                    BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1">
+              <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center" Margin="12,0"/>
+            </Border>
+            <Border CornerRadius="8" BorderBrush="{DynamicResource DmControlChromeStroke}"
+                    BorderThickness="1" IsHitTestVisible="False"/>
+          </Grid>
           <ControlTemplate.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
-              <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource DmAccent}"/>
-              <Setter TargetName="Bd" Property="Background" Value="{StaticResource DmSurfaceLight}"/>
+              <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource DmAccent}"/>
+              <Setter TargetName="Bd" Property="Background" Value="{DynamicResource DmSurfaceLight}"/>
+              <Setter TargetName="Shadow" Property="BorderBrush" Value="{DynamicResource DmAccent}"/>
+              <Setter TargetName="Shadow" Property="Background" Value="{DynamicResource DmSurfaceLight}"/>
             </Trigger>
             <Trigger Property="IsPressed" Value="True">
-              <Setter TargetName="Bd" Property="Opacity" Value="0.8"/>
+              <Setter TargetName="Root" Property="Opacity" Value="0.8"/>
             </Trigger>
           </ControlTemplate.Triggers>
         </ControlTemplate>
@@ -204,26 +252,37 @@
 
   <!-- ===== Settings nav item: black row + soft accent selected state ===== -->
   <Style x:Key="NavItem" TargetType="ListBoxItem">
-    <Setter Property="Foreground" Value="{StaticResource DmText}"/>
+    <Setter Property="Foreground" Value="{DynamicResource DmText}"/>
     <Setter Property="Cursor" Value="Hand"/>
     <Setter Property="Margin" Value="0,2"/>
     <Setter Property="FontSize" Value="14"/>
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="ListBoxItem">
-          <Border x:Name="Bd" Background="{StaticResource DmSurfaceAlt}" CornerRadius="8" Padding="12,9"
-                  BorderThickness="1" BorderBrush="{StaticResource DmBorderControl}">
-            <ContentPresenter VerticalAlignment="Center"/>
-          </Border>
+          <Grid>
+            <Border x:Name="Shadow" Background="{DynamicResource DmSurfaceAlt}" CornerRadius="8"
+                    BorderThickness="1" BorderBrush="{DynamicResource DmBorderControl}"
+                    Effect="{DynamicResource DmControlChromeShadow}"/>
+            <Border x:Name="Bd" Background="{DynamicResource DmSurfaceAlt}" CornerRadius="8" Padding="12,9"
+                    BorderThickness="1" BorderBrush="{DynamicResource DmBorderControl}">
+              <ContentPresenter VerticalAlignment="Center"/>
+            </Border>
+            <Border CornerRadius="8" BorderBrush="{DynamicResource DmControlChromeStroke}"
+                    BorderThickness="1" IsHitTestVisible="False"/>
+          </Grid>
           <ControlTemplate.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
-              <Setter TargetName="Bd" Property="Background" Value="{StaticResource DmSurfaceLight}"/>
-              <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource DmAccent}"/>
+              <Setter TargetName="Bd" Property="Background" Value="{DynamicResource DmSurfaceLight}"/>
+              <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource DmAccent}"/>
+              <Setter TargetName="Shadow" Property="Background" Value="{DynamicResource DmSurfaceLight}"/>
+              <Setter TargetName="Shadow" Property="BorderBrush" Value="{DynamicResource DmAccent}"/>
             </Trigger>
             <Trigger Property="IsSelected" Value="True">
-              <Setter TargetName="Bd" Property="Background" Value="{StaticResource DmAccentTint}"/>
-              <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource DmAccent}"/>
-              <Setter Property="Foreground" Value="{StaticResource DmText}"/>
+              <Setter TargetName="Bd" Property="Background" Value="{DynamicResource DmAccentTint}"/>
+              <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource DmAccent}"/>
+              <Setter TargetName="Shadow" Property="Background" Value="{DynamicResource DmAccentTint}"/>
+              <Setter TargetName="Shadow" Property="BorderBrush" Value="{DynamicResource DmAccent}"/>
+              <Setter Property="Foreground" Value="{DynamicResource DmTextStrong}"/>
             </Trigger>
           </ControlTemplate.Triggers>
         </ControlTemplate>
@@ -238,25 +297,25 @@
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="Thumb">
-          <Ellipse Width="15" Height="15" Fill="{StaticResource DmText}" Stroke="{StaticResource DmAccent}" StrokeThickness="2"/>
+          <Ellipse Width="15" Height="15" Fill="{DynamicResource DmText}" Stroke="{DynamicResource DmAccent}" StrokeThickness="2"/>
         </ControlTemplate>
       </Setter.Value>
     </Setter>
   </Style>
   <Style TargetType="Slider">
-    <Setter Property="Foreground" Value="{StaticResource DmAccent}"/>
+    <Setter Property="Foreground" Value="{DynamicResource DmAccent}"/>
     <Setter Property="Height" Value="22"/>
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="Slider">
           <Grid VerticalAlignment="Center">
-            <Border Height="4" CornerRadius="2" Background="{StaticResource DmSurfaceLight}" VerticalAlignment="Center"/>
+            <Border Height="4" CornerRadius="2" Background="{DynamicResource DmSurfaceLight}" VerticalAlignment="Center"/>
             <Track x:Name="PART_Track">
               <Track.DecreaseRepeatButton>
                 <RepeatButton Command="Slider.DecreaseLarge" Focusable="False" IsTabStop="False">
                   <RepeatButton.Template>
                     <ControlTemplate TargetType="RepeatButton">
-                      <Border Height="4" CornerRadius="2" Background="{StaticResource DmAccent}" VerticalAlignment="Center"/>
+                      <Border Height="4" CornerRadius="2" Background="{DynamicResource DmAccent}" VerticalAlignment="Center"/>
                     </ControlTemplate>
                   </RepeatButton.Template>
                 </RepeatButton>
@@ -285,7 +344,7 @@
 
   <!-- ===== Checkbox: dark box, orange fill + white tick when checked ===== -->
   <Style TargetType="CheckBox">
-    <Setter Property="Foreground" Value="{StaticResource DmText}"/>
+    <Setter Property="Foreground" Value="{DynamicResource DmText}"/>
     <Setter Property="Cursor" Value="Hand"/>
     <Setter Property="FontSize" Value="14"/>
     <Setter Property="VerticalContentAlignment" Value="Center"/>
@@ -294,8 +353,8 @@
         <ControlTemplate TargetType="CheckBox">
           <StackPanel Orientation="Horizontal" Background="Transparent">
             <Border x:Name="box" Width="18" Height="18" CornerRadius="4" VerticalAlignment="Center"
-                    Background="{StaticResource DmSurfaceAlt}" BorderBrush="{StaticResource DmBorder}" BorderThickness="1">
-              <Path x:Name="tick" Data="M4,9.5 L8,13.5 L14.5,5.5" Stroke="{StaticResource DmOnAccent}" StrokeThickness="2"
+                    Background="{DynamicResource DmSurfaceAlt}" BorderBrush="{DynamicResource DmBorder}" BorderThickness="1">
+              <Path x:Name="tick" Data="M4,9.5 L8,13.5 L14.5,5.5" Stroke="{DynamicResource DmOnAccent}" StrokeThickness="2"
                     StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                     Stretch="Uniform" Margin="3.5" Visibility="Collapsed"/>
             </Border>
@@ -303,12 +362,12 @@
           </StackPanel>
           <ControlTemplate.Triggers>
             <Trigger Property="IsChecked" Value="True">
-              <Setter TargetName="box" Property="Background" Value="{StaticResource DmAccent}"/>
-              <Setter TargetName="box" Property="BorderBrush" Value="{StaticResource DmAccent}"/>
+              <Setter TargetName="box" Property="Background" Value="{DynamicResource DmAccent}"/>
+              <Setter TargetName="box" Property="BorderBrush" Value="{DynamicResource DmAccent}"/>
               <Setter TargetName="tick" Property="Visibility" Value="Visible"/>
             </Trigger>
             <Trigger Property="IsMouseOver" Value="True">
-              <Setter TargetName="box" Property="BorderBrush" Value="{StaticResource DmAccent}"/>
+              <Setter TargetName="box" Property="BorderBrush" Value="{DynamicResource DmAccent}"/>
             </Trigger>
             <Trigger Property="IsEnabled" Value="False">
               <Setter Property="Opacity" Value="0.4"/>
@@ -321,7 +380,7 @@
 
   <!-- ===== Radio button: dark ring, orange ring + dot when checked ===== -->
   <Style TargetType="RadioButton">
-    <Setter Property="Foreground" Value="{StaticResource DmText}"/>
+    <Setter Property="Foreground" Value="{DynamicResource DmText}"/>
     <Setter Property="Cursor" Value="Hand"/>
     <Setter Property="FontSize" Value="14"/>
     <Setter Property="VerticalContentAlignment" Value="Center"/>
@@ -330,18 +389,18 @@
         <ControlTemplate TargetType="RadioButton">
           <StackPanel Orientation="Horizontal" Background="Transparent">
             <Grid Width="18" Height="18" VerticalAlignment="Center">
-              <Ellipse x:Name="ring" Fill="{StaticResource DmSurfaceAlt}" Stroke="{StaticResource DmBorder}" StrokeThickness="1"/>
-              <Ellipse x:Name="dot" Width="8" Height="8" Fill="{StaticResource DmAccent}" Visibility="Collapsed"/>
+              <Ellipse x:Name="ring" Fill="{DynamicResource DmSurfaceAlt}" Stroke="{DynamicResource DmBorder}" StrokeThickness="1"/>
+              <Ellipse x:Name="dot" Width="8" Height="8" Fill="{DynamicResource DmAccent}" Visibility="Collapsed"/>
             </Grid>
             <ContentPresenter Margin="9,0,0,0" VerticalAlignment="Center"/>
           </StackPanel>
           <ControlTemplate.Triggers>
             <Trigger Property="IsChecked" Value="True">
-              <Setter TargetName="ring" Property="Stroke" Value="{StaticResource DmAccent}"/>
+              <Setter TargetName="ring" Property="Stroke" Value="{DynamicResource DmAccent}"/>
               <Setter TargetName="dot" Property="Visibility" Value="Visible"/>
             </Trigger>
             <Trigger Property="IsMouseOver" Value="True">
-              <Setter TargetName="ring" Property="Stroke" Value="{StaticResource DmAccent}"/>
+              <Setter TargetName="ring" Property="Stroke" Value="{DynamicResource DmAccent}"/>
             </Trigger>
             <Trigger Property="IsEnabled" Value="False">
               <Setter Property="Opacity" Value="0.4"/>
@@ -357,34 +416,46 @@
     <Setter Property="Width" Value="52"/>
     <Setter Property="Height" Value="28"/>
     <Setter Property="Cursor" Value="Hand"/>
-    <Setter Property="Background" Value="{StaticResource DmSurfaceLight}"/>
-    <Setter Property="BorderBrush" Value="{StaticResource DmBorderControl}"/>
+    <Setter Property="Background" Value="{DynamicResource DmSurfaceLight}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource DmBorderControl}"/>
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="ToggleButton">
-          <Border x:Name="Track" CornerRadius="15"
-                  Background="{TemplateBinding Background}"
-                  BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1">
-            <Grid>
-              <Ellipse x:Name="Knob" Width="22" Height="22" Margin="3"
-                       HorizontalAlignment="Left" Fill="{StaticResource DmText}">
-                <Ellipse.Effect>
-                  <DropShadowEffect Color="Black" Opacity="0.45" BlurRadius="3" ShadowDepth="1"/>
-                </Ellipse.Effect>
-              </Ellipse>
-            </Grid>
-          </Border>
+          <Grid>
+            <Border x:Name="Shadow" CornerRadius="15"
+                    Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1"
+                    Effect="{DynamicResource DmControlChromeShadow}"/>
+            <Border x:Name="Track" CornerRadius="15"
+                    Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1">
+              <Grid>
+                <Ellipse x:Name="Knob" Width="22" Height="22" Margin="3"
+                         HorizontalAlignment="Left" Fill="{DynamicResource DmText}">
+                  <Ellipse.Effect>
+                    <DropShadowEffect Color="Black" Opacity="0.45" BlurRadius="3" ShadowDepth="1"/>
+                  </Ellipse.Effect>
+                </Ellipse>
+              </Grid>
+            </Border>
+            <Border CornerRadius="15" BorderBrush="{DynamicResource DmControlChromeStroke}"
+                    BorderThickness="1" IsHitTestVisible="False"/>
+          </Grid>
           <ControlTemplate.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
-              <Setter TargetName="Track" Property="BorderBrush" Value="{StaticResource DmBorderHover}"/>
+              <Setter TargetName="Track" Property="BorderBrush" Value="{DynamicResource DmBorderHover}"/>
+              <Setter TargetName="Shadow" Property="BorderBrush" Value="{DynamicResource DmBorderHover}"/>
             </Trigger>
             <Trigger Property="IsChecked" Value="True">
-              <Setter TargetName="Track" Property="Background" Value="{StaticResource DmSwitchOn}"/>
-              <Setter TargetName="Track" Property="BorderBrush" Value="{StaticResource DmAccent}"/>
+              <Setter TargetName="Track" Property="Background" Value="{DynamicResource DmSwitchOn}"/>
+              <Setter TargetName="Track" Property="BorderBrush" Value="{DynamicResource DmAccent}"/>
+              <Setter TargetName="Shadow" Property="Background" Value="{DynamicResource DmSwitchOn}"/>
+              <Setter TargetName="Shadow" Property="BorderBrush" Value="{DynamicResource DmAccent}"/>
               <Setter TargetName="Knob" Property="HorizontalAlignment" Value="Right"/>
             </Trigger>
             <Trigger Property="IsEnabled" Value="False">
               <Setter TargetName="Track" Property="Opacity" Value="0.45"/>
+              <Setter TargetName="Shadow" Property="Opacity" Value="0.45"/>
             </Trigger>
           </ControlTemplate.Triggers>
         </ControlTemplate>
@@ -394,19 +465,32 @@
 
   <!-- ===== Dark combo box (the default WPF dropdown is light/white) ===== -->
   <ControlTemplate x:Key="DmComboToggle" TargetType="ToggleButton">
-    <Border x:Name="bd" CornerRadius="6" Background="{StaticResource DmSurfaceAlt}"
-            BorderBrush="{StaticResource DmBorder}" BorderThickness="1">
-      <Path HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0"
-            Data="M0,0 L4,4 L8,0" Stroke="{StaticResource DmText}" StrokeThickness="1.6"
-            StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
-    </Border>
+    <Grid>
+      <Border x:Name="shadow" CornerRadius="6" Background="{DynamicResource DmSurfaceAlt}"
+              BorderBrush="{DynamicResource DmBorderControl}" BorderThickness="1"
+              Effect="{DynamicResource DmControlChromeShadow}"/>
+      <Border x:Name="bd" CornerRadius="6" Background="{DynamicResource DmSurfaceAlt}"
+              BorderBrush="{DynamicResource DmBorderControl}" BorderThickness="1">
+        <Path HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0"
+              Data="M0,0 L4,4 L8,0" Stroke="{DynamicResource DmText}" StrokeThickness="1.6"
+              StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+      </Border>
+      <Border CornerRadius="6" BorderBrush="{DynamicResource DmControlChromeStroke}"
+              BorderThickness="1" IsHitTestVisible="False"/>
+    </Grid>
     <ControlTemplate.Triggers>
-      <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource DmAccent}"/></Trigger>
-      <Trigger Property="IsChecked" Value="True"><Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource DmAccent}"/></Trigger>
+      <Trigger Property="IsMouseOver" Value="True">
+        <Setter TargetName="bd" Property="BorderBrush" Value="{DynamicResource DmAccent}"/>
+        <Setter TargetName="shadow" Property="BorderBrush" Value="{DynamicResource DmAccent}"/>
+      </Trigger>
+      <Trigger Property="IsChecked" Value="True">
+        <Setter TargetName="bd" Property="BorderBrush" Value="{DynamicResource DmAccent}"/>
+        <Setter TargetName="shadow" Property="BorderBrush" Value="{DynamicResource DmAccent}"/>
+      </Trigger>
     </ControlTemplate.Triggers>
   </ControlTemplate>
   <Style TargetType="ComboBox">
-    <Setter Property="Foreground" Value="{StaticResource DmText}"/>
+    <Setter Property="Foreground" Value="{DynamicResource DmText}"/>
     <Setter Property="FontSize" Value="13"/>
     <Setter Property="Height" Value="32"/>
     <Setter Property="Cursor" Value="Hand"/>
@@ -422,7 +506,7 @@
                               ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"/>
             <Popup x:Name="PART_Popup" Placement="Bottom" Focusable="False" AllowsTransparency="True"
                    IsOpen="{TemplateBinding IsDropDownOpen}" PopupAnimation="Slide">
-              <Border Background="{StaticResource DmSurface}" BorderBrush="{StaticResource DmBorder}"
+              <Border Background="{DynamicResource DmSurface}" BorderBrush="{DynamicResource DmBorder}"
                       BorderThickness="1" CornerRadius="6" Margin="0,4,0,0" Padding="2"
                       MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}">
                 <ScrollViewer MaxHeight="260"><ItemsPresenter/></ScrollViewer>
@@ -434,7 +518,7 @@
     </Setter>
   </Style>
   <Style TargetType="ComboBoxItem">
-    <Setter Property="Foreground" Value="{StaticResource DmText}"/>
+    <Setter Property="Foreground" Value="{DynamicResource DmText}"/>
     <Setter Property="FontSize" Value="13"/>
     <Setter Property="Cursor" Value="Hand"/>
     <Setter Property="Template">
@@ -444,10 +528,10 @@
             <ContentPresenter/>
           </Border>
           <ControlTemplate.Triggers>
-            <Trigger Property="IsHighlighted" Value="True"><Setter TargetName="bd" Property="Background" Value="{StaticResource DmSurfaceLight}"/></Trigger>
+            <Trigger Property="IsHighlighted" Value="True"><Setter TargetName="bd" Property="Background" Value="{DynamicResource DmSurfaceLight}"/></Trigger>
             <Trigger Property="IsSelected" Value="True">
-              <Setter TargetName="bd" Property="Background" Value="{StaticResource DmAccent}"/>
-              <Setter Property="Foreground" Value="{StaticResource DmOnAccent}"/>
+              <Setter TargetName="bd" Property="Background" Value="{DynamicResource DmAccent}"/>
+              <Setter Property="Foreground" Value="{DynamicResource DmOnAccent}"/>
             </Trigger>
           </ControlTemplate.Triggers>
         </ControlTemplate>
@@ -457,10 +541,10 @@
 
   <!-- ===== Dark text box (hex / shortcut recorder) ===== -->
   <Style x:Key="DmTextBox" TargetType="TextBox">
-    <Setter Property="Foreground" Value="{StaticResource DmText}"/>
-    <Setter Property="Background" Value="{StaticResource DmSurfaceAlt}"/>
-    <Setter Property="CaretBrush" Value="{StaticResource DmText}"/>
-    <Setter Property="BorderBrush" Value="{StaticResource DmBorder}"/>
+    <Setter Property="Foreground" Value="{DynamicResource DmText}"/>
+    <Setter Property="Background" Value="{DynamicResource DmSurfaceAlt}"/>
+    <Setter Property="CaretBrush" Value="{DynamicResource DmText}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource DmBorderControl}"/>
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="Padding" Value="10,0"/>
     <Setter Property="MinHeight" Value="32"/>
@@ -469,11 +553,18 @@
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="TextBox">
-          <Border Background="{TemplateBinding Background}" CornerRadius="6"
-                  BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
-            <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="Center"
-                          Padding="{TemplateBinding Padding}"/>
-          </Border>
+          <Grid>
+            <Border Background="{TemplateBinding Background}" CornerRadius="6"
+                    BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
+                    Effect="{DynamicResource DmControlChromeShadow}"/>
+            <Border Background="{TemplateBinding Background}" CornerRadius="6"
+                    BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
+              <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="Center"
+                            Padding="{TemplateBinding Padding}"/>
+            </Border>
+            <Border CornerRadius="6" BorderBrush="{DynamicResource DmControlChromeStroke}"
+                    BorderThickness="{TemplateBinding BorderThickness}" IsHitTestVisible="False"/>
+          </Grid>
         </ControlTemplate>
       </Setter.Value>
     </Setter>
@@ -506,7 +597,7 @@
     </Setter>
   </Style>
   <Style TargetType="ScrollBar">
-    <Setter Property="Background" Value="{StaticResource DmSurfaceAlt}"/>
+    <Setter Property="Background" Value="{DynamicResource DmSurfaceAlt}"/>
     <Setter Property="Width" Value="11"/>
     <Setter Property="Template">
       <Setter.Value>
@@ -583,7 +674,7 @@
                        Maximum="{TemplateBinding ScrollableWidth}"
                        ViewportSize="{TemplateBinding ViewportWidth}"
                        Visibility="{TemplateBinding ComputedHorizontalScrollBarVisibility}"/>
-            <Rectangle Grid.Row="1" Grid.Column="1" Fill="{StaticResource DmSurfaceAlt}"/>
+            <Rectangle Grid.Row="1" Grid.Column="1" Fill="{DynamicResource DmSurfaceAlt}"/>
           </Grid>
         </ControlTemplate>
       </Setter.Value>

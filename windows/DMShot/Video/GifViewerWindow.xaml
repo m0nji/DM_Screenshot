@@ -4,15 +4,15 @@
         xmlns:loc="clr-namespace:DMShot.Localization"
         Title="{loc:Tr gifPreviewTitle}" Width="520" Height="420"
         MinWidth="280" MinHeight="200" MaxWidth="900" MaxHeight="700"
-        Background="{StaticResource DmBackground}"
+        Background="{DynamicResource DmBackground}"
         TextOptions.TextFormattingMode="Ideal" UseLayoutRounding="True">
 
   <DockPanel>
     <!-- ===== Bottom panel: Copy + Save (pinned to the bottom, ALWAYS visible;
          declared before the fill child so it can never be pushed off-screen) ===== -->
     <Border DockPanel.Dock="Bottom" Margin="16,12,16,16"
-            Background="{StaticResource DmSurface}" CornerRadius="10"
-            BorderBrush="{StaticResource DmBorder}" BorderThickness="1" Padding="16,12">
+            Background="{DynamicResource DmSurface}" CornerRadius="10"
+            BorderBrush="{DynamicResource DmBorder}" BorderThickness="1" Padding="16,12">
       <Grid>
         <Grid.ColumnDefinitions>
           <ColumnDefinition Width="*"/>
@@ -22,7 +22,7 @@
         </Grid.ColumnDefinitions>
 
         <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-          <TextBlock Foreground="{StaticResource DmTextDim}" FontSize="12" Text="{loc:Tr gifReady}"/>
+          <TextBlock Foreground="{DynamicResource DmTextDim}" FontSize="12" Text="{loc:Tr gifReady}"/>
         </StackPanel>
 
         <Button x:Name="CopyButton" Grid.Column="1" Content="{loc:Tr copy}"
@@ -35,7 +35,7 @@
 
     <!-- ===== Animated GIF preview: fills the remaining space above the buttons (last child) ===== -->
     <Border Background="#0D0D10" Margin="16,16,16,0" CornerRadius="6"
-            BorderBrush="{StaticResource DmBorder}" BorderThickness="1">
+            BorderBrush="{DynamicResource DmBorder}" BorderThickness="1">
       <Image x:Name="GifImage" Stretch="Uniform"/>
     </Border>
   </DockPanel>

@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:s="clr-namespace:DMShot.Settings"
         xmlns:loc="clr-namespace:DMShot.Localization"
-        Title="{loc:Tr settingsTitle}" Width="640" Height="420" Background="{StaticResource DmBackground}"
+        Title="{loc:Tr settingsTitle}" Width="640" Height="420" Background="{DynamicResource DmBackground}"
         Icon="/Resources/AppIcon.ico" TextOptions.TextFormattingMode="Ideal" UseLayoutRounding="True"
         WindowStartupLocation="CenterScreen">
   <Grid>
@@ -13,7 +13,7 @@
     </Grid.ColumnDefinitions>
 
     <!-- Nav -->
-    <Border Grid.Column="0" Background="{StaticResource DmSurfaceAlt}" BorderBrush="{StaticResource DmBorder}" BorderThickness="0,0,1,0">
+    <Border Grid.Column="0" Background="{DynamicResource DmSurfaceAlt}" BorderBrush="{DynamicResource DmBorder}" BorderThickness="0,0,1,0">
       <ListBox x:Name="Nav" Background="Transparent" BorderThickness="0" Margin="10,14"
                SelectionChanged="NavChanged" ItemContainerStyle="{StaticResource NavItem}">
         <ListBoxItem IsSelected="True">

@@ -16,6 +16,7 @@ public class BlackUtilityThemeTests
         Assert.Contains("x:Key=\"DmSurface\" Color=\"#060606\"", theme);
         Assert.Contains("x:Key=\"DmSurfaceLight\" Color=\"#0A0A0B\"", theme);
         Assert.Contains("x:Key=\"DmText\" Color=\"#E6E6EA\"", theme);
+        Assert.Contains("x:Key=\"DmTextStrong\" Color=\"#F8F8FA\"", theme);
         Assert.Contains("x:Key=\"DmTextDim\" Color=\"#8B8C94\"", theme);
         Assert.Contains("x:Key=\"DmBorder\" Color=\"#222226\"", theme);
         Assert.Contains("x:Key=\"DmBorderControl\" Color=\"#3A3A42\"", theme);
@@ -28,15 +29,38 @@ public class BlackUtilityThemeTests
     }
 
     [Fact]
+    public void WindowsThemeUsesLayeredBrandDesignControlChrome()
+    {
+        var theme = Read("windows/DMShot/Theme/DmTheme.xaml");
+
+        Assert.Contains("x:Key=\"DmControlChromeStroke\"", theme);
+        Assert.Contains("<LinearGradientBrush", theme);
+        Assert.Contains("x:Key=\"DmControlChromeShadow\"", theme);
+        Assert.Contains("DropShadowEffect", theme);
+        Assert.Contains("BorderBrush=\"{DynamicResource DmControlChromeStroke}\"", theme);
+        Assert.Contains("Effect=\"{DynamicResource DmControlChromeShadow}\"", theme);
+        Assert.Contains("Style x:Key=\"IconButton\"", theme);
+        Assert.Contains("Style x:Key=\"ToolRadio\"", theme);
+        Assert.Contains("Style x:Key=\"SidebarButton\"", theme);
+        Assert.Contains("Style x:Key=\"NavItem\"", theme);
+    }
+
+    [Fact]
     public void WindowsQuickEditOverlayUsesBlackUtilityChrome()
     {
         var overlay = Read("windows/DMShot/Editor/QuickEditOverlayWindow.xaml.cs");
 
-        Assert.Contains("WColor.FromArgb(0xF7, 0x06, 0x06, 0x06)", overlay);
-        Assert.Contains("Property='BorderBrush' Value='#3A3A42'", overlay);
-        Assert.Contains("Property='Background' Value='#000000'", overlay);
-        Assert.Contains("Property='Background' Value='#22C97B4A'", overlay);
-        Assert.Contains("WColor.FromArgb(0xF7, 0x06, 0x06, 0x06)", overlay);
+        Assert.Contains("SetResourceReference(Border.BackgroundProperty, \"DmSurface\")", overlay);
+        Assert.Contains("SetResourceReference(Border.BorderBrushProperty, \"DmControlChromeStroke\")", overlay);
+        Assert.Contains("SetResourceReference(UIElement.EffectProperty, \"DmControlChromeShadow\")", overlay);
+        Assert.Contains("Value='{DynamicResource DmBorderControl}'", overlay);
+        Assert.Contains("Value='{DynamicResource DmSurfaceAlt}'", overlay);
+        Assert.Contains("Value='{DynamicResource DmAccentTint}'", overlay);
+        Assert.Contains("BorderBrush='{DynamicResource DmControlChromeStroke}'", overlay);
+        Assert.DoesNotContain("WColor.FromArgb(0xF7, 0x06, 0x06, 0x06)", overlay);
+        Assert.DoesNotContain("Property='BorderBrush' Value='#3A3A42'", overlay);
+        Assert.DoesNotContain("Property='Background' Value='#000000'", overlay);
+        Assert.DoesNotContain("Property='Background' Value='#22C97B4A'", overlay);
     }
 
     [Fact]
@@ -44,9 +68,18 @@ public class BlackUtilityThemeTests
     {
         var settings = Read("windows/DMShot/Settings/SettingsWindow.xaml");
 
-        Assert.Contains("Background=\"{StaticResource DmBackground}\"", settings);
-        Assert.Contains("Background=\"{StaticResource DmSurfaceAlt}\"", settings);
-        Assert.Contains("BorderBrush=\"{StaticResource DmBorder}\"", settings);
+        Assert.Contains("Background=\"{DynamicResource DmBackground}\"", settings);
+        Assert.Contains("Background=\"{DynamicResource DmSurfaceAlt}\"", settings);
+        Assert.Contains("BorderBrush=\"{DynamicResource DmBorder}\"", settings);
+    }
+
+    [Fact]
+    public void WindowsEditorCanvasUsesSelectedDesignSurface()
+    {
+        var editor = Read("windows/DMShot/Editor/EditorWindow.xaml");
+
+        Assert.Contains("Grid.Column=\"2\" Background=\"{DynamicResource DmBackground}\"", editor);
+        Assert.DoesNotContain("Background=\"#141418\"", editor);
     }
 
     [Fact]

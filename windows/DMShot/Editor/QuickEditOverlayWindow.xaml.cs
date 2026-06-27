@@ -173,14 +173,16 @@ public partial class QuickEditOverlayWindow : Window
         row.Children.Add(IconAction(Icon(SaveGeo, false), Loc.Instance["save"], () => SaveRequested?.Invoke()));
         row.Children.Add(IconAction(Icon(CopyGeo, false), Loc.Instance["copy"], () => CopyRequested?.Invoke()));
 
-        return new Border
+        var toolbar = new Border
         {
-            Background = new SolidColorBrush(WColor.FromArgb(0xF7, 0x06, 0x06, 0x06)),
             CornerRadius = new CornerRadius(14),
-            BorderBrush = new SolidColorBrush(WColor.FromArgb(0xFF, 0x22, 0x22, 0x26)),
             BorderThickness = new Thickness(1),
             Child = row,
         };
+        toolbar.SetResourceReference(Border.BackgroundProperty, "DmSurface");
+        toolbar.SetResourceReference(Border.BorderBrushProperty, "DmControlChromeStroke");
+        toolbar.SetResourceReference(UIElement.EffectProperty, "DmControlChromeShadow");
+        return toolbar;
     }
 
     private Button IconAction(UIElement icon, string tip, Action onClick)
@@ -223,11 +225,12 @@ public partial class QuickEditOverlayWindow : Window
         return new Viewbox { Width = 18, Height = 18, Child = new Canvas { Width = 24, Height = 24, Children = { path } } };
     }
 
-    private static UIElement Divider() => new Border
+    private static UIElement Divider()
     {
-        Width = 1, Margin = new Thickness(5, 7, 5, 7),
-        Background = new SolidColorBrush(WColor.FromArgb(0xFF, 0x22, 0x22, 0x26)),
-    };
+        var divider = new Border { Width = 1, Margin = new Thickness(5, 7, 5, 7) };
+        divider.SetResourceReference(Border.BackgroundProperty, "DmBorder");
+        return divider;
+    }
 
     // ===== Toolbar control styles (parsed once) =====
 
@@ -236,16 +239,20 @@ public partial class QuickEditOverlayWindow : Window
     private static readonly Style ToolToggleStyle = S(
 @"<Style xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation' xmlns:x='http://schemas.microsoft.com/winfx/2006/xaml' TargetType='RadioButton'>
   <Setter Property='Width' Value='36'/><Setter Property='Height' Value='32'/><Setter Property='Margin' Value='2,0'/>
-  <Setter Property='Foreground' Value='#E6E6EA'/><Setter Property='Cursor' Value='Hand'/>
-  <Setter Property='Background' Value='#000000'/><Setter Property='BorderBrush' Value='#3A3A42'/>
+  <Setter Property='Foreground' Value='{DynamicResource DmText}'/><Setter Property='Cursor' Value='Hand'/>
+  <Setter Property='Background' Value='{DynamicResource DmSurfaceAlt}'/><Setter Property='BorderBrush' Value='{DynamicResource DmBorderControl}'/>
   <Setter Property='Template'><Setter.Value>
     <ControlTemplate TargetType='RadioButton'>
-      <Border x:Name='b' CornerRadius='7' Background='{TemplateBinding Background}' BorderBrush='{TemplateBinding BorderBrush}' BorderThickness='1'>
-        <ContentPresenter HorizontalAlignment='Center' VerticalAlignment='Center'/>
-      </Border>
+      <Grid>
+        <Border x:Name='s' CornerRadius='7' Background='{TemplateBinding Background}' BorderBrush='{TemplateBinding BorderBrush}' BorderThickness='1' Effect='{DynamicResource DmControlChromeShadow}'/>
+        <Border x:Name='b' CornerRadius='7' Background='{TemplateBinding Background}' BorderBrush='{TemplateBinding BorderBrush}' BorderThickness='1'>
+          <ContentPresenter HorizontalAlignment='Center' VerticalAlignment='Center'/>
+        </Border>
+        <Border CornerRadius='7' BorderBrush='{DynamicResource DmControlChromeStroke}' BorderThickness='1' IsHitTestVisible='False'/>
+      </Grid>
       <ControlTemplate.Triggers>
-        <Trigger Property='IsMouseOver' Value='True'><Setter TargetName='b' Property='Background' Value='#0A0A0B'/><Setter TargetName='b' Property='BorderBrush' Value='#4A4A52'/></Trigger>
-        <Trigger Property='IsChecked' Value='True'><Setter TargetName='b' Property='Background' Value='#22C97B4A'/><Setter TargetName='b' Property='BorderBrush' Value='#C97B4A'/><Setter Property='Foreground' Value='#F8F8FA'/></Trigger>
+        <Trigger Property='IsMouseOver' Value='True'><Setter TargetName='b' Property='Background' Value='{DynamicResource DmSurfaceLight}'/><Setter TargetName='b' Property='BorderBrush' Value='{DynamicResource DmBorderHover}'/><Setter TargetName='s' Property='Background' Value='{DynamicResource DmSurfaceLight}'/><Setter TargetName='s' Property='BorderBrush' Value='{DynamicResource DmBorderHover}'/></Trigger>
+        <Trigger Property='IsChecked' Value='True'><Setter TargetName='b' Property='Background' Value='{DynamicResource DmAccentTint}'/><Setter TargetName='b' Property='BorderBrush' Value='{DynamicResource DmAccent}'/><Setter TargetName='s' Property='Background' Value='{DynamicResource DmAccentTint}'/><Setter TargetName='s' Property='BorderBrush' Value='{DynamicResource DmAccent}'/><Setter Property='Foreground' Value='{DynamicResource DmTextStrong}'/></Trigger>
       </ControlTemplate.Triggers>
     </ControlTemplate>
   </Setter.Value></Setter>
@@ -254,16 +261,20 @@ public partial class QuickEditOverlayWindow : Window
     private static readonly Style IconButtonStyle = S(
 @"<Style xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation' xmlns:x='http://schemas.microsoft.com/winfx/2006/xaml' TargetType='Button'>
   <Setter Property='Width' Value='36'/><Setter Property='Height' Value='32'/><Setter Property='Margin' Value='2,0'/>
-  <Setter Property='Foreground' Value='#E6E6EA'/><Setter Property='Cursor' Value='Hand'/>
-  <Setter Property='Background' Value='#000000'/><Setter Property='BorderBrush' Value='#3A3A42'/>
+  <Setter Property='Foreground' Value='{DynamicResource DmText}'/><Setter Property='Cursor' Value='Hand'/>
+  <Setter Property='Background' Value='{DynamicResource DmSurfaceAlt}'/><Setter Property='BorderBrush' Value='{DynamicResource DmBorderControl}'/>
   <Setter Property='Template'><Setter.Value>
     <ControlTemplate TargetType='Button'>
-      <Border x:Name='b' CornerRadius='7' Background='{TemplateBinding Background}' BorderBrush='{TemplateBinding BorderBrush}' BorderThickness='1'>
-        <ContentPresenter HorizontalAlignment='Center' VerticalAlignment='Center'/>
-      </Border>
+      <Grid x:Name='root'>
+        <Border x:Name='s' CornerRadius='7' Background='{TemplateBinding Background}' BorderBrush='{TemplateBinding BorderBrush}' BorderThickness='1' Effect='{DynamicResource DmControlChromeShadow}'/>
+        <Border x:Name='b' CornerRadius='7' Background='{TemplateBinding Background}' BorderBrush='{TemplateBinding BorderBrush}' BorderThickness='1'>
+          <ContentPresenter HorizontalAlignment='Center' VerticalAlignment='Center'/>
+        </Border>
+        <Border CornerRadius='7' BorderBrush='{DynamicResource DmControlChromeStroke}' BorderThickness='1' IsHitTestVisible='False'/>
+      </Grid>
       <ControlTemplate.Triggers>
-        <Trigger Property='IsMouseOver' Value='True'><Setter TargetName='b' Property='Background' Value='#0A0A0B'/><Setter TargetName='b' Property='BorderBrush' Value='#4A4A52'/></Trigger>
-        <Trigger Property='IsPressed' Value='True'><Setter TargetName='b' Property='Background' Value='#111113'/></Trigger>
+        <Trigger Property='IsMouseOver' Value='True'><Setter TargetName='b' Property='Background' Value='{DynamicResource DmSurfaceLight}'/><Setter TargetName='b' Property='BorderBrush' Value='{DynamicResource DmBorderHover}'/><Setter TargetName='s' Property='Background' Value='{DynamicResource DmSurfaceLight}'/><Setter TargetName='s' Property='BorderBrush' Value='{DynamicResource DmBorderHover}'/></Trigger>
+        <Trigger Property='IsPressed' Value='True'><Setter TargetName='root' Property='Opacity' Value='0.78'/></Trigger>
       </ControlTemplate.Triggers>
     </ControlTemplate>
   </Setter.Value></Setter>
@@ -301,16 +312,16 @@ public partial class QuickEditOverlayWindow : Window
     {
         _sizeLabel = new TextBlock
         {
-            Foreground = new SolidColorBrush(WColor.FromRgb(0x8B, 0x8C, 0x94)),
             VerticalAlignment = VerticalAlignment.Center, FontSize = 12, Margin = new Thickness(4, 0, 6, 0),
         };
+        _sizeLabel.SetResourceReference(TextBlock.ForegroundProperty, "DmTextDim");
         _sizeSlider = new System.Windows.Controls.Slider { Width = 90, VerticalAlignment = VerticalAlignment.Center };
         _sizeValue = new TextBlock
         {
-            Foreground = new SolidColorBrush(WColor.FromRgb(0xE6, 0xE6, 0xEA)),
             VerticalAlignment = VerticalAlignment.Center, FontSize = 12, Width = 30,
             Margin = new Thickness(6, 0, 2, 0), FontFamily = new WFF("Consolas"),
         };
+        _sizeValue.SetResourceReference(TextBlock.ForegroundProperty, "DmText");
         _sizeSlider.ValueChanged += SizeSliderChanged;
         RefreshSizeControl();
         return new StackPanel
@@ -371,9 +382,13 @@ public partial class QuickEditOverlayWindow : Window
         stack.Children.Add(row);
         var flyoutBar = new Border
         {
-            Background = new SolidColorBrush(WColor.FromArgb(0xF7, 0x06, 0x06, 0x06)),
-            CornerRadius = new CornerRadius(0, 0, 12, 12), Child = content,
+            CornerRadius = new CornerRadius(0, 0, 12, 12),
+            BorderThickness = new Thickness(1, 0, 1, 1),
+            Child = content,
         };
+        flyoutBar.SetResourceReference(Border.BackgroundProperty, "DmSurface");
+        flyoutBar.SetResourceReference(Border.BorderBrushProperty, "DmControlChromeStroke");
+        flyoutBar.SetResourceReference(UIElement.EffectProperty, "DmControlChromeShadow");
         stack.Children.Add(flyoutBar);
         bar.Child = stack;
         _flyout = flyoutBar;

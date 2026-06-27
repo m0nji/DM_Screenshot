@@ -3,15 +3,15 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:loc="clr-namespace:DMShot.Localization"
         Title="{loc:Tr previewCreateTitle}" Width="720" Height="540" MinWidth="480" MinHeight="380"
-        Background="{StaticResource DmBackground}"
+        Background="{DynamicResource DmBackground}"
         TextOptions.TextFormattingMode="Ideal" UseLayoutRounding="True">
 
   <DockPanel>
     <!-- ===== Bottom panel: timeline + buttons (pinned to the bottom, ALWAYS visible;
          declared before the fill child so it can never be pushed off-screen) ===== -->
     <Border DockPanel.Dock="Bottom" Margin="16,12,16,16"
-            Background="{StaticResource DmSurface}" CornerRadius="10"
-            BorderBrush="{StaticResource DmBorder}" BorderThickness="1" Padding="16,12">
+            Background="{DynamicResource DmSurface}" CornerRadius="10"
+            BorderBrush="{DynamicResource DmBorder}" BorderThickness="1" Padding="16,12">
       <StackPanel>
 
         <!-- Playhead scrub -->
@@ -21,12 +21,12 @@
             <ColumnDefinition Width="*"/>
             <ColumnDefinition Width="Auto"/>
           </Grid.ColumnDefinitions>
-          <TextBlock Grid.Column="0" Text="{loc:Tr videoPlayhead}" Foreground="{StaticResource DmTextDim}"
+          <TextBlock Grid.Column="0" Text="{loc:Tr videoPlayhead}" Foreground="{DynamicResource DmTextDim}"
                      FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0"/>
           <Slider x:Name="Scrub" Grid.Column="1" Minimum="0" Maximum="1" Value="0"
                   VerticalAlignment="Center" IsSnapToTickEnabled="False"/>
           <TextBlock x:Name="PlayheadLabel" Grid.Column="2" FontSize="11" FontFamily="Consolas"
-                     Foreground="{StaticResource DmTextDim}" VerticalAlignment="Center"
+                     Foreground="{DynamicResource DmTextDim}" VerticalAlignment="Center"
                      Margin="8,0,0,0" Text="0.0s"/>
         </Grid>
 
@@ -37,12 +37,12 @@
             <ColumnDefinition Width="*"/>
             <ColumnDefinition Width="Auto"/>
           </Grid.ColumnDefinitions>
-          <TextBlock Grid.Column="0" Text="{loc:Tr videoTrimIn}" Foreground="{StaticResource DmTextDim}"
+          <TextBlock Grid.Column="0" Text="{loc:Tr videoTrimIn}" Foreground="{DynamicResource DmTextDim}"
                      FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0"/>
           <Slider x:Name="TrimStart" Grid.Column="1" Minimum="0" Maximum="1" Value="0"
                   VerticalAlignment="Center" IsSnapToTickEnabled="False"/>
           <TextBlock x:Name="TrimStartLabel" Grid.Column="2" FontSize="11" FontFamily="Consolas"
-                     Foreground="{StaticResource DmTextDim}" VerticalAlignment="Center"
+                     Foreground="{DynamicResource DmTextDim}" VerticalAlignment="Center"
                      Margin="8,0,0,0" Text="0.0s"/>
         </Grid>
 
@@ -53,12 +53,12 @@
             <ColumnDefinition Width="*"/>
             <ColumnDefinition Width="Auto"/>
           </Grid.ColumnDefinitions>
-          <TextBlock Grid.Column="0" Text="{loc:Tr videoTrimOut}" Foreground="{StaticResource DmTextDim}"
+          <TextBlock Grid.Column="0" Text="{loc:Tr videoTrimOut}" Foreground="{DynamicResource DmTextDim}"
                      FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0"/>
           <Slider x:Name="TrimEnd" Grid.Column="1" Minimum="0" Maximum="1" Value="1"
                   VerticalAlignment="Center" IsSnapToTickEnabled="False"/>
           <TextBlock x:Name="TrimEndLabel" Grid.Column="2" FontSize="11" FontFamily="Consolas"
-                     Foreground="{StaticResource DmTextDim}" VerticalAlignment="Center"
+                     Foreground="{DynamicResource DmTextDim}" VerticalAlignment="Center"
                      Margin="8,0,0,0" Text="1.0s"/>
         </Grid>
 
@@ -72,10 +72,10 @@
           </Grid.ColumnDefinitions>
 
           <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-            <TextBlock Text="{loc:Tr duration}" Foreground="{StaticResource DmTextDim}" FontSize="12" Margin="0,0,6,0"/>
+            <TextBlock Text="{loc:Tr duration}" Foreground="{DynamicResource DmTextDim}" FontSize="12" Margin="0,0,6,0"/>
             <TextBlock x:Name="DurationLabel" FontSize="12" FontFamily="Consolas"
-                       Foreground="{StaticResource DmText}" Text="0.0 s"/>
-            <TextBlock x:Name="EstimatedSizeLabel" Foreground="{StaticResource DmTextDim}"
+                       Foreground="{DynamicResource DmText}" Text="0.0 s"/>
+            <TextBlock x:Name="EstimatedSizeLabel" Foreground="{DynamicResource DmTextDim}"
                        FontSize="12" Margin="16,0,0,0"/>
           </StackPanel>
 
@@ -91,7 +91,7 @@
 
     <!-- ===== Preview image: fills the remaining space above the buttons (last child) ===== -->
     <Border Background="#0D0D10" Margin="16,16,16,0" CornerRadius="6"
-            BorderBrush="{StaticResource DmBorder}" BorderThickness="1">
+            BorderBrush="{DynamicResource DmBorder}" BorderThickness="1">
       <Image x:Name="Preview" Stretch="Uniform"/>
     </Border>
   </DockPanel>
