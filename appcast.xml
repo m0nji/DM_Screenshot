@@ -334,5 +334,14 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.4.20/DM_Screenshot-v0.4.20.dmg" type="application/octet-stream" sparkle:edSignature="WMXQ9iZVyLz/5wFaO6zj56k531/WAqoZc3Ry9A8zClmDZ1bwdNEFsEnataEegGZ+wc/11VVwjMLCuezmP7gVCA==" length="2343547" />
 </item>
 
+<item>
+  <title>Version 0.4.21</title>
+  <description><![CDATA[<ul><li>feat: Windows Settings now mirrors the macOS design controls with the Standard Design / Black Utility switcher, compact settings rows and switch-style toggles.</li>
+<li>fix: The Windows tray icon now uses the modern DM Screenshot capture-corners and aperture mark instead of the old camera glyph.</li></ul>]]></description>
+  <sparkle:version>0.4.21</sparkle:version>
+  <sparkle:shortVersionString>0.4.21</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.4.21/DM_Screenshot-v0.4.21.dmg" type="application/octet-stream" sparkle:edSignature="ZwEOITsennf3/T7C9KjO276BR/Z0hz1CXUY68ThIvcVFAmpKGpQEW/bIt4isfJZ8Zvc3EZFmakAYuA2oPgFrBg==" length="2343709" />
+</item>
+
 </channel>
 </rss>
