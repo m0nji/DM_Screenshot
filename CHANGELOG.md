@@ -4,6 +4,10 @@ All notable changes to DM_Screenshot. Newest version first. Always written in En
 
 ## [Unreleased]
 
+## 0.4.23 – 2026-06-27
+- fix: Windows now uses the shared BrandDesign layered control chrome for toolbar, sidebar, Settings navigation, combo boxes, text boxes and switches instead of flat bordered buttons.
+- fix: Windows Standard Design and Black Utility now update loaded UI through dynamic theme resources, including Quick-Edit and the editor canvas, so hard-coded black/gray surfaces no longer override the selected design.
+
 ## 0.4.22 – 2026-06-27
 - fix: Windows no longer crashes on startup when applying the selected design after update; theme resources are replaced instead of mutating frozen WPF brushes.
 
