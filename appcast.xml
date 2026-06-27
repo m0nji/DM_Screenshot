@@ -343,5 +343,13 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.4.21/DM_Screenshot-v0.4.21.dmg" type="application/octet-stream" sparkle:edSignature="ZwEOITsennf3/T7C9KjO276BR/Z0hz1CXUY68ThIvcVFAmpKGpQEW/bIt4isfJZ8Zvc3EZFmakAYuA2oPgFrBg==" length="2343709" />
 </item>
 
+<item>
+  <title>Version 0.4.22</title>
+  <description><![CDATA[<ul><li>fix: Windows no longer crashes on startup when applying the selected design after update; theme resources are replaced instead of mutating frozen WPF brushes.</li></ul>]]></description>
+  <sparkle:version>0.4.22</sparkle:version>
+  <sparkle:shortVersionString>0.4.22</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.4.22/DM_Screenshot-v0.4.22.dmg" type="application/octet-stream" sparkle:edSignature="lySbBJ1viUfAY5VlY3Ep+wo0wpnbLLSF+dc9v3oi7BRTBUae0RolwbKoXvLualR0ZjRdBP1m3ml4hvYmdNAzCQ==" length="2343659" />
+</item>
+
 </channel>
 </rss>
