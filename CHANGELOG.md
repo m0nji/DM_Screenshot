@@ -4,6 +4,9 @@ All notable changes to DM_Screenshot. Newest version first. Always written in En
 
 ## [Unreleased]
 
+## 0.4.22 – 2026-06-27
+- fix: Windows no longer crashes on startup when applying the selected design after update; theme resources are replaced instead of mutating frozen WPF brushes.
+
 ## 0.4.21 – 2026-06-27
 - feat: Windows Settings now mirrors the macOS design controls with the Standard Design / Black Utility switcher, compact settings rows and switch-style toggles.
 - fix: The Windows tray icon now uses the modern DM Screenshot capture-corners and aperture mark instead of the old camera glyph.
