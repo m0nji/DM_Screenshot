@@ -23,7 +23,7 @@ public sealed class CanvasControl : FrameworkElement
     private const double WheelPanStep = 48;   // pixels panned per wheel notch (Delta of 120); tune on hardware
     private double _scale = 1;
     private Point _offset;
-    private Point _origin;   // content-space origin: (0,0) when frame off, (−pad,−pad) when frame on
+    private Point _origin;   // content-space origin: (0,0) when frame off; top-left of FramedContentRect when frame on (crop-aware: (cropX−pad, cropY−pad))
     private static readonly Brush _bg = MakeFrozen(Color.FromRgb(0x14, 0x14, 0x18));
     private bool _space;
     private Point _grabStartView;
@@ -46,7 +46,7 @@ public sealed class CanvasControl : FrameworkElement
     // When the pretty-background frame is ON, fit/zoom/pan are driven by the
     // outer framed extent.  When OFF the full raw image is the content (unchanged).
     private Size ContentSize => Model.BackgroundEnabled
-        ? FrameGeometry.OuterSize(new Size(_w, _h), Model.FramePadding)
+        ? Model.FramedContentRect.Size      // crop-aware; matches _origin, the render transform, and macOS
         : new Size(_w, _h);
     private Size ViewportSize => new(ActualWidth, ActualHeight);
 
