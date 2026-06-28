@@ -36,4 +36,14 @@ public class EditorModelFrameTests
         Assert.Equal(1160, outp.Width);
         Assert.Equal(660, outp.Height);
     }
+
+    [Fact]
+    public void Flatten_SameSize_WhenFrameOff()
+    {
+        using var baseImg = new Bitmap(1000, 500);
+        var m = new EditorModel { BackgroundEnabled = false };
+        using var outp = Renderer.Flatten(baseImg, m);
+        Assert.Equal(1000, outp.Width);
+        Assert.Equal(500, outp.Height);
+    }
 }

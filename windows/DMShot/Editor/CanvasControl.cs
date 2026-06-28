@@ -95,6 +95,7 @@ public sealed class CanvasControl : FrameworkElement
         _source?.Dispose();
         _source = (System.Drawing.Bitmap)image.Clone();
         _w = _source.Width; _h = _source.Height;
+        Model.SetImageSize(_w, _h);
         InvalidateVisual();
     }
 
