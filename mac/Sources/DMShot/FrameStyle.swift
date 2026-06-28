@@ -34,9 +34,6 @@ struct BackgroundStyle: Equatable {
 
     static let disabled = BackgroundStyle(
         enabled: false, padding: .medium, corner: .soft, background: .solid("#ffffff"))
-    /// The look applied the first time a user turns the frame on with no saved style.
-    static let defaultEnabled = BackgroundStyle(
-        enabled: true, padding: .medium, corner: .soft, background: .solid("#ffffff"))
 }
 
 /// Single source of truth for the preset numbers (mirrored in `docs/PARITY.md`

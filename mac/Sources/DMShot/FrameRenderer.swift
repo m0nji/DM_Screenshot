@@ -56,11 +56,10 @@ enum FrameRenderer {
             else { ctx.setFillColor(NSColor(hex: stops.0).cgColor); ctx.fill(outerRect); break }
             ctx.saveGState()
             ctx.clip(to: outerRect)
-            ctx.drawLinearGradient(
-                grad,
-                start: CGPoint(x: outerRect.minX, y: outerRect.maxY),    // top-left
-                end: CGPoint(x: outerRect.maxX, y: outerRect.minY),      // bottom-right
-                options: [])
+            let isFlipped = NSGraphicsContext.current?.isFlipped ?? false
+            let start = CGPoint(x: outerRect.minX, y: isFlipped ? outerRect.minY : outerRect.maxY)  // visual top-left
+            let end   = CGPoint(x: outerRect.maxX, y: isFlipped ? outerRect.maxY : outerRect.minY)  // visual bottom-right
+            ctx.drawLinearGradient(grad, start: start, end: end, options: [])
             ctx.restoreGState()
         case .blur:
             drawBlurFill(into: ctx, outerRect: outerRect, innerRect: innerRect, source: blurSource)
