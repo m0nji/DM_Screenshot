@@ -23,7 +23,7 @@ public sealed class CanvasControl : FrameworkElement
     private const double WheelPanStep = 48;   // pixels panned per wheel notch (Delta of 120); tune on hardware
     private double _scale = 1;
     private Point _offset;
-    private Point _origin;   // image-space origin (always (0,0) on Windows; full image is the content)
+    private Point _origin;   // content-space origin: (0,0) when frame off, (−pad,−pad) when frame on
     private static readonly Brush _bg = MakeFrozen(Color.FromRgb(0x14, 0x14, 0x18));
     private bool _space;
     private Point _grabStartView;
@@ -43,7 +43,11 @@ public sealed class CanvasControl : FrameworkElement
 
     private static Brush MakeFrozen(Color c) { var b = new SolidColorBrush(c); b.Freeze(); return b; }
 
-    private Size ContentSize => new(_w, _h);          // full image; see Windows crop scope note
+    // When the pretty-background frame is ON, fit/zoom/pan are driven by the
+    // outer framed extent.  When OFF the full raw image is the content (unchanged).
+    private Size ContentSize => Model.BackgroundEnabled
+        ? FrameGeometry.OuterSize(new Size(_w, _h), Model.FramePadding)
+        : new Size(_w, _h);
     private Size ViewportSize => new(ActualWidth, ActualHeight);
 
     /// <summary>Image→view transform for a given viewport size. OnRender uses the live
@@ -124,8 +128,12 @@ public sealed class CanvasControl : FrameworkElement
         if (_textBox is not null && _source is not null)
         {
             var (s, off) = ComputeTransform(finalSize);
-            double vx = off.X + _editOrigin.X * s;
-            double vy = off.Y + _editOrigin.Y * s;
+            // When the frame is ON the content origin is negative (padded), so the
+            // inline editor must be shifted by the same origin to stay over the image.
+            double originX = Model.BackgroundEnabled ? Model.FramedContentRect.X : 0.0;
+            double originY = Model.BackgroundEnabled ? Model.FramedContentRect.Y : 0.0;
+            double vx = off.X + (_editOrigin.X - originX) * s;
+            double vy = off.Y + (_editOrigin.Y - originY) * s;
             _textBox.FontSize = _editFontSize * s;
             var sz = TextLayout.Measure(_textBox.Text, _editFontSize);
             double w, h;
@@ -152,7 +160,12 @@ public sealed class CanvasControl : FrameworkElement
         dc.DrawRectangle(_bg, null, new Rect(0, 0, ActualWidth, ActualHeight));
         if (_source is null) return;
 
-        _origin = new Point(0, 0);
+        // Outer (framed) content extent; equals ViewRect when background is off.
+        var vr = Model.FramedContentRect;
+        var inner = Model.ViewRect;
+        // _origin drives ToImage hit-testing.  When the frame is on the content
+        // starts at a negative origin (the padding extends outside the image).
+        _origin = Model.BackgroundEnabled ? new Point(vr.X, vr.Y) : new Point(0, 0);
         (_scale, _offset) = ComputeTransform(ViewportSize);
 
         int pct = (int)Math.Round(_scale * 100);
@@ -167,6 +180,17 @@ public sealed class CanvasControl : FrameworkElement
         dc.PushTransform(new TranslateTransform(_offset.X, _offset.Y));
         dc.PushTransform(new ScaleTransform(_scale, _scale));
 
+        if (Model.BackgroundEnabled)
+        {
+            // Push3: shifts the drawing coordinate origin so that image-space (0,0)
+            // maps to the inner top-left of the frame, not the outer corner.
+            // Effective transform: view = offset + scale × (drawing − vr.origin)
+            dc.PushTransform(new TranslateTransform(-vr.X, -vr.Y));
+            DrawFrameBackground(dc, vr, Model.Style);
+            double radius = FrameGeometry.CornerRadius(inner.Size, Model.FrameCorner);
+            dc.PushClip(new RectangleGeometry(inner, radius, radius));
+        }
+
         IEnumerable<Annotation> anns = Model.Annotations;
         if (_editingAnno is { Kind: ToolKind.Step } editingStep)
             anns = anns.Select(a => ReferenceEquals(a, editingStep) ? StripComment(a) : a);
@@ -176,6 +200,13 @@ public sealed class CanvasControl : FrameworkElement
         using (var comp = Renderer.RenderComposite(_source, anns))
             dc.DrawImage(ImageInterop.ToBitmapSource(comp), new Rect(0, 0, _w, _h));
 
+        if (Model.BackgroundEnabled)
+        {
+            dc.Pop();   // RectangleGeometry clip — screenshot clipped to rounded inner rect
+        }
+
+        // Overlays (crop dim, selection, rubber-band) are drawn in image space
+        // after the clip is released; push3 (when active) maps them to view correctly.
         if (Model.Crop is { } c)
         {
             var dim = new SolidColorBrush(Color.FromArgb(120, 0, 0, 0));
@@ -194,6 +225,11 @@ public sealed class CanvasControl : FrameworkElement
             var tbPen = new Pen(new SolidColorBrush(Color.FromRgb(0xC9, 0x7B, 0x4A)), 1 / _scale)
                 { DashStyle = new DashStyle(new double[] { 4, 3 }, 0) };
             dc.DrawRectangle(null, tbPen, _textDragRect);
+        }
+
+        if (Model.BackgroundEnabled)
+        {
+            dc.Pop();   // TranslateTransform(-vr.X, -vr.Y)  [push3: framed origin shift]
         }
 
         dc.Pop();   // ScaleTransform
@@ -216,6 +252,40 @@ public sealed class CanvasControl : FrameworkElement
         foreach (var p in SelectionGeometry.Handles(a))
             dc.DrawRectangle(fill, white, new Rect(p.X - hr, p.Y - hr, hr * 2, hr * 2));
     }
+
+    // ===== Frame background helpers =====
+
+    /// <summary>Paints the pretty-background fill behind the composite image (image-space
+    /// coordinates, inside the pushed transforms).  Mirrors the WPF drawing done in the
+    /// GDI FrameRenderer for export — solid, gradient, or a dark-tinted fill that
+    /// approximates the blur (the real Gaussian blur is applied only on export).</summary>
+    private void DrawFrameBackground(DrawingContext dc, Rect outer, BackgroundStyle style)
+    {
+        switch (style.Kind)
+        {
+            case FrameBackgroundKind.Solid:
+                dc.DrawRectangle(new SolidColorBrush(ParseColor(style.SolidHex)), null, outer);
+                break;
+            case FrameBackgroundKind.Gradient:
+                var (s0, s1) = FramePresets.GradientStops(style.Gradient);
+                // Point(0,0)→Point(1,1) is relative to the bounding box (default MappingMode).
+                var lg = new LinearGradientBrush(ParseColor(s0), ParseColor(s1),
+                    new Point(0, 0), new Point(1, 1));
+                dc.DrawRectangle(lg, null, outer);
+                break;
+            case FrameBackgroundKind.Blur:
+                // Live preview: dark-tinted fill approximating the blurred screenshot.
+                // The real Gaussian blur (downscale/upscale) is applied on export by
+                // FrameRenderer.Render — acceptable for WYSIWYG preview purposes.
+                dc.DrawRectangle(new SolidColorBrush(Color.FromArgb(255, 32, 32, 32)), null, outer);
+                dc.DrawRectangle(new SolidColorBrush(Color.FromArgb(
+                    (byte)(FramePresets.BlurDarken * 255), 0, 0, 0)), null, outer);
+                break;
+        }
+    }
+
+    private static Color ParseColor(string hex)
+        => (Color)ColorConverter.ConvertFromString(hex);
 
     // ===== Zoom / pan =====
     private void ApplyZoom((double Scale, Point Pan) r)
