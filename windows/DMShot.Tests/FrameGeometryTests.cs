@@ -51,4 +51,11 @@ public class FrameGeometryTests
     {
         Assert.Equal(1, FrameGeometry.Padding(new Size(10, 10), FramePadding.Small), 3);
     }
+
+    [Fact]
+    public void CornerRadius_MidpointRoundsAwayFromZero()
+    {
+        // 75 * 0.06 = 4.5 → 5 (away-from-zero), NOT 4 (banker's)
+        Assert.Equal(5, FrameGeometry.CornerRadius(new Size(100, 75), FrameCorner.Round), 3);
+    }
 }

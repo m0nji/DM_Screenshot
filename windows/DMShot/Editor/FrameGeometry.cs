@@ -10,7 +10,7 @@ public static class FrameGeometry
     public static double Padding(Size innerSize, FramePadding p)
     {
         double longer = Math.Max(innerSize.Width, innerSize.Height);
-        double raw = Math.Round(longer * FramePresets.PaddingFraction(p));
+        double raw = Math.Round(longer * FramePresets.PaddingFraction(p), MidpointRounding.AwayFromZero);
         return Math.Max(1, raw);
     }
 
@@ -31,7 +31,7 @@ public static class FrameGeometry
         double frac = FramePresets.CornerFraction(c);
         if (frac <= 0) return 0;
         double shorter = Math.Min(innerSize.Width, innerSize.Height);
-        return Math.Max(1, Math.Round(shorter * frac));
+        return Math.Max(1, Math.Round(shorter * frac, MidpointRounding.AwayFromZero));
     }
 
     public static Rect OuterRect(Rect inner, FramePadding p)
