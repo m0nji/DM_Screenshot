@@ -63,19 +63,22 @@ enum FrameRenderer {
                 options: [])
             ctx.restoreGState()
         case .blur:
-            drawBlurFill(into: ctx, outerRect: outerRect, source: blurSource)
+            drawBlurFill(into: ctx, outerRect: outerRect, innerRect: innerRect, source: blurSource)
         }
     }
 
     /// Aspect-fill the blur source across `outerRect`, blur it, and darken slightly.
-    private static func drawBlurFill(into ctx: CGContext, outerRect: CGRect, source: CGImage) {
+    /// The blur radius is derived from `innerRect` (0.06 of the shorter inner edge).
+    private static func drawBlurFill(
+        into ctx: CGContext, outerRect: CGRect, innerRect: CGRect, source: CGImage
+    ) {
         let srcW = CGFloat(source.width), srcH = CGFloat(source.height)
         guard srcW > 0, srcH > 0 else { return }
         let scale = max(outerRect.width / srcW, outerRect.height / srcH)
         let fillW = srcW * scale, fillH = srcH * scale
         let fillRect = CGRect(
             x: outerRect.midX - fillW / 2, y: outerRect.midY - fillH / 2, width: fillW, height: fillH)
-        let radius = FrameGeometry.blurRadius(innerSize: outerRect.size)
+        let radius = FrameGeometry.blurRadius(innerSize: innerRect.size)
         let ci = CIImage(cgImage: source)
         let blurred: CGImage = {
             guard let f = CIFilter(name: "CIGaussianBlur") else { return source }

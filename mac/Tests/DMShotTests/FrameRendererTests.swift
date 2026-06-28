@@ -27,6 +27,7 @@ final class FrameRendererTests: XCTestCase {
     func testDisabledReturnsInnerUnchanged() {
         let inner = solid(40, 20, .red)
         let out = FrameRenderer.render(inner: inner, blurSource: inner, style: .disabled)
+        XCTAssertTrue(out === inner, "disabled render must return the exact same CGImage instance")
         XCTAssertEqual(out.width, 40)
         XCTAssertEqual(out.height, 20)
     }
@@ -57,5 +58,43 @@ final class FrameRendererTests: XCTestCase {
         XCTAssertGreaterThan(p.r, 200)
         XCTAssertLessThan(p.g, 60)
         XCTAssertLessThan(p.b, 60)
+    }
+
+    func testGradientBackgroundFillsCorner() {
+        // warm gradient: #f0883e (orange) → #c0398a (magenta), top-left to bottom-right.
+        // The top-left corner pixel should be orange-ish — green channel >> 0 (pure red has g≈0).
+        let inner = solid(1000, 500, .red)
+        let style = BackgroundStyle(
+            enabled: true, padding: .medium, corner: .none, background: .gradient(.warm))
+        let out = FrameRenderer.render(inner: inner, blurSource: inner, style: style)
+        XCTAssertEqual(out.width, 1160)   // 1000 + 2*80
+        XCTAssertEqual(out.height, 660)   // 500 + 2*80
+        let p = pixel(out, 5, 5)          // top-left padding ring — should be gradient, not pure red
+        // Orange (#f0883e): G≈136, B≈62 — both clearly above zero; pure red has g≈0, b≈0.
+        XCTAssertGreaterThan(p.g, 60, "top-left corner should be a gradient color, not pure red")
+    }
+
+    func testBlurBackgroundShowsThroughPaddingRing() {
+        // Inner image: solid red. blurSource: solid blue (distinct from inner).
+        let inner = solid(1000, 500, .red)
+        let blueSource = solid(1000, 500, .blue)
+        let style = BackgroundStyle(
+            enabled: true, padding: .medium, corner: .none, background: .blur)
+        let out = FrameRenderer.render(inner: inner, blurSource: blueSource, style: style)
+        XCTAssertEqual(out.width, 1160)
+        XCTAssertEqual(out.height, 660)
+
+        // Center pixel: the inner (red) image is drawn on top of the blur background.
+        let center = pixel(out, out.width / 2, out.height / 2)
+        XCTAssertGreaterThan(center.r, 200, "center should show the red inner image")
+        XCTAssertLessThan(center.g, 60,    "center should show the red inner image")
+        XCTAssertLessThan(center.b, 60,    "center should show the red inner image")
+
+        // Top-left corner: blurred blue source with 12% darken overlay.
+        let corner = pixel(out, 5, 5)
+        XCTAssertGreaterThan(corner.b, corner.r, "corner should be bluish (blurred source)")
+        XCTAssertGreaterThan(corner.b, corner.g, "corner should be bluish (blurred source)")
+        XCTAssertGreaterThan(corner.b, 150,       "corner should have meaningful blue channel")
+        XCTAssertLessThan(corner.b, 255,          "corner blue should be darkened below pure blue")
     }
 }
