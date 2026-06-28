@@ -191,7 +191,7 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
     // MARK: - Zoom / pan
 
     private func applyZoom(_ result: (scale: CGFloat, pan: CGPoint)) {
-        let vr = model.viewRect
+        let vr = model.framedContentRect
         let base = ViewportMath.baseScale(content: vr.size, viewport: bounds.size, pad: pad)
         if result.scale <= base + 0.0001 {
             model.isFitMode = true
@@ -205,7 +205,7 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
     }
 
     private func zoom(by factor: CGFloat, at anchor: CGPoint) {
-        let vr = model.viewRect
+        let vr = model.framedContentRect
         let result = ViewportMath.panForZoomAtPoint(
             anchor: anchor, content: vr.size, viewport: bounds.size, pad: pad,
             origin: vr.origin, oldScale: scale, oldPan: model.pan,
@@ -214,7 +214,7 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
     }
 
     private func setActualSize(at anchor: CGPoint) {
-        let vr = model.viewRect
+        let vr = model.framedContentRect
         let result = ViewportMath.panForZoomAtPoint(
             anchor: anchor, content: vr.size, viewport: bounds.size, pad: pad,
             origin: vr.origin, oldScale: scale, oldPan: model.pan, requestedScale: 1.0)
@@ -222,7 +222,7 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
     }
 
     private func panBy(dx: CGFloat, dy: CGFloat) {
-        let vr = model.viewRect
+        let vr = model.framedContentRect
         let moved = CGPoint(x: model.pan.x + dx, y: model.pan.y + dy)
         model.pan = ViewportMath.clampPan(content: vr.size, viewport: bounds.size, scale: scale, pan: moved)
         refresh()
