@@ -14,6 +14,22 @@ final class EditorModel: ObservableObject {
     @Published var blurStrength: CGFloat = (UserDefaults.standard.object(forKey: "dmBlurStrength") as? Double).map { CGFloat($0) } ?? 12 {
         didSet { UserDefaults.standard.set(Double(blurStrength), forKey: "dmBlurStrength") }
     }
+    // Pretty-background frame style. Persisted across launches and shared by the
+    // editor + Quick-Edit (like strokeWidth/blurStrength). First run: off.
+    @Published var backgroundEnabled: Bool = UserDefaults.standard.object(forKey: "dmBgEnabled") as? Bool ?? false {
+        didSet { UserDefaults.standard.set(backgroundEnabled, forKey: "dmBgEnabled") }
+    }
+    @Published var framePadding: FramePadding = FramePadding(
+        rawValue: UserDefaults.standard.string(forKey: "dmBgPadding") ?? "") ?? .medium {
+        didSet { UserDefaults.standard.set(framePadding.rawValue, forKey: "dmBgPadding") }
+    }
+    @Published var frameCorner: FrameCorner = FrameCorner(
+        rawValue: UserDefaults.standard.string(forKey: "dmBgCorner") ?? "") ?? .soft {
+        didSet { UserDefaults.standard.set(frameCorner.rawValue, forKey: "dmBgCorner") }
+    }
+    @Published var frameBackground: FrameBackground = EditorModel.loadFrameBackground() {
+        didSet { EditorModel.saveFrameBackground(frameBackground) }
+    }
     @Published var annotations: [Annotation] = []
     @Published var selectedID: UUID?
     @Published var crop: CGRect? { didSet { resetZoom() } }
@@ -43,6 +59,49 @@ final class EditorModel: ObservableObject {
         image.map { CGSize(width: $0.width, height: $0.height) } ?? .zero
     }
     var viewRect: CGRect { crop ?? CGRect(origin: .zero, size: pixelSize) }
+
+    var backgroundStyle: BackgroundStyle {
+        BackgroundStyle(
+            enabled: backgroundEnabled, padding: framePadding,
+            corner: frameCorner, background: frameBackground)
+    }
+
+    /// The content extent the canvas fits/zooms to: the framed outer rect when the
+    /// frame is on, otherwise the plain view (crop or full image) rect.
+    var framedContentRect: CGRect {
+        backgroundEnabled
+            ? FrameGeometry.outerRect(inner: viewRect, padding: framePadding)
+            : viewRect
+    }
+
+    /// The base, pre-annotation image cropped to the current view — the source for
+    /// the blur background (keeps live preview == export).
+    var blurSourceImage: CGImage? {
+        guard let image else { return nil }
+        if let crop, let c = ImageUtils.crop(image, to: crop) { return c }
+        return image
+    }
+
+    // FrameBackground ⇄ UserDefaults ("solid:#hex" | "gradient:warm" | "blur").
+    private static func loadFrameBackground() -> FrameBackground {
+        let raw = UserDefaults.standard.string(forKey: "dmBgBackground") ?? "solid:#ffffff"
+        if raw == "blur" { return .blur }
+        if raw.hasPrefix("gradient:"), let g = FrameGradient(rawValue: String(raw.dropFirst(9))) {
+            return .gradient(g)
+        }
+        if raw.hasPrefix("solid:") { return .solid(String(raw.dropFirst(6))) }
+        return .solid("#ffffff")
+    }
+    private static func saveFrameBackground(_ b: FrameBackground) {
+        let raw: String
+        switch b {
+        case .solid(let hex):   raw = "solid:\(hex)"
+        case .gradient(let g):  raw = "gradient:\(g.rawValue)"
+        case .blur:             raw = "blur"
+        }
+        UserDefaults.standard.set(raw, forKey: "dmBgBackground")
+    }
+
     private var documentState: DocumentState { DocumentState(annotations: annotations, crop: crop) }
 
     func load(image: CGImage, entryID: String, annotations: [Annotation] = [], crop: CGRect? = nil) {
@@ -145,7 +204,11 @@ final class EditorModel: ObservableObject {
         SceneRenderer.draw(image: image, annotations: annotations)
         NSGraphicsContext.restoreGraphicsState()
         guard let full = cg.makeImage() else { return nil }
-        if let crop, let cropped = ImageUtils.crop(full, to: crop) { return cropped }
-        return full
+        let inner: CGImage
+        if let crop, let cropped = ImageUtils.crop(full, to: crop) { inner = cropped }
+        else { inner = full }
+        guard backgroundEnabled else { return inner }
+        let blurSrc = blurSourceImage ?? inner
+        return FrameRenderer.render(inner: inner, blurSource: blurSrc, style: backgroundStyle)
     }
 }
