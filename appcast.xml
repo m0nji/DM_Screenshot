@@ -360,5 +360,14 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.4.23/DM_Screenshot-v0.4.23.dmg" type="application/octet-stream" sparkle:edSignature="wnmfFsvTJW3X0lH9+7RftYDpxxwm8dsAMgfao8a0nVad92C83dKO0mlDF9I/Bw68BoWk2EAT/Jy9RENef8giBg==" length="2343877" />
 </item>
 
+<item>
+  <title>Version 0.4.24</title>
+  <description><![CDATA[<ul><li>fix: Windows Black Utility design now paints the window title bar pure black — matching the app background and the macOS look — instead of leaving the Windows 11 dark-gray caption; it also repaints live when you switch design.</li>
+<li>fix: Windows controls render the shared BrandDesign faded chrome frame on a softened 50% base edge at rest, matching macOS, instead of a flat hard outline; hover and active states keep their crisp orange border.</li></ul>]]></description>
+  <sparkle:version>0.4.24</sparkle:version>
+  <sparkle:shortVersionString>0.4.24</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.4.24/DM_Screenshot-v0.4.24.dmg" type="application/octet-stream" sparkle:edSignature="i1YzdB716NO3y1RfDwHHpMQQWNAYcIMSsI61IrDIweIWb4Gy9hw6wPC39+2SppDI6XGBx/t8Xza+Xh4PrWH1Cg==" length="2344001" />
+</item>
+
 </channel>
 </rss>
