@@ -342,7 +342,7 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
     override func mouseDragged(with event: NSEvent) {
         if let start = grabStartView, let startPan = grabStartPan {
             let cur = convert(event.locationInWindow, from: nil)
-            let vr = model.viewRect
+            let vr = model.framedContentRect
             let moved = CGPoint(x: startPan.x + (cur.x - start.x), y: startPan.y + (cur.y - start.y))
             model.pan = ViewportMath.clampPan(content: vr.size, viewport: bounds.size, scale: scale, pan: moved)
             refresh()

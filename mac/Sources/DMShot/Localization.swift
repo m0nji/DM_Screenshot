@@ -34,7 +34,7 @@ enum L: CaseIterable {
     case color, sizeBlur, editInMainWindow, close
     case blur, size, custom, hex, stop, pixelsSuffix
     // Frame / background presets
-    case background, bgNone, bgPadding, bgCorners, bgFill
+    case background, bgPadding, bgCorners, bgFill
     case bgPadSmall, bgPadMedium, bgPadLarge
     case bgCornerNone, bgCornerSoft, bgCornerRound
     case bgBlur
@@ -165,7 +165,6 @@ final class Localizer: ObservableObject {
         case .stop:                 return ("Stop", "Stopp")
         case .pixelsSuffix:         return ("px", "px")
         case .background:           return ("Background", "Hintergrund")
-        case .bgNone:               return ("Off", "Aus")
         case .bgPadding:            return ("Padding", "Abstand")
         case .bgCorners:            return ("Corners", "Ecken")
         case .bgFill:               return ("Fill", "Füllung")
