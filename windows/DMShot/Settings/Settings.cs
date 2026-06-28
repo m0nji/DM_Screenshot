@@ -19,4 +19,12 @@ public sealed class Settings
     // Quick-Edit overlay. Match the CanvasControl/editor-slider defaults (3 px / blur 12).
     public double StrokeWidth { get; set; } = 3;
     public int BlurStrength { get; set; } = 12;
+
+    // Frame / pretty-background style (Task 10). Enums stored as strings for JSON round-trip.
+    public bool BackgroundEnabled { get; set; } = false;
+    public string FramePadding { get; set; } = "Medium";
+    public string FrameCorner { get; set; } = "Soft";
+    public string FrameBackgroundKind { get; set; } = "Solid";
+    public string FrameSolidHex { get; set; } = "#ffffff";
+    public string FrameGradient { get; set; } = "Warm";
 }

@@ -120,6 +120,23 @@ public partial class App : Application
         _settingsSaveTimer.Start();   // restart → save 600 ms after the last change
     }
 
+    private void OnFrameStyleChanged(BackgroundStyle style)
+    {
+        _settings.BackgroundEnabled = style.Enabled;
+        _settings.FramePadding = style.Padding.ToString();
+        _settings.FrameCorner = style.Corner.ToString();
+        _settings.FrameBackgroundKind = style.Kind.ToString();
+        _settings.FrameSolidHex = style.SolidHex;
+        _settings.FrameGradient = style.Gradient.ToString();
+        if (_settingsSaveTimer is null)
+        {
+            _settingsSaveTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(600) };
+            _settingsSaveTimer.Tick += (_, _) => { _settingsSaveTimer!.Stop(); _settingsStore.Save(_settings); };
+        }
+        _settingsSaveTimer.Stop();
+        _settingsSaveTimer.Start();   // restart → save 600 ms after the last change
+    }
+
     /// <summary>Single editor-creation path so every hook (incl. the V17 video hook) is always wired.</summary>
     private void EnsureEditor()
     {
@@ -135,7 +152,15 @@ public partial class App : Application
             OnVideoEntryActivated = OpenGifViewerForEntry   // V17
         };
         _editor.InitDefaults(_settings.StrokeWidth, _settings.BlurStrength);   // remembered stroke/blur
+        _editor.InitFrameStyle(new BackgroundStyle(                            // remembered frame style
+            _settings.BackgroundEnabled,
+            Enum.TryParse<FramePadding>(_settings.FramePadding, out var fp) ? fp : FramePadding.Medium,
+            Enum.TryParse<FrameCorner>(_settings.FrameCorner, out var fc) ? fc : FrameCorner.Soft,
+            Enum.TryParse<FrameBackgroundKind>(_settings.FrameBackgroundKind, out var fk) ? fk : FrameBackgroundKind.Solid,
+            _settings.FrameSolidHex,
+            Enum.TryParse<FrameGradient>(_settings.FrameGradient, out var fg) ? fg : FrameGradient.Warm));
         _editor.DefaultsChanged += OnAnnotationDefaultsChanged;
+        _editor.FrameStyleChanged += OnFrameStyleChanged;
     }
 
     private void ShowEditor()

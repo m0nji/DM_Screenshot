@@ -29,6 +29,27 @@ public partial class EditorWindow : Window
     /// so the app can persist them. Payload: (strokeWidth, blurStrength).</summary>
     public event Action<double, int>? DefaultsChanged;
 
+    /// <summary>Raised when the frame style changes via the frame-control UI (Task 12).
+    /// Subscribe in App.xaml.cs to persist the new values.</summary>
+    public event Action<BackgroundStyle>? FrameStyleChanged;
+
+    /// <summary>Seed the frame style fields on the model from persisted settings (no
+    /// FrameStyleChanged echo). Call once after construction, next to InitDefaults.</summary>
+    public void InitFrameStyle(BackgroundStyle style)
+    {
+        var m = Canvas.Model;
+        m.BackgroundEnabled = style.Enabled;
+        m.FramePadding = style.Padding;
+        m.FrameCorner = style.Corner;
+        m.FrameBackgroundKind = style.Kind;
+        m.FrameSolidHex = style.SolidHex;
+        m.FrameGradient = style.Gradient;
+    }
+
+    /// <summary>Called by the frame-control UI (Task 12) after mutating the model, to notify
+    /// App that frame settings changed and should be persisted.</summary>
+    internal void RaiseFrameStyleChanged() => FrameStyleChanged?.Invoke(Canvas.Model.Style);
+
     /// <summary>Seed the toolbar sliders and canvas defaults from persisted settings (no
     /// DefaultsChanged echo). Call once after construction.</summary>
     public void InitDefaults(double stroke, int blurStrength)

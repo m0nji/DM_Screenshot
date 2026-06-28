@@ -35,14 +35,34 @@ public static class Renderer
         double ox = crop?.X ?? 0, oy = crop?.Y ?? 0;
 
         var outp = new Bitmap(w, h, PixelFormat.Format32bppArgb);
-        using var g = Graphics.FromImage(outp);
-        g.SmoothingMode = SmoothingMode.AntiAlias;
-        g.DrawImage(baseImage, new Rectangle(0, 0, w, h),
-            new Rectangle((int)ox, (int)oy, w, h), GraphicsUnit.Pixel);
+        using (var g = Graphics.FromImage(outp))
+        {
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            g.DrawImage(baseImage, new Rectangle(0, 0, w, h),
+                new Rectangle((int)ox, (int)oy, w, h), GraphicsUnit.Pixel);
+            foreach (var a in model.Annotations)
+                DrawGdi(g, a, ox, oy, baseImage);
+        }   // g disposed here — outp is fully rendered and its GDI lock released
 
-        foreach (var a in model.Annotations)
-            DrawGdi(g, a, ox, oy, baseImage);
-        return outp;
+        // Wrap in the pretty-background frame when enabled; return plain bitmap otherwise.
+        if (!model.BackgroundEnabled) return outp;
+        using (outp)
+        {
+            Bitmap blurSource = CropForBlur(baseImage, model);
+            try { return FrameRenderer.Render(outp, blurSource, model.Style); }
+            finally { if (!ReferenceEquals(blurSource, baseImage)) blurSource.Dispose(); }
+        }
+    }
+
+    /// <summary>Returns the base image cropped to the crop rect for use as the blur source,
+    /// or the base image itself when there is no crop.</summary>
+    private static Bitmap CropForBlur(Bitmap baseImage, EditorModel model)
+    {
+        if (model.Crop is not { } c) return baseImage;
+        var rect = new Rectangle(c.X, c.Y, c.Width, c.Height);
+        rect.Intersect(new Rectangle(0, 0, baseImage.Width, baseImage.Height));
+        if (rect.Width < 1 || rect.Height < 1) return baseImage;
+        return baseImage.Clone(rect, baseImage.PixelFormat);
     }
 
     private static void DrawGdi(Graphics g, Annotation a, double ox, double oy, Bitmap baseImage)

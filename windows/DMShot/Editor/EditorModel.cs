@@ -17,6 +17,32 @@ public sealed class EditorModel
     public bool CanRedo => _redo.Count > 0;
     public event Action? Changed;
 
+    // ── Frame style (persisted via Settings; seeded by App.EnsureEditor) ──
+    public bool BackgroundEnabled { get; set; }
+    public FramePadding FramePadding { get; set; } = FramePadding.Medium;
+    public FrameCorner FrameCorner { get; set; } = FrameCorner.Soft;
+    public FrameBackgroundKind FrameBackgroundKind { get; set; } = FrameBackgroundKind.Solid;
+    public string FrameSolidHex { get; set; } = "#ffffff";
+    public FrameGradient FrameGradient { get; set; } = FrameGradient.Warm;
+
+    private int _imgW, _imgH;
+    /// <summary>Record the base image pixel size. Call whenever a new image loads (EditorWindow.LoadImage).</summary>
+    public void SetImageSize(int w, int h) { _imgW = w; _imgH = h; }
+
+    /// <summary>Snapshot of the current frame style parameters.</summary>
+    public BackgroundStyle Style => new(
+        BackgroundEnabled, FramePadding, FrameCorner, FrameBackgroundKind, FrameSolidHex, FrameGradient);
+
+    /// <summary>The plain view rect (crop or full image) in image pixels.</summary>
+    public Rect ViewRect => Crop is { } c
+        ? new Rect(c.X, c.Y, c.Width, c.Height)
+        : new Rect(0, 0, _imgW, _imgH);
+
+    /// <summary>Outer (framed) content extent when the frame is on, else the plain view rect.</summary>
+    public Rect FramedContentRect => BackgroundEnabled
+        ? FrameGeometry.OuterRect(ViewRect, FramePadding)
+        : ViewRect;
+
     // View-state for canvas zoom/pan (see ViewportMath). Authoritative.
     public double UserScale { get; set; } = 1;     // absolute image→view scale (used when !IsFitMode)
     public Point Pan { get; set; }                 // view-space pan beyond centering
