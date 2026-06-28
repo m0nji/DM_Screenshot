@@ -102,7 +102,7 @@ public static class FrameRenderer
         int dw = Math.Max(1, src.Width / Math.Max(2, radius));
         int dh = Math.Max(1, src.Height / Math.Max(2, radius));
 
-        var small = new Bitmap(dw, dh);
+        using var small = new Bitmap(dw, dh);
         using (var sg = Graphics.FromImage(small))
         {
             sg.InterpolationMode = InterpolationMode.HighQualityBilinear;
@@ -116,7 +116,6 @@ public static class FrameRenderer
             sg.DrawImage(small, new Rectangle(0, 0, src.Width, src.Height));
         }
 
-        small.Dispose();
         return big;
     }
 

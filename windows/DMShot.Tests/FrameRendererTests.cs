@@ -44,4 +44,37 @@ public class FrameRendererTests
         var center = outp.GetPixel(outp.Width / 2, outp.Height / 2);
         Assert.True(center.R > 200 && center.G < 60 && center.B < 60);
     }
+
+    [Fact]
+    public void Gradient_SizeCorrect_AndCornerIsNotRed()
+    {
+        using var inner = Solid(1000, 500, Color.Red);
+        var style = new BackgroundStyle(true, FramePadding.Medium, FrameCorner.None,
+            FrameBackgroundKind.Gradient, "#ffffff", FrameGradient.Warm);
+        using var outp = FrameRenderer.Render(inner, inner, style);
+        Assert.Equal(1160, outp.Width);
+        Assert.Equal(660, outp.Height);
+        // Warm gradient starts at #f0883e (G≈136); padding corner must not be pure red.
+        var corner = outp.GetPixel(5, 5);
+        Assert.True(corner.G > 60);
+    }
+
+    [Fact]
+    public void Blur_SizeCorrect_CenterIsInner_PaddingIsBluish()
+    {
+        using var inner = Solid(1000, 500, Color.Red);
+        using var blurSource = Solid(1000, 500, Color.Blue);
+        var style = new BackgroundStyle(true, FramePadding.Medium, FrameCorner.None,
+            FrameBackgroundKind.Blur, "#ffffff", FrameGradient.Warm);
+        using var outp = FrameRenderer.Render(inner, blurSource, style);
+        Assert.Equal(1160, outp.Width);
+        Assert.Equal(660, outp.Height);
+        // Center is covered by the sharp red inner image.
+        var center = outp.GetPixel(outp.Width / 2, outp.Height / 2);
+        Assert.True(center.R > 200 && center.G < 60 && center.B < 60);
+        // Top-left padding pixel comes from the blue blurSource with 12% darken overlay.
+        var pad = outp.GetPixel(5, 5);
+        Assert.True(pad.B > pad.R && pad.B > pad.G);
+        Assert.True(pad.B < 255); // darkened by overlay
+    }
 }
