@@ -17,6 +17,9 @@
   <SolidColorBrush x:Key="DmTextDim" Color="#8B8C94"/>
   <SolidColorBrush x:Key="DmBorder" Color="#222226"/>
   <SolidColorBrush x:Key="DmBorderControl" Color="#3A3A42"/>
+  <!-- Softened control border (50% of DmBorderControl): base stroke under the chrome gradient so
+       the frame fades like macOS instead of reading as a flat hard outline. -->
+  <SolidColorBrush x:Key="DmBorderControlSoft" Color="#3A3A42" Opacity="0.5"/>
   <SolidColorBrush x:Key="DmBorderHover" Color="#4A4A52"/>
   <SolidColorBrush x:Key="DmBorderControlOuter" Color="White" Opacity="0.10"/>
   <SolidColorBrush x:Key="DmBorderControlHighlight" Color="White" Opacity="0.16"/>
@@ -60,7 +63,7 @@
   <Style TargetType="Button">
     <Setter Property="Foreground" Value="{DynamicResource DmText}"/>
     <Setter Property="Background" Value="{DynamicResource DmSurfaceAlt}"/>
-    <Setter Property="BorderBrush" Value="{DynamicResource DmBorderControl}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource DmBorderControlSoft}"/>
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="Padding" Value="10,5"/>
     <Setter Property="Cursor" Value="Hand"/>
@@ -131,7 +134,7 @@
   <Style x:Key="IconButton" TargetType="Button">
     <Setter Property="Foreground" Value="{DynamicResource DmText}"/>
     <Setter Property="Background" Value="{DynamicResource DmSurfaceAlt}"/>
-    <Setter Property="BorderBrush" Value="{DynamicResource DmBorderControl}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource DmBorderControlSoft}"/>
     <Setter Property="Cursor" Value="Hand"/>
     <Setter Property="Height" Value="30"/>
     <Setter Property="MinWidth" Value="34"/>
@@ -174,7 +177,7 @@
   <Style x:Key="ToolRadio" TargetType="RadioButton">
     <Setter Property="Foreground" Value="{DynamicResource DmText}"/>
     <Setter Property="Background" Value="{DynamicResource DmSurfaceAlt}"/>
-    <Setter Property="BorderBrush" Value="{DynamicResource DmBorderControl}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource DmBorderControlSoft}"/>
     <Setter Property="Cursor" Value="Hand"/>
     <Setter Property="Width" Value="34"/>
     <Setter Property="Height" Value="28"/>
@@ -216,7 +219,7 @@
   <Style x:Key="SidebarButton" TargetType="Button">
     <Setter Property="Foreground" Value="{DynamicResource DmText}"/>
     <Setter Property="Background" Value="{DynamicResource DmSurfaceAlt}"/>
-    <Setter Property="BorderBrush" Value="{DynamicResource DmBorderControl}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource DmBorderControlSoft}"/>
     <Setter Property="Cursor" Value="Hand"/>
     <Setter Property="Height" Value="38"/>
     <Setter Property="FontSize" Value="13"/>
@@ -261,10 +264,10 @@
         <ControlTemplate TargetType="ListBoxItem">
           <Grid>
             <Border x:Name="Shadow" Background="{DynamicResource DmSurfaceAlt}" CornerRadius="8"
-                    BorderThickness="1" BorderBrush="{DynamicResource DmBorderControl}"
+                    BorderThickness="1" BorderBrush="{DynamicResource DmBorderControlSoft}"
                     Effect="{DynamicResource DmControlChromeShadow}"/>
             <Border x:Name="Bd" Background="{DynamicResource DmSurfaceAlt}" CornerRadius="8" Padding="12,9"
-                    BorderThickness="1" BorderBrush="{DynamicResource DmBorderControl}">
+                    BorderThickness="1" BorderBrush="{DynamicResource DmBorderControlSoft}">
               <ContentPresenter VerticalAlignment="Center"/>
             </Border>
             <Border CornerRadius="8" BorderBrush="{DynamicResource DmControlChromeStroke}"
@@ -417,7 +420,7 @@
     <Setter Property="Height" Value="28"/>
     <Setter Property="Cursor" Value="Hand"/>
     <Setter Property="Background" Value="{DynamicResource DmSurfaceLight}"/>
-    <Setter Property="BorderBrush" Value="{DynamicResource DmBorderControl}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource DmBorderControlSoft}"/>
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="ToggleButton">
@@ -467,10 +470,10 @@
   <ControlTemplate x:Key="DmComboToggle" TargetType="ToggleButton">
     <Grid>
       <Border x:Name="shadow" CornerRadius="6" Background="{DynamicResource DmSurfaceAlt}"
-              BorderBrush="{DynamicResource DmBorderControl}" BorderThickness="1"
+              BorderBrush="{DynamicResource DmBorderControlSoft}" BorderThickness="1"
               Effect="{DynamicResource DmControlChromeShadow}"/>
       <Border x:Name="bd" CornerRadius="6" Background="{DynamicResource DmSurfaceAlt}"
-              BorderBrush="{DynamicResource DmBorderControl}" BorderThickness="1">
+              BorderBrush="{DynamicResource DmBorderControlSoft}" BorderThickness="1">
         <Path HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0"
               Data="M0,0 L4,4 L8,0" Stroke="{DynamicResource DmText}" StrokeThickness="1.6"
               StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
@@ -544,7 +547,7 @@
     <Setter Property="Foreground" Value="{DynamicResource DmText}"/>
     <Setter Property="Background" Value="{DynamicResource DmSurfaceAlt}"/>
     <Setter Property="CaretBrush" Value="{DynamicResource DmText}"/>
-    <Setter Property="BorderBrush" Value="{DynamicResource DmBorderControl}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource DmBorderControlSoft}"/>
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="Padding" Value="10,0"/>
     <Setter Property="MinHeight" Value="32"/>

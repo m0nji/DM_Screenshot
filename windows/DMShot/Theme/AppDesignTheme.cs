@@ -11,6 +11,10 @@ public static class AppDesignTheme
     {
         if (Application.Current is null) return;
         Apply(Application.Current.Resources, design);
+        // The title bar tracks DmBackground, so repaint every open window's caption now that the
+        // design's brushes have changed (otherwise a live design switch leaves stale captions).
+        foreach (Window window in Application.Current.Windows)
+            Platform.DarkTitleBar.Apply(window);
     }
 
     public static void Apply(ResourceDictionary resources, AppDesign design)
@@ -27,6 +31,9 @@ public static class AppDesignTheme
         SetBrush(resources, "DmTextDim", design == AppDesign.Black ? "#8B8C94" : "#9A9AA2");
         SetBrush(resources, "DmBorder", design == AppDesign.Black ? "#222226" : "#343438");
         SetBrush(resources, "DmBorderControl", design == AppDesign.Black ? "#3A3A42" : "#4A4A50");
+        // Softened control border (50% of DmBorderControl) used as the base stroke under the
+        // chrome gradient so the frame fades like macOS instead of reading as a flat hard outline.
+        SetBrush(resources, "DmBorderControlSoft", design == AppDesign.Black ? "#3A3A42" : "#4A4A50", 0.5);
         SetBrush(resources, "DmBorderHover", design == AppDesign.Black ? "#4A4A52" : "#5B5B62");
         SetBrush(resources, "DmBorderControlOuter", "#FFFFFF", design == AppDesign.Black ? 0.10 : 0.08);
         SetBrush(resources, "DmBorderControlHighlight", "#FFFFFF", design == AppDesign.Black ? 0.16 : 0.10);

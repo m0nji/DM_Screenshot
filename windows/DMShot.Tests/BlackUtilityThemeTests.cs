@@ -46,6 +46,50 @@ public class BlackUtilityThemeTests
     }
 
     [Fact]
+    public void WindowsControlsUseSoftenedChromeBaseBorder()
+    {
+        var theme = Read("windows/DMShot/Theme/DmTheme.xaml");
+
+        // The macOS faded frame = a soft 50% base stroke under the chrome gradient (rather than a
+        // full-opacity DmBorderControl line, which reads as a flat outline). Every chromed control
+        // at rest — buttons, tool chips, sidebar/nav rows, toggles, dropdowns, text fields — sits
+        // on that softened base; the strong hover/active borders stay DmBorderHover / DmAccent.
+        Assert.Contains("x:Key=\"DmBorderControlSoft\" Color=\"#3A3A42\" Opacity=\"0.5\"", theme);
+        // Used broadly, not just on one control (9 chromed resting borders across the theme).
+        var uses = theme.Split("{DynamicResource DmBorderControlSoft}").Length - 1;
+        Assert.True(uses >= 8, $"expected the softened base border on most chromed controls, found {uses}");
+    }
+
+    [Fact]
+    public void AppDesignThemeAddsSoftenedControlBorder()
+    {
+        var resources = new ResourceDictionary();
+
+        AppDesignTheme.Apply(resources, AppDesign.Black);
+
+        var soft = Assert.IsType<SolidColorBrush>(resources["DmBorderControlSoft"]);
+        Assert.Equal(Color.FromRgb(0x3A, 0x3A, 0x42), soft.Color);
+        Assert.Equal(0.5, soft.Opacity);
+        Assert.True(soft.IsFrozen);
+    }
+
+    [Fact]
+    public void WindowsTitleBarTracksDesignBackground()
+    {
+        var titleBar = Read("windows/DMShot/Platform/DarkTitleBar.cs");
+        var theme = Read("windows/DMShot/Theme/AppDesignTheme.cs");
+
+        // Immersive dark mode alone leaves the Windows 11 grey caption; the Black design needs a
+        // pure-black title bar, so the caption is painted to the active DmBackground colour.
+        Assert.Contains("DWMWA_CAPTION_COLOR", titleBar);
+        Assert.Contains("DWMWA_BORDER_COLOR", titleBar);
+        Assert.Contains("DmBackground", titleBar);
+        // A live design switch repaints every open window's caption.
+        Assert.Contains("Application.Current.Windows", theme);
+        Assert.Contains("DarkTitleBar.Apply(window)", theme);
+    }
+
+    [Fact]
     public void WindowsQuickEditOverlayUsesBlackUtilityChrome()
     {
         var overlay = Read("windows/DMShot/Editor/QuickEditOverlayWindow.xaml.cs");
