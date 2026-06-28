@@ -4,6 +4,10 @@ All notable changes to DM_Screenshot. Newest version first. Always written in En
 
 ## [Unreleased]
 
+## 0.4.24 – 2026-06-28
+- fix: Windows Black Utility design now paints the window title bar pure black — matching the app background and the macOS look — instead of leaving the Windows 11 dark-gray caption; it also repaints live when you switch design.
+- fix: Windows controls render the shared BrandDesign faded chrome frame on a softened 50% base edge at rest, matching macOS, instead of a flat hard outline; hover and active states keep their crisp orange border.
+
 ## 0.4.23 – 2026-06-27
 - fix: Windows now uses the shared BrandDesign layered control chrome for toolbar, sidebar, Settings navigation, combo boxes, text boxes and switches instead of flat bordered buttons.
 - fix: Windows Standard Design and Black Utility now update loaded UI through dynamic theme resources, including Quick-Edit and the editor canvas, so hard-coded black/gray surfaces no longer override the selected design.
