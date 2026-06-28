@@ -76,6 +76,7 @@ final class SelectionGeometryTests: XCTestCase {
             kind: .rect, x: 10, y: 20, width: 40, height: 30)
         let model = EditorModel()
         model.load(image: makeImage(100, 80), entryID: "test", annotations: [annotation])
+        model.backgroundEnabled = false   // ensure frame-off for deterministic coords
         model.selectedID = annotation.id
         model.tool = .select
         let view = CanvasNSView(model: model, pad: 0)
@@ -170,6 +171,7 @@ final class SelectionGeometryTests: XCTestCase {
         t.strokeWidth = 6
         let model = EditorModel()
         model.load(image: makeImage(100, 80), entryID: "test", annotations: [t])
+        model.backgroundEnabled = false   // ensure frame-off for deterministic coords
         model.tool = .select                                   // nothing selected yet
         let view = CanvasNSView(model: model, pad: 0)
         view.frame = NSRect(x: 0, y: 0, width: 100, height: 80)

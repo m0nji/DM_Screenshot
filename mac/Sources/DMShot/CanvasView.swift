@@ -78,7 +78,7 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
     }
 
     private func recomputeTransform() {
-        let vr = model.viewRect
+        let vr = model.framedContentRect
         guard vr.width > 0, vr.height > 0 else { return }
         let content = vr.size
         let viewport = bounds.size
@@ -91,7 +91,7 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
     }
 
     private func toImage(_ p: NSPoint) -> CGPoint {
-        let vr = model.viewRect
+        let vr = model.framedContentRect
         return ViewportMath.viewToImage(p, origin: vr.origin, scale: scale, offset: offset)
     }
 
@@ -110,7 +110,8 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
         bounds.fill()
         guard let image = model.image else { return }
         recomputeTransform()
-        let vr = model.viewRect
+        let vr = model.framedContentRect          // outer (framed) content extent
+        let inner = model.viewRect                // the screenshot rect (crop or full)
 
         NSGraphicsContext.saveGraphicsState()
         let frame = NSRect(
@@ -121,19 +122,27 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
         t.scale(by: scale)
         t.translateX(by: -vr.minX, yBy: -vr.minY)
         t.concat()
-        var shapes = model.annotations
-        if let id = editingExistingID, let idx = shapes.firstIndex(where: { $0.id == id }) {
-            if shapes[idx].kind == .step {
-                shapes[idx].text = ""      // keep the badge; the live editor shows the comment
-            } else {
-                shapes.remove(at: idx)     // text annotation: hidden entirely while editing
-            }
+
+        // Pretty-background fill behind the screenshot (image-space coords).
+        if model.backgroundEnabled, let ctx = NSGraphicsContext.current?.cgContext {
+            let radius = FrameGeometry.cornerRadius(innerSize: inner.size, corner: model.frameCorner)
+            FrameRenderer.drawBackground(
+                into: ctx, outerRect: vr, innerRect: inner, cornerRadius: radius,
+                background: model.frameBackground, blurSource: model.blurSourceImage ?? image)
+            ctx.saveGState()
+            let path = radius > 0
+                ? NSBezierPath(roundedRect: inner, xRadius: radius, yRadius: radius)
+                : NSBezierPath(rect: inner)
+            path.addClip()
+            drawScene(image: image)
+            ctx.restoreGState()
+        } else {
+            drawScene(image: image)
         }
-        if let draft { shapes.append(draft) }
-        SceneRenderer.draw(image: image, annotations: shapes)
         NSGraphicsContext.restoreGraphicsState()
 
         if let r = textDragRect {
+            let vr = model.framedContentRect
             let box = NSRect(
                 x: offset.x + (r.minX - vr.minX) * scale,
                 y: offset.y + (r.minY - vr.minY) * scale,
@@ -148,6 +157,7 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
         // Selection highlight (in view space).
         if let id = model.selectedID,
            let ann = model.annotations.first(where: { $0.id == id }) {
+            let vr = model.framedContentRect
             let r = SelectionGeometry.bounds(for: ann)
             let viewRect = NSRect(
                 x: offset.x + (r.minX - vr.minX) * scale,
@@ -162,6 +172,20 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
         }
 
         if textEditor != nil { layoutTextEditor() }
+    }
+
+    /// Draws the base image + live annotations (skipping the one being edited).
+    private func drawScene(image: CGImage) {
+        var shapes = model.annotations
+        if let id = editingExistingID, let idx = shapes.firstIndex(where: { $0.id == id }) {
+            if shapes[idx].kind == .step {
+                shapes[idx].text = ""
+            } else {
+                shapes.remove(at: idx)
+            }
+        }
+        if let draft { shapes.append(draft) }
+        SceneRenderer.draw(image: image, annotations: shapes)
     }
 
     // MARK: - Zoom / pan
@@ -581,7 +605,7 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
         guard let tv = textEditor else { return }
         tv.font = TextLayout.font(ofSize: editingFontSize * scale)
         let onImage = TextLayout.size(tv.string, fontSize: editingFontSize)
-        let viewOrigin = imageToView(editingOrigin, in: model.viewRect)
+        let viewOrigin = imageToView(editingOrigin, in: model.framedContentRect)
         let caretPad: CGFloat = 6
         if editingStepComment {
             let padH = StepGeometry.commentPadH(forFont: editingFontSize) * scale
