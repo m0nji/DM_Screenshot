@@ -135,6 +135,18 @@ public sealed class Loc : INotifyPropertyChanged
         ["ok"] = "OK",
         ["cancel"] = "Cancel",
         ["trayTooltip"] = "DM Screenshot",
+        // Frame / pretty-background presets (Task 12 — mirror of mac/Sources/DMShot/Localization.swift)
+        ["background"] = "Background",
+        ["bgPadding"] = "Padding",
+        ["bgCorners"] = "Corners",
+        ["bgFill"] = "Fill",
+        ["bgPadSmall"] = "Small",
+        ["bgPadMedium"] = "Medium",
+        ["bgPadLarge"] = "Large",
+        ["bgCornerNone"] = "None",
+        ["bgCornerSoft"] = "Soft",
+        ["bgCornerRound"] = "Round",
+        ["bgBlur"] = "Blur",
     };
 
     public static readonly IReadOnlyDictionary<string, string> De = new Dictionary<string, string>
@@ -233,5 +245,17 @@ public sealed class Loc : INotifyPropertyChanged
         ["ok"] = "OK",
         ["cancel"] = "Abbrechen",
         ["trayTooltip"] = "DM Screenshot",
+        // Frame / pretty-background presets (Task 12 — mirror of mac/Sources/DMShot/Localization.swift)
+        ["background"] = "Hintergrund",
+        ["bgPadding"] = "Abstand",
+        ["bgCorners"] = "Ecken",
+        ["bgFill"] = "Füllung",
+        ["bgPadSmall"] = "Klein",
+        ["bgPadMedium"] = "Mittel",
+        ["bgPadLarge"] = "Groß",
+        ["bgCornerNone"] = "Aus",
+        ["bgCornerSoft"] = "Sanft",
+        ["bgCornerRound"] = "Rund",
+        ["bgBlur"] = "Unschärfe",
     };
 }

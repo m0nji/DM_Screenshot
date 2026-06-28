@@ -205,7 +205,16 @@ public partial class App : Application
         _quickEdit = overlay;
         overlay.Canvas.ActiveStroke = _settings.StrokeWidth;          // seed remembered defaults before first paint
         overlay.Canvas.ActiveBlurStrength = _settings.BlurStrength;
+        // Seed the frame style so the overlay's Copy/Save output is framed if the user had it on.
+        var om = overlay.Canvas.Model;
+        om.BackgroundEnabled = _settings.BackgroundEnabled;
+        if (Enum.TryParse<FramePadding>(_settings.FramePadding, out var qfp)) om.FramePadding = qfp;
+        if (Enum.TryParse<FrameCorner>(_settings.FrameCorner, out var qfc)) om.FrameCorner = qfc;
+        if (Enum.TryParse<FrameBackgroundKind>(_settings.FrameBackgroundKind, out var qfk)) om.FrameBackgroundKind = qfk;
+        om.FrameSolidHex = _settings.FrameSolidHex;
+        if (Enum.TryParse<FrameGradient>(_settings.FrameGradient, out var qfg)) om.FrameGradient = qfg;
         overlay.DefaultsChanged += OnAnnotationDefaultsChanged;
+        overlay.FrameStyleChanged += OnFrameStyleChanged;   // persist frame-style changes from the overlay
 
         overlay.CopyRequested += () =>
         {
