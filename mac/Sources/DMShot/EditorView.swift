@@ -81,6 +81,7 @@ struct EditorView: View {
                 Divider().frame(height: 22).background(design.borderColor)
 
                 EditorColorPicker(model: model, appDesign: design)
+                FrameToolbarButton(model: model, appDesign: design)
                 Divider().frame(height: 22).background(design.borderColor)
                 EditorContextualSlider(model: model, appDesign: design)
                 Divider().frame(height: 22).background(design.borderColor)
