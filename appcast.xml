@@ -395,5 +395,13 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.5.2/DM_Screenshot-v0.5.2.dmg" type="application/octet-stream" sparkle:edSignature="TPboWDTjsPbN1nBARkxhs3qjI9mWOp7oUDRnR2oXdxtTD5ur2ESorE61mv+KpHhNBYe3DD+RC1MNkZzSWJTnDA==" length="2393487" />
 </item>
 
+<item>
+  <title>Version 0.5.3</title>
+  <description><![CDATA[<ul><li>fix: The Windows Quick-Edit Background flyout is now only as wide as its controls and sits as a separate panel centred under the toolbar, instead of stretching a dark band across the full toolbar width (Windows)</li></ul>]]></description>
+  <sparkle:version>0.5.3</sparkle:version>
+  <sparkle:shortVersionString>0.5.3</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.5.3/DM_Screenshot-v0.5.3.dmg" type="application/octet-stream" sparkle:edSignature="IZVdMIbVXuyoLXJVWt+w/u9e8ho8kcuwxqmVjrRyIZ1QxqO775k3xH8F+OUnDgnbjKZjfNnYOwbTcH7MpaZvBw==" length="2393450" />
+</item>
+
 </channel>
 </rss>
