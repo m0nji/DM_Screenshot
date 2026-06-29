@@ -4,6 +4,10 @@ All notable changes to DM_Screenshot. Newest version first. Always written in En
 
 ## [Unreleased]
 
+## 0.5.2 – 2026-06-29
+- fix: Windows Background "Blur" fill now shows the real blurred screenshot live in the editor and Quick-Edit preview, instead of a flat grey placeholder — matching what Copy / Save produce and the macOS preview (Windows)
+- fix: The Windows Quick-Edit Background flyout no longer gets clipped off the bottom of the screen; the toolbar repositions so the whole panel (padding, corners and fill swatches) stays on-screen (Windows)
+
 ## 0.5.1 – 2026-06-29
 - fix: Windows no longer crashes when you open the new Background tool — the panel's button styles failed to load on first open in 0.5.0 (Windows)
 
