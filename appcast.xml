@@ -369,5 +369,14 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.4.24/DM_Screenshot-v0.4.24.dmg" type="application/octet-stream" sparkle:edSignature="i1YzdB716NO3y1RfDwHHpMQQWNAYcIMSsI61IrDIweIWb4Gy9hw6wPC39+2SppDI6XGBx/t8Xza+Xh4PrWH1Cg==" length="2344001" />
 </item>
 
+<item>
+  <title>Version 0.5.0</title>
+  <description><![CDATA[<ul><li>feat: New "Background" tool wraps a screenshot in a presentable frame — add padding (Small / Medium / Large) and rounded corners (None / Soft / Round), and put a backdrop behind the shot: a solid colour, a gradient, or a blurred enlargement of the screenshot itself. It's a live preview in both the editor and the Quick-Edit overlay, and it's baked into Copy / Save and the history thumbnail (macOS + Windows)</li>
+<li>feat: The Background style is remembered across launches and shared by the editor and Quick-Edit; it starts off, and Blur is the preselected fill when you switch it on (macOS + Windows)</li></ul>]]></description>
+  <sparkle:version>0.5.0</sparkle:version>
+  <sparkle:shortVersionString>0.5.0</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.5.0/DM_Screenshot-v0.5.0.dmg" type="application/octet-stream" sparkle:edSignature="NMXmmYp28VKHUxGe2iNky/yMbLwFk2bPlL2LsRl3YcZp3El6jVjKUmgTbsTq/sgJMie3g5G/n0F3Z78d5a5/Cw==" length="2395664" />
+</item>
+
 </channel>
 </rss>
