@@ -4,6 +4,10 @@ All notable changes to DM_Screenshot. Newest version first. Always written in En
 
 ## [Unreleased]
 
+## 0.5.0 – 2026-06-29
+- feat: New "Background" tool wraps a screenshot in a presentable frame — add padding (Small / Medium / Large) and rounded corners (None / Soft / Round), and put a backdrop behind the shot: a solid colour, a gradient, or a blurred enlargement of the screenshot itself. It's a live preview in both the editor and the Quick-Edit overlay, and it's baked into Copy / Save and the history thumbnail (macOS + Windows)
+- feat: The Background style is remembered across launches and shared by the editor and Quick-Edit; it starts off, and Blur is the preselected fill when you switch it on (macOS + Windows)
+
 ## 0.4.24 – 2026-06-28
 - fix: Windows Black Utility design now paints the window title bar pure black — matching the app background and the macOS look — instead of leaving the Windows 11 dark-gray caption; it also repaints live when you switch design.
 - fix: Windows controls render the shared BrandDesign faded chrome frame on a softened 50% base edge at rest, matching macOS, instead of a flat hard outline; hover and active states keep their crisp orange border.
