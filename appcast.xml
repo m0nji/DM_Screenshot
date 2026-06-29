@@ -386,5 +386,14 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.5.1/DM_Screenshot-v0.5.1.dmg" type="application/octet-stream" sparkle:edSignature="INcHTwgiZnLxiOlITND50JVz1uRK7lbh/tO2hyKdItEO1oYGmwZiqk1GBYQmsRkN55/gAFI259R34bIYfBQdCw==" length="2393169" />
 </item>
 
+<item>
+  <title>Version 0.5.2</title>
+  <description><![CDATA[<ul><li>fix: Windows Background "Blur" fill now shows the real blurred screenshot live in the editor and Quick-Edit preview, instead of a flat grey placeholder — matching what Copy / Save produce and the macOS preview (Windows)</li>
+<li>fix: The Windows Quick-Edit Background flyout no longer gets clipped off the bottom of the screen; the toolbar repositions so the whole panel (padding, corners and fill swatches) stays on-screen (Windows)</li></ul>]]></description>
+  <sparkle:version>0.5.2</sparkle:version>
+  <sparkle:shortVersionString>0.5.2</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.5.2/DM_Screenshot-v0.5.2.dmg" type="application/octet-stream" sparkle:edSignature="TPboWDTjsPbN1nBARkxhs3qjI9mWOp7oUDRnR2oXdxtTD5ur2ESorE61mv+KpHhNBYe3DD+RC1MNkZzSWJTnDA==" length="2393487" />
+</item>
+
 </channel>
 </rss>
