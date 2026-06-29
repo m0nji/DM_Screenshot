@@ -4,6 +4,9 @@ All notable changes to DM_Screenshot. Newest version first. Always written in En
 
 ## [Unreleased]
 
+## 0.5.1 – 2026-06-29
+- fix: Windows no longer crashes when you open the new Background tool — the panel's button styles failed to load on first open in 0.5.0 (Windows)
+
 ## 0.5.0 – 2026-06-29
 - feat: New "Background" tool wraps a screenshot in a presentable frame — add padding (Small / Medium / Large) and rounded corners (None / Soft / Round), and put a backdrop behind the shot: a solid colour, a gradient, or a blurred enlargement of the screenshot itself. It's a live preview in both the editor and the Quick-Edit overlay, and it's baked into Copy / Save and the history thumbnail (macOS + Windows)
 - feat: The Background style is remembered across launches and shared by the editor and Quick-Edit; it starts off, and Blur is the preselected fill when you switch it on (macOS + Windows)
