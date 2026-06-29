@@ -19,7 +19,8 @@ public static class FramePanelFactory
     // ── Segment button style: rounded pill, accent highlight when selected ──────────────────────
     private static Style? _segStyle;
     private static Style SegStyle => _segStyle ??= ParseStyle(
-        @"<Style xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation' TargetType='Button'>
+        @"<Style xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation'
+                 xmlns:x='http://schemas.microsoft.com/winfx/2006/xaml' TargetType='Button'>
           <Setter Property='Padding' Value='9,3'/>
           <Setter Property='Cursor' Value='Hand'/>
           <Setter Property='FontSize' Value='11'/>
@@ -53,7 +54,8 @@ public static class FramePanelFactory
     // ── Circular swatch button: Tag='sel' activates the accent ring ─────────────────────────────
     private static Style? _swatchStyle;
     private static Style SwatchStyle => _swatchStyle ??= ParseStyle(
-        @"<Style xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation' TargetType='Button'>
+        @"<Style xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation'
+                 xmlns:x='http://schemas.microsoft.com/winfx/2006/xaml' TargetType='Button'>
           <Setter Property='Width' Value='24'/>
           <Setter Property='Height' Value='24'/>
           <Setter Property='Cursor' Value='Hand'/>
