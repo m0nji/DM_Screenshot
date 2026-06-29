@@ -378,5 +378,13 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.5.0/DM_Screenshot-v0.5.0.dmg" type="application/octet-stream" sparkle:edSignature="NMXmmYp28VKHUxGe2iNky/yMbLwFk2bPlL2LsRl3YcZp3El6jVjKUmgTbsTq/sgJMie3g5G/n0F3Z78d5a5/Cw==" length="2395664" />
 </item>
 
+<item>
+  <title>Version 0.5.1</title>
+  <description><![CDATA[<ul><li>fix: Windows no longer crashes when you open the new Background tool — the panel's button styles failed to load on first open in 0.5.0 (Windows)</li></ul>]]></description>
+  <sparkle:version>0.5.1</sparkle:version>
+  <sparkle:shortVersionString>0.5.1</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.5.1/DM_Screenshot-v0.5.1.dmg" type="application/octet-stream" sparkle:edSignature="INcHTwgiZnLxiOlITND50JVz1uRK7lbh/tO2hyKdItEO1oYGmwZiqk1GBYQmsRkN55/gAFI259R34bIYfBQdCw==" length="2393169" />
+</item>
+
 </channel>
 </rss>
