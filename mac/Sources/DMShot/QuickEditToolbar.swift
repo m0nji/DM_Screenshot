@@ -24,7 +24,7 @@ struct QuickEditToolbar: View {
     let onClose: () -> Void
     @ObservedObject private var localizer = Localizer.shared
 
-    private enum Flyout { case none, color }
+    private enum Flyout { case none, color, frame }
     @State private var flyout: Flyout = .none
 
     var body: some View {
@@ -33,6 +33,10 @@ struct QuickEditToolbar: View {
             toolbarRow
             if flyout == .color {
                 EditorColorPalette(model: model, appDesign: appDesign, onPick: { flyout = .none })
+                    .background(panelBackground)
+            }
+            if flyout == .frame {
+                FrameControlsPanel(model: model, appDesign: appDesign)
                     .background(panelBackground)
             }
         }
@@ -56,6 +60,13 @@ struct QuickEditToolbar: View {
                     .overlay(Circle().stroke(appDesign.borderColor, lineWidth: 1))
             }
             .buttonStyle(ToolButtonStyle(active: flyout == .color, design: appDesign)).dmTooltip(tr(.color))
+            Divider().frame(height: 22).background(appDesign.borderColor)
+            Button { toggle(.frame) } label: {
+                Image(systemName: "photo.artframe")
+                    .foregroundStyle(model.backgroundEnabled ? Color.dmAccent : appDesign.textColor)
+                    .frame(width: 18)
+            }
+            .buttonStyle(ToolButtonStyle(active: flyout == .frame, design: appDesign)).dmTooltip(tr(.background))
             Divider().frame(height: 22).background(appDesign.borderColor)
             EditorContextualSlider(model: model, appDesign: appDesign)   // always visible so size/blur strength can be set in advance
             Divider().frame(height: 22).background(appDesign.borderColor)

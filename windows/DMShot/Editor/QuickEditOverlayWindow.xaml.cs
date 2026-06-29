@@ -44,6 +44,10 @@ public partial class QuickEditOverlayWindow : Window
     /// size control, so the app can persist them. Payload: (strokeWidth, blurStrength).</summary>
     public event Action<double, int>? DefaultsChanged;
 
+    /// <summary>Raised when the user changes the frame style via the background flyout,
+    /// so App.xaml.cs can persist the new values (same path as EditorWindow.FrameStyleChanged).</summary>
+    public event Action<BackgroundStyle>? FrameStyleChanged;
+
     // Always-visible contextual size / blur-strength control (replaces the old size flyout).
     private System.Windows.Controls.Slider? _sizeSlider;
     private TextBlock? _sizeLabel;
@@ -130,6 +134,8 @@ public partial class QuickEditOverlayWindow : Window
     };
 
     private const string ColorGeo = "M12,4 C16.4,4 20,7.6 20,12 C20,16.4 16.4,20 12,20 C7.6,20 4,16.4 4,12 C4,7.6 7.6,4 12,4 Z";
+    // "photo.artframe"-like icon (matches EditorWindow.xaml BgButton): outer frame + top-bar + left-bar
+    private const string BgGeo = "M2,3 L22,3 L22,21 L2,21 Z M2,8 L22,8 M7,3 L7,8";
     private const string UndoGeo  = "M9,6 L5,9.5 L9,13 M5,9.5 L14,9.5 C17,9.5 19,11.6 19,14.2 C19,16.8 17,18.5 14.3,18.5 L11,18.5";
     private const string CloseGeo = "M6.5,6.5 L17.5,17.5 M17.5,6.5 L6.5,17.5";
     // Action icons mirror the macOS toolbar's SF Symbols so both platforms read identically.
@@ -164,6 +170,7 @@ public partial class QuickEditOverlayWindow : Window
         }
         row.Children.Add(Divider());
         row.Children.Add(IconAction(Icon(ColorGeo, true), Loc.Instance["color"], ToggleColorFlyout));
+        row.Children.Add(IconAction(Icon(BgGeo, false), Loc.Instance["background"], ToggleFrameFlyout));
         row.Children.Add(BuildSizeControl());   // always-visible size / blur-strength slider
         row.Children.Add(IconAction(Icon(UndoGeo, false), Loc.Instance["undo"], () => Canvas.Model.Undo()));
         row.Children.Add(Divider());
@@ -304,6 +311,19 @@ public partial class QuickEditOverlayWindow : Window
             row.Children.Add(sw);
         }
         ShowFlyout(row);
+    }
+
+    private void ToggleFrameFlyout()
+    {
+        if (RemoveFlyoutIfKind("frame")) return;
+        var content = FramePanelFactory.Build(Canvas.Model, () =>
+        {
+            Canvas.InvalidateVisual();
+            FrameStyleChanged?.Invoke(Canvas.Model.Style);
+        });
+        content.Tag = "frame";
+        content.Margin = new Thickness(8);
+        ShowFlyout(content);
     }
 
     // ===== Always-visible size / blur-strength control =====

@@ -33,6 +33,11 @@ enum L: CaseIterable {
     case toolStep, toolText, toolBlur, toolCrop
     case color, sizeBlur, editInMainWindow, close
     case blur, size, custom, hex, stop, pixelsSuffix
+    // Frame / background presets
+    case background, bgPadding, bgCorners, bgFill
+    case bgPadSmall, bgPadMedium, bgPadLarge
+    case bgCornerNone, bgCornerSoft, bgCornerRound
+    case bgBlur
     // Video preview / trim + GIF viewer
     case previewTrimTitle, startLabel, endLabel, discard, createGIF, estimatedGIFSize, gifViewerTitle
     // Dialog buttons
@@ -159,6 +164,17 @@ final class Localizer: ObservableObject {
         case .hex:                  return ("Hex", "Hex")
         case .stop:                 return ("Stop", "Stopp")
         case .pixelsSuffix:         return ("px", "px")
+        case .background:           return ("Background", "Hintergrund")
+        case .bgPadding:            return ("Padding", "Abstand")
+        case .bgCorners:            return ("Corners", "Ecken")
+        case .bgFill:               return ("Fill", "Füllung")
+        case .bgPadSmall:           return ("Small", "Klein")
+        case .bgPadMedium:          return ("Medium", "Mittel")
+        case .bgPadLarge:           return ("Large", "Groß")
+        case .bgCornerNone:         return ("None", "Aus")
+        case .bgCornerSoft:         return ("Soft", "Sanft")
+        case .bgCornerRound:        return ("Round", "Rund")
+        case .bgBlur:               return ("Blur", "Unschärfe")
         case .previewTrimTitle:     return ("Preview & Trim", "Vorschau & Zuschneiden")
         case .startLabel:           return ("Start", "Start")
         case .endLabel:             return ("End", "Ende")
