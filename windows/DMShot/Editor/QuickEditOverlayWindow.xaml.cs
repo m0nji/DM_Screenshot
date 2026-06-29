@@ -34,6 +34,10 @@ public partial class QuickEditOverlayWindow : Window
     private readonly Rectangle _displayPx;
     private bool _shown;
 
+    // Capture rect (DIP) within the overlay, stored so the toolbar can be re-clamped whenever a
+    // flyout opens/closes — not just on first layout.
+    private double _capLeftDip, _capTopDip, _capWDip, _capHDip;
+
     public CanvasControl Canvas { get; } = new();
     public event Action? CopyRequested;
     public event Action? SaveRequested;
@@ -412,6 +416,7 @@ public partial class QuickEditOverlayWindow : Window
         stack.Children.Add(flyoutBar);
         bar.Child = stack;
         _flyout = flyoutBar;
+        LayoutToolbar();   // re-clamp so the taller toolbar+flyout stays fully on-screen
     }
 
     private bool RemoveFlyoutIfKind(string kind)
@@ -431,17 +436,31 @@ public partial class QuickEditOverlayWindow : Window
             bar.Child = row;
         }
         _flyout = null;
+        LayoutToolbar();   // restore the row-only position
     }
 
     // ===== Positioning =====
 
     private void PositionToolbar(double capLeftDip, double capTopDip, double capWDip, double capHDip)
     {
-        var toolbar = BuildToolbar();
-        ToolbarHost.Content = toolbar;
+        _capLeftDip = capLeftDip; _capTopDip = capTopDip; _capWDip = capWDip; _capHDip = capHDip;
+        ToolbarHost.Content = BuildToolbar();
+        LayoutToolbar();
+    }
+
+    /// <summary>(Re)clamps the toolbar host so its WHOLE current content — the toolbar row plus
+    /// any open flyout — stays inside the monitor work area. Called on first layout and again on
+    /// every flyout open/close, mirroring the macOS toolbar which re-positions from its measured
+    /// (flyout-inclusive) size (QuickEditLayout) so the flyout is never clipped off-screen or
+    /// behind the taskbar.</summary>
+    private void LayoutToolbar()
+    {
+        if (ToolbarHost.Content is not FrameworkElement toolbar) return;
+        toolbar.InvalidateMeasure();   // content (flyout) may have changed since the last measure
         toolbar.Measure(new WSize(double.PositiveInfinity, double.PositiveInfinity));
         double tbW = toolbar.DesiredSize.Width, tbH = toolbar.DesiredSize.Height;
 
+        double capLeftDip = _capLeftDip, capTopDip = _capTopDip, capWDip = _capWDip, capHDip = _capHDip;
         double screenW = ActualWidth, screenH = ActualHeight;
         const double margin = 12;
 
