@@ -10,6 +10,11 @@ public sealed class CanvasControl : FrameworkElement
 {
     private System.Drawing.Bitmap? _source;   // original pixels (for WYSIWYG compositing)
     private int _w, _h;
+    // Cached blurred screenshot for the live "Blur" background preview (regenerated when the
+    // source or crop changes). Lets the editor show the real blur — same as export — instead of
+    // a flat placeholder, matching macOS where drawBackground is shared by export and the canvas.
+    private BitmapSource? _blurPreview;
+    private (int x, int y, int w, int h) _blurPreviewKey;
     private Annotation? _draft;                // shape being drawn
     private Annotation? _selected;             // shape selected with the Select tool
     private Point _start;
@@ -99,6 +104,7 @@ public sealed class CanvasControl : FrameworkElement
         _source?.Dispose();
         _source = (System.Drawing.Bitmap)image.Clone();
         _w = _source.Width; _h = _source.Height;
+        _blurPreview = null;   // drop the stale blur cache for the previous image
         Model.SetImageSize(_w, _h);
         InvalidateVisual();
     }
@@ -274,14 +280,49 @@ public sealed class CanvasControl : FrameworkElement
                 dc.DrawRectangle(lg, null, outer);
                 break;
             case FrameBackgroundKind.Blur:
-                // Live preview: dark-tinted fill approximating the blurred screenshot.
-                // The real Gaussian blur (downscale/upscale) is applied on export by
-                // FrameRenderer.Render — acceptable for WYSIWYG preview purposes.
-                dc.DrawRectangle(new SolidColorBrush(Color.FromArgb(255, 32, 32, 32)), null, outer);
+                var blur = BlurPreviewSource();
+                if (blur is null)
+                {
+                    // Source not ready yet — neutral fill rather than nothing.
+                    dc.DrawRectangle(new SolidColorBrush(Color.FromArgb(255, 32, 32, 32)), null, outer);
+                    break;
+                }
+                // Aspect-fill the blurred screenshot across the outer rect, then darken 12 %
+                // — identical to FrameRenderer.DrawBlurFill (export), so the preview is WYSIWYG.
+                double srcW = blur.PixelWidth, srcH = blur.PixelHeight;
+                double fillScale = Math.Max(outer.Width / srcW, outer.Height / srcH);
+                double fw = srcW * fillScale, fh = srcH * fillScale;
+                var fill = new Rect(
+                    outer.X + (outer.Width - fw) / 2, outer.Y + (outer.Height - fh) / 2, fw, fh);
+                dc.PushClip(new RectangleGeometry(outer));
+                dc.DrawImage(blur, fill);
                 dc.DrawRectangle(new SolidColorBrush(Color.FromArgb(
                     (byte)(FramePresets.BlurDarken * 255), 0, 0, 0)), null, outer);
+                dc.Pop();
                 break;
         }
+    }
+
+    /// <summary>Returns a cached, blurred copy of the screenshot (crop-aware) for the live Blur
+    /// background preview, regenerating only when the source or crop changes. Reuses the exact
+    /// downscale/upscale blur from <see cref="FrameRenderer"/> so the preview matches export.</summary>
+    private BitmapSource? BlurPreviewSource()
+    {
+        if (_source is null) return null;
+        var c = Model.Crop;
+        var key = c is { } cc ? (cc.X, cc.Y, cc.Width, cc.Height) : (0, 0, _w, _h);
+        if (_blurPreview is not null && _blurPreviewKey.Equals(key)) return _blurPreview;
+
+        System.Drawing.Bitmap src = c is { } cr ? ImageInterop.Crop(_source, cr) : _source;
+        try
+        {
+            int radius = Math.Max(1, (int)FrameGeometry.BlurRadius(new Size(src.Width, src.Height)));
+            using var blurred = FrameRenderer.BoxBlur(src, radius);
+            _blurPreview = ImageInterop.ToBitmapSource(blurred);   // copies pixels + freezes
+            _blurPreviewKey = key;
+        }
+        finally { if (!ReferenceEquals(src, _source)) src.Dispose(); }
+        return _blurPreview;
     }
 
     private static Color ParseColor(string hex)

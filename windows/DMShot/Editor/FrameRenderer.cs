@@ -96,8 +96,9 @@ public static class FrameRenderer
     }
 
     /// <summary>Cheap blur: downscale then upscale (approximates a Gaussian; no extra
-    /// dependency). <paramref name="radius"/> controls the downscale factor.</summary>
-    private static Bitmap BoxBlur(Bitmap src, int radius)
+    /// dependency). <paramref name="radius"/> controls the downscale factor. Internal so the
+    /// live canvas preview can reuse the exact same blur as export (WYSIWYG parity).</summary>
+    internal static Bitmap BoxBlur(Bitmap src, int radius)
     {
         int dw = Math.Max(1, src.Width / Math.Max(2, radius));
         int dh = Math.Max(1, src.Height / Math.Max(2, radius));
