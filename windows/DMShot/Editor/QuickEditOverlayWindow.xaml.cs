@@ -399,22 +399,27 @@ public partial class QuickEditOverlayWindow : Window
     private void ShowFlyout(FrameworkElement content)
     {
         RemoveFlyout();
+        // The toolbar keeps its own pill; the flyout is a SEPARATE panel below it, sized to its
+        // content and centred under the bar — NOT wrapped inside the toolbar border (which would
+        // stretch the dark surface to the full toolbar width). Mirrors the macOS VStack(toolbar,
+        // panel) layout where the panel carries its own content-sized background.
         var bar = (Border)ToolbarHost.Content!;
-        var stack = new StackPanel();
-        var row = (UIElement)bar.Child;
-        bar.Child = null;
-        stack.Children.Add(row);
+        ToolbarHost.Content = null;   // detach so the bar can be re-parented into the wrapper
         var flyoutBar = new Border
         {
-            CornerRadius = new CornerRadius(0, 0, 12, 12),
-            BorderThickness = new Thickness(1, 0, 1, 1),
+            CornerRadius = new CornerRadius(12),
+            BorderThickness = new Thickness(1),
+            Margin = new Thickness(0, 6, 0, 0),
+            HorizontalAlignment = HorizontalAlignment.Center,   // size to content, don't stretch
             Child = content,
         };
         flyoutBar.SetResourceReference(Border.BackgroundProperty, "DmSurface");
         flyoutBar.SetResourceReference(Border.BorderBrushProperty, "DmControlChromeStroke");
         flyoutBar.SetResourceReference(UIElement.EffectProperty, "DmControlChromeShadow");
+        var stack = new StackPanel();
+        stack.Children.Add(bar);
         stack.Children.Add(flyoutBar);
-        bar.Child = stack;
+        ToolbarHost.Content = stack;
         _flyout = flyoutBar;
         LayoutToolbar();   // re-clamp so the taller toolbar+flyout stays fully on-screen
     }
@@ -428,12 +433,11 @@ public partial class QuickEditOverlayWindow : Window
     private void RemoveFlyout()
     {
         if (_flyout is null) return;
-        var bar = (Border)ToolbarHost.Content!;
-        if (bar.Child is StackPanel sp && sp.Children.Count > 0)
+        // Unwrap: the host content is the StackPanel(bar, flyout); restore the bar as sole content.
+        if (ToolbarHost.Content is StackPanel sp && sp.Children.Count > 0 && sp.Children[0] is Border bar)
         {
-            var row = sp.Children[0];
-            sp.Children.Clear();
-            bar.Child = row;
+            sp.Children.Clear();          // detach the toolbar bar from the wrapper
+            ToolbarHost.Content = bar;    // restore it as the toolbar host's sole content
         }
         _flyout = null;
         LayoutToolbar();   // restore the row-only position
