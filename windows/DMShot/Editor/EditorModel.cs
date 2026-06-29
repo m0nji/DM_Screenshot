@@ -21,7 +21,7 @@ public sealed class EditorModel
     public bool BackgroundEnabled { get; set; }
     public FramePadding FramePadding { get; set; } = FramePadding.Medium;
     public FrameCorner FrameCorner { get; set; } = FrameCorner.Soft;
-    public FrameBackgroundKind FrameBackgroundKind { get; set; } = FrameBackgroundKind.Solid;
+    public FrameBackgroundKind FrameBackgroundKind { get; set; } = FrameBackgroundKind.Blur;
     public string FrameSolidHex { get; set; } = "#ffffff";
     public FrameGradient FrameGradient { get; set; } = FrameGradient.Warm;
 

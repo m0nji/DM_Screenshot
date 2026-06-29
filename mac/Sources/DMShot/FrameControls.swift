@@ -37,7 +37,7 @@ struct FrameControlsPanel: View {
             .opacity(model.backgroundEnabled ? 1 : 0.4)
         }
         .padding(12)
-        .frame(width: 230)
+        .frame(width: 240)
     }
 
     private func row<Content: View>(_ label: String, @ViewBuilder _ content: () -> Content) -> some View {
@@ -64,7 +64,7 @@ struct FrameControlsPanel: View {
     }
 
     private var fillSwatches: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 6) {
             ForEach(FramePresets.solidColors, id: \.self) { hex in
                 swatch(selected: model.frameBackground == .solid(hex)) {
                     model.frameBackground = .solid(hex)
@@ -94,7 +94,7 @@ struct FrameControlsPanel: View {
     ) -> some View {
         Button(action: action) {
             label()
-                .frame(width: 22, height: 22)
+                .frame(width: 20, height: 20)
                 .overlay(Circle().stroke(selected ? Color.dmAccent : appDesign.borderColor.opacity(0.8),
                                          lineWidth: selected ? 2 : 1))
         }

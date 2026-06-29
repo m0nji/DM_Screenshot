@@ -24,7 +24,7 @@ public sealed class Settings
     public bool BackgroundEnabled { get; set; } = false;
     public string FramePadding { get; set; } = "Medium";
     public string FrameCorner { get; set; } = "Soft";
-    public string FrameBackgroundKind { get; set; } = "Solid";
+    public string FrameBackgroundKind { get; set; } = "Blur";
     public string FrameSolidHex { get; set; } = "#ffffff";
     public string FrameGradient { get; set; } = "Warm";
 }

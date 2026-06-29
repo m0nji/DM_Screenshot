@@ -156,7 +156,7 @@ public partial class App : Application
             _settings.BackgroundEnabled,
             Enum.TryParse<FramePadding>(_settings.FramePadding, out var fp) ? fp : FramePadding.Medium,
             Enum.TryParse<FrameCorner>(_settings.FrameCorner, out var fc) ? fc : FrameCorner.Soft,
-            Enum.TryParse<FrameBackgroundKind>(_settings.FrameBackgroundKind, out var fk) ? fk : FrameBackgroundKind.Solid,
+            Enum.TryParse<FrameBackgroundKind>(_settings.FrameBackgroundKind, out var fk) ? fk : FrameBackgroundKind.Blur,
             _settings.FrameSolidHex,
             Enum.TryParse<FrameGradient>(_settings.FrameGradient, out var fg) ? fg : FrameGradient.Warm));
         _editor.DefaultsChanged += OnAnnotationDefaultsChanged;

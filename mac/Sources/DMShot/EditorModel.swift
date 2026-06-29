@@ -84,7 +84,8 @@ final class EditorModel: ObservableObject {
 
     // FrameBackground ⇄ UserDefaults ("solid:#hex" | "gradient:warm" | "blur").
     private static func loadFrameBackground() -> FrameBackground {
-        let raw = UserDefaults.standard.string(forKey: "dmBgBackground") ?? "solid:#ffffff"
+        // Default fill when the frame is first enabled is Blur (per design).
+        let raw = UserDefaults.standard.string(forKey: "dmBgBackground") ?? "blur"
         if raw == "blur" { return .blur }
         if raw.hasPrefix("gradient:"), let g = FrameGradient(rawValue: String(raw.dropFirst(9))) {
             return .gradient(g)
