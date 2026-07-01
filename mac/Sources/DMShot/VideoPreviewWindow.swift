@@ -17,26 +17,33 @@ enum GIFRenderer {
         // This keeps the GIF correct (full opaque frames) yet small for screen
         // recordings, which are mostly static. (Transparent inter-frame diffs were
         // dropped — ImageIO can't set GIF disposal, so they render as noise.)
+        // Kept frames are spooled to disk (StreamingGIFBuilder) instead of held
+        // as CGImages, and the last kept frame's bytes are cached so each grid
+        // frame is rendered to RGBA exactly once.
         let base = 1.0 / GIFPlan.defaultFPS
         let dupTolerance = 0.002   // ≤0.2% of pixels changed → treat as held frame
-        var keptFrames: [CGImage] = []
-        var delays: [Double] = []
+        let builder = StreamingGIFBuilder()
+        var thumbnail: CGImage?
+        var lastKeptBytes: [UInt8]?
         for t in GIFPlan.frameTimes(duration: duration) {
             let time = CMTime(seconds: start + t, preferredTimescale: 600)
             guard let result = try? await gen.image(at: time) else { continue }
             let frame = ImageUtils.scaled(result.image, toWidth: GIFPlan.defaultMaxWidth)
-            if let last = keptFrames.last,
-               GIFEncoder.fractionDiffering(last, frame) <= dupTolerance {
-                delays[delays.count - 1] += base
+            guard let bytes = GIFEncoder.rgbaBytes(frame) else { continue }
+            if let last = lastKeptBytes,
+               !GIFEncoder.differsBeyond(last, bytes, tolerance: dupTolerance) {
+                builder.extendLastDelay(by: base)
             } else {
-                keptFrames.append(frame)
-                delays.append(base)
+                builder.append(bytes: bytes, width: frame.width, height: frame.height, delay: base)
+                lastKeptBytes = bytes
+                if thumbnail == nil { thumbnail = frame }
             }
         }
-        guard let first = keptFrames.first,
-              let data = GIFEncoder.encode(frames: keptFrames, delays: delays)
-        else { return nil }
-        return (data, first)
+        guard let thumbnail, let data = builder.finish() else {
+            builder.cleanup()
+            return nil
+        }
+        return (data, thumbnail)
     }
 }
 

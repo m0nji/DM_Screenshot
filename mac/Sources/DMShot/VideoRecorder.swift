@@ -11,11 +11,15 @@ struct VideoSource {
 
 /// Records a display (optionally cropped) to a temp .mov via SCStream + AVAssetWriter.
 /// macOS binding of pipeline steps 1–3. Hard-capped at 60s.
-final class VideoRecorder: NSObject, SCStreamOutput {
+final class VideoRecorder: NSObject, SCStreamOutput, SCStreamDelegate {
     static let maxDuration: TimeInterval = 60
 
     var onElapsed: ((TimeInterval) -> Void)?
     var onAutoStop: (() -> Void)?
+    /// Fired on the main thread when the stream dies mid-recording (display
+    /// unplugged, Screen Recording revoked, system teardown). Without this the
+    /// HUD keeps counting over a dead stream and Stop silently produces nothing.
+    var onStreamError: ((Error) -> Void)?
 
     private let queue = DispatchQueue(label: "info.schwabe.dmshot.recorder")
     private var stream: SCStream?
@@ -75,7 +79,7 @@ final class VideoRecorder: NSObject, SCStreamOutput {
         }
         let filter = SCContentFilter(display: display, excludingApplications: ownApp,
                                      exceptingWindows: [])
-        let stream = SCStream(filter: filter, configuration: config, delegate: nil)
+        let stream = SCStream(filter: filter, configuration: config, delegate: self)
         try stream.addStreamOutput(self, type: .screen, sampleHandlerQueue: queue)
         self.stream = stream
         try await stream.startCapture()
@@ -122,6 +126,10 @@ final class VideoRecorder: NSObject, SCStreamOutput {
         }
     }
 
+    func stream(_ stream: SCStream, didStopWithError error: Error) {
+        DispatchQueue.main.async { [weak self] in self?.onStreamError?(error) }
+    }
+
     /// Stop and finalize. Returns the temp .mov URL (nil on failure).
     func stop() async -> URL? {
         await MainActor.run { self.timer?.invalidate(); self.timer = nil }
@@ -129,6 +137,14 @@ final class VideoRecorder: NSObject, SCStreamOutput {
         // Fix 3: drain in-flight delegate callbacks before markAsFinished
         await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
             queue.async(flags: .barrier) { cont.resume() }
+        }
+        // No complete frame ever arrived → startWriting() never ran; finalizing
+        // an unstarted writer is an AVFoundation programming error. Nothing was
+        // recorded, so just clean up and report failure.
+        guard sessionStarted else {
+            if let failed = outputURL { try? FileManager.default.removeItem(at: failed) }
+            reset()
+            return nil
         }
         input?.markAsFinished()
         await writer?.finishWriting()

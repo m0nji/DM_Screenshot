@@ -117,8 +117,7 @@ final class SelectionView: NSView {
             .foregroundColor: NSColor.white,
             .font: NSFont.systemFont(ofSize: 13),
         ]
-        let s = NSAttributedString(
-            string: "Drag to select · Esc to cancel", attributes: attrs)
+        let s = NSAttributedString(string: tr(.overlayHint), attributes: attrs)
         let size = s.size()
         s.draw(at: NSPoint(x: (bounds.width - size.width) / 2, y: bounds.height - 60))
     }
@@ -206,7 +205,13 @@ final class SelectionView: NSView {
 
     override func mouseDragged(with event: NSEvent) {
         guard let start = startPoint else { return }
-        let p = convert(event.locationInWindow, from: nil)
+        // AppKit keeps delivering drags to the mouse-down window even when the
+        // cursor leaves it (other display, past the screen edge). Clamp to our
+        // bounds or the selection rect disagrees with the croppable image and
+        // video crops get an out-of-bounds sourceRect.
+        let raw = convert(event.locationInWindow, from: nil)
+        let p = NSPoint(x: min(max(raw.x, 0), bounds.width),
+                        y: min(max(raw.y, 0), bounds.height))
         currentPoint = p
         selection = NSRect(
             x: min(start.x, p.x), y: min(start.y, p.y),
@@ -252,6 +257,9 @@ final class OverlayController {
             let win = OverlayWindow(contentRect: cap.frameGlobal, styleMask: .borderless,
                                     backing: .buffered, defer: false)
             win.isOpaque = true; win.backgroundColor = .black; win.level = .screenSaver
+            // Show on the active Space, over full-screen apps, instead of
+            // triggering a Space switch when a full-screen app is frontmost.
+            win.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
             win.contentView = view
             win.setFrame(cap.frameGlobal, display: true)
             win.makeKeyAndOrderFront(nil); win.makeFirstResponder(view)
@@ -289,6 +297,9 @@ final class OverlayController {
             win.isOpaque = true
             win.backgroundColor = .black
             win.level = .screenSaver
+            // Show on the active Space, over full-screen apps, instead of
+            // triggering a Space switch when a full-screen app is frontmost.
+            win.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
             win.contentView = view
             win.setFrame(cap.frameGlobal, display: true)
             win.makeKeyAndOrderFront(nil)

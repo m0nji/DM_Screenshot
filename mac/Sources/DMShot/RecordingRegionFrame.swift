@@ -20,7 +20,7 @@ final class RecordingRegionFrame {
         win.level = .screenSaver
         win.hasShadow = false
         win.canHide = false                      // stay visible when the app is hidden during recording
-        win.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle]
+        win.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
         let view = RegionBorderView(frame: NSRect(origin: .zero, size: frame.size))
         win.contentView = view
         win.orderFrontRegardless()

@@ -11,6 +11,11 @@
                  VerticalAlignment="Center" Margin="0,0,12,0"/>
       <Button x:Name="StopButton" Content="{loc:Tr stop}" MinWidth="56" Height="28"
               Foreground="{StaticResource DmOnAccent}" Background="#C97B4A" BorderThickness="0"/>
+      <!-- Visible discard (mac parity): Esc only works while this window has focus,
+           which it loses as soon as the user clicks back into the recorded app. -->
+      <Button x:Name="CancelButton" Content="✕" Width="28" Height="28" Margin="8,0,0,0"
+              ToolTip="{loc:Tr discard}" FontWeight="Bold"
+              Foreground="#B3FFFFFF" Background="#26FFFFFF" BorderThickness="0"/>
     </StackPanel>
   </Border>
 </Window>

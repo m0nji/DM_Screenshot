@@ -12,6 +12,7 @@ public partial class RecordingControlWindow : Window
     {
         InitializeComponent();
         StopButton.Click += (_, _) => StopRequested?.Invoke();           // V7: Stop = finish
+        CancelButton.Click += (_, _) => CancelRequested?.Invoke();       // visible discard (mac parity)
         KeyDown += (_, e) => { if (e.Key == Key.Escape) CancelRequested?.Invoke(); }; // V7: Esc = cancel
         // V11: a non-activating window can miss the first click; force activation on show.
         Loaded += (_, _) => { Activate(); Focus(); };

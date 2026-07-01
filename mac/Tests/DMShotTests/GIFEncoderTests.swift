@@ -102,4 +102,41 @@ final class GIFEncoderTests: XCTestCase {
         let frames = [Self.solid(4, 4, r: 1, g: 2, b: 3)]
         XCTAssertNil(GIFEncoder.encode(frames: frames, delays: [0.1, 0.2]))
     }
+
+    /// differsBeyond(a,b,tol) must mean exactly fractionDiffering(a,b) > tol —
+    /// it's the early-exit byte variant the GIF render loop uses for dedup.
+    func testDiffersBeyondMatchesFractionDiffering() {
+        let prev = Self.solid(2, 2, r: 0, g: 0, b: 0)
+        var bytes = Self.rgba(prev)
+        bytes[0] = 255   // 1 of 4 pixels differs → fraction 0.25
+        let prevBytes = Self.rgba(prev)
+        XCTAssertTrue(GIFEncoder.differsBeyond(prevBytes, bytes, tolerance: 0.2))
+        XCTAssertFalse(GIFEncoder.differsBeyond(prevBytes, bytes, tolerance: 0.25))  // == tol → merge
+        XCTAssertFalse(GIFEncoder.differsBeyond(prevBytes, prevBytes, tolerance: 0))
+        XCTAssertTrue(GIFEncoder.differsBeyond(prevBytes, [0, 0, 0, 255], tolerance: 1))  // size mismatch
+    }
+
+    func testStreamingBuilderAssemblesGIFWithMergedDelays() throws {
+        let a = Self.solid(8, 8, r: 255, g: 0, b: 0)
+        let b = Self.solid(8, 8, r: 0, g: 255, b: 0)
+        let builder = StreamingGIFBuilder()
+        builder.append(bytes: Self.rgba(a), width: 8, height: 8, delay: 0.1)
+        builder.extendLastDelay(by: 0.1)   // a merged duplicate → held 0.2s
+        builder.append(bytes: Self.rgba(b), width: 8, height: 8, delay: 0.1)
+        let data = try XCTUnwrap(builder.finish())
+        let src = try XCTUnwrap(CGImageSourceCreateWithData(data as CFData, nil))
+        XCTAssertEqual(CGImageSourceGetCount(src), 2)
+        let p = CGImageSourceCopyPropertiesAtIndex(src, 0, nil) as? [CFString: Any]
+        let gif = p?[kCGImagePropertyGIFDictionary] as? [CFString: Any]
+        XCTAssertEqual(gif?[kCGImagePropertyGIFUnclampedDelayTime] as? Double ?? 0, 0.2, accuracy: 1e-6)
+        // First frame pixel content survives the disk round-trip.
+        let frame = try XCTUnwrap(CGImageSourceCreateImageAtIndex(src, 0, nil))
+        let out = Self.rgba(frame)
+        XCTAssertEqual(out[0], 255); XCTAssertEqual(out[1], 0)
+    }
+
+    func testStreamingBuilderEmptyReturnsNil() {
+        let builder = StreamingGIFBuilder()
+        XCTAssertNil(builder.finish())
+    }
 }

@@ -237,9 +237,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         }
     }
 
+    /// Recording lifecycle. start/stop are async, so hammering the hotkey used to
+    /// interleave two lifecycles on the one shared recorder (a second start could
+    /// run while stop was still finalizing, and stop's reset() then wiped the new
+    /// recording's state). Toggles are ignored while transitioning.
+    private enum RecordingState { case idle, starting, recording, stopping }
+    private var recordingState: RecordingState = .idle
+
+    /// Returns true when the hotkey press was consumed as a toggle (stop) or must
+    /// be dropped because a transition is in flight; false = free to start.
+    @MainActor private func handleRecordingToggle() -> Bool {
+        switch recordingState {
+        case .recording: finishRecording(); return true
+        case .starting, .stopping: return true
+        case .idle: return false
+        }
+    }
+
     @objc private func captureVideoFull() {
         Task { @MainActor in
-            if self.recordingControl != nil { self.finishRecording(); return }
+            if self.handleRecordingToggle() { return }
             guard self.ensurePermission() else { return }
             do {
                 let cap = try await ScreenCapture.captureActive()
@@ -251,7 +268,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     @objc private func captureVideoArea() {
         Task { @MainActor in
-            if self.recordingControl != nil { self.finishRecording(); return }
+            if self.handleRecordingToggle() { return }
             guard self.ensurePermission() else { return }
             do {
                 let caps = try await ScreenCapture.captureAll()
@@ -267,12 +284,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     @MainActor private func startRecording(source: VideoSource, on screen: NSScreen?) {
+        guard recordingState == .idle else { return }
+        recordingState = .starting
         let control = RecordingControlWindow(
             onStop: { [weak self] in self?.finishRecording() },
             onCancel: { [weak self] in self?.cancelRecording() })
         recordingControl = control
         recorder.onElapsed = { [weak self] t in self?.recordingControl?.update(elapsed: t) }
         recorder.onAutoStop = { [weak self] in self?.finishRecording() }
+        recorder.onStreamError = { [weak self] error in self?.handleStreamError(error) }
         Task {
             do {
                 try await recorder.start(source: source)
@@ -289,24 +309,69 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 // the app so the user's app returns to front. The Stop control and
                 // the region frame stay visible (canHide = false).
                 NSApp.hide(nil)
+                self.recordingState = .recording
             }
-            catch { NSLog("recorder start failed: \(error)"); self.recordingControl = nil }
+            catch {
+                NSLog("recorder start failed: \(error)")
+                self.recordingControl = nil
+                self.recordingState = .idle
+                self.showRecordingError(error)
+            }
         }
     }
 
     @MainActor private func cancelRecording() {
-        recordingControl?.close(); recordingControl = nil
-        recordingFrame?.close(); recordingFrame = nil
-        Task { await recorder.cancel() }
-    }
-
-    @MainActor private func finishRecording() {
+        guard recordingState == .recording else { return }
+        recordingState = .stopping
         recordingControl?.close(); recordingControl = nil
         recordingFrame?.close(); recordingFrame = nil
         Task {
-            guard let url = await recorder.stop() else { return }
-            await MainActor.run { self.showPreview(movURL: url) }
+            await recorder.cancel()
+            await MainActor.run { self.recordingState = .idle }
         }
+    }
+
+    @MainActor private func finishRecording() {
+        guard recordingState == .recording else { return }
+        recordingState = .stopping
+        recordingControl?.close(); recordingControl = nil
+        recordingFrame?.close(); recordingFrame = nil
+        Task {
+            let url = await recorder.stop()
+            await MainActor.run {
+                self.recordingState = .idle
+                if let url { self.showPreview(movURL: url) }
+                else { self.showRecordingError(nil) }  // was silently nothing
+            }
+        }
+    }
+
+    /// The stream died under a live recording (display unplugged, permission
+    /// revoked). Tear down the HUD and salvage what was written so far.
+    @MainActor private func handleStreamError(_ error: Error) {
+        guard recordingState == .recording || recordingState == .starting else { return }
+        recordingState = .stopping
+        recordingControl?.close(); recordingControl = nil
+        recordingFrame?.close(); recordingFrame = nil
+        Task {
+            let url = await recorder.stop()
+            await MainActor.run {
+                self.recordingState = .idle
+                if let url { self.showPreview(movURL: url) }
+                else { self.showRecordingError(error) }
+            }
+        }
+    }
+
+    @MainActor private func showRecordingError(_ error: Error?) {
+        NSApp.activate(ignoringOtherApps: true)
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        alert.messageText = tr(.recordingFailedTitle)
+        alert.informativeText = error.map { String(format: tr(.recordingFailedBody), $0.localizedDescription) }
+            ?? tr(.recordingFailedBodyGeneric)
+        alert.addButton(withTitle: tr(.ok))
+        alert.runModal()
     }
 
     @MainActor private func showPreview(movURL: URL) {

@@ -42,7 +42,7 @@ reads *per mouse-move*.
 
 Parity note: 1–3 are mac-only perf internals. Windows has its own equivalents in Phase 5.
 
-## Phase 3 — macOS recording robustness
+## Phase 3 — macOS recording robustness (DONE on `fix/recording-robustness` — items 1–6; item 7 deferred)
 
 1. **H Surface recording failures.** No `SCStreamDelegate` (`VideoRecorder.swift:69` passes nil) → mid-recording death (display unplugged, TCC revoked) keeps HUD counting; `App.swift:293` `guard let url … else { return }` makes a failed stop produce *nothing*. Implement `stream(_:didStopWithError:)`, propagate error → alert + HUD teardown; alert on nil stop result; guard `finishWriting` when `startWriting` never ran (`VideoRecorder.swift:124-125`).
 2. **M Recorder state machine.** Hotkey double-press interleaves two lifecycles on the shared recorder (`App.swift:227-241, 289-296` vs async `start/stop`): add `.idle/.starting/.recording/.stopping` and ignore toggles while transitioning.
@@ -50,7 +50,8 @@ Parity note: 1–3 are mac-only perf internals. Windows has its own equivalents 
 4. **M GIF memory + speed.** `VideoPreviewWindow.swift:22-37` holds all kept frames as CGImages + whole GIF in one NSMutableData (`GIFEncoder.swift:19-38`); ~1.4 GB for 60 s dynamic content. Stream with `CGImageDestinationCreateWithURL`, drop frames after add. Also `GIFEncoder.fractionDiffering` (`:44-65`): cache the last-kept frame's RGBA bytes, early-exit when past tolerance (currently 2 full re-renders + full scan per compared frame).
 5. **M Clamp drag selections to the display.** `Overlay.swift:207-227`: unclamped drags → `screenRect` disagrees with cropped image (Quick-Edit misplacement) and out-of-bounds `sourceRect` for section recordings. Clamp selection to `bounds` during drag. 🍎🪟 check `windows/DMShot/Capture/Selection.cs` for the same.
 6. **L Spaces/fullscreen behavior.** Overlay windows + recording HUD lack `.canJoinAllSpaces`/`.fullScreenAuxiliary` (`Overlay.swift:252-299`, `RecordingControlWindow.swift:55-73`) — area capture over a full-screen app can switch Spaces; HUD stays behind on Space switch.
-7. **L Loupe edge accuracy.** `LoupeMath.sampleRect` clamps the window but the crosshair stays centered (`Overlay.swift:163-170`) — wrong pixel indicated within 10 px of edges. Offset the crosshair by the clamp delta. 🍎🪟 (LoupeMath is mirrored).
+7. **L Loupe edge accuracy.** `LoupeMath.sampleRect` clamps the window but the crosshair stays centered (`Overlay.swift:163-170`) — wrong pixel indicated within 10 px of edges. Offset the crosshair by the clamp delta. 🍎🪟 (LoupeMath is mirrored). *(Deferred — parity-coupled, own change.)*
+   Notes from implementation: mac selection clamp (item 5) matches the existing `SelectionMath.Clamp` on Windows; the visible ✕ discard button (item 3) was added on BOTH platforms; win recording-failure surfacing remains Phase 5.
 
 ## Phase 4 — Undo & editing correctness (🍎🪟 parity-coupled)
 

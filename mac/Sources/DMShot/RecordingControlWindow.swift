@@ -24,6 +24,18 @@ private struct RecordingControlView: View {
                 }
             }
             .buttonStyle(AccentFilledButtonStyle())
+            // Visible discard: Esc can't reach a non-activating panel that is
+            // never key, so without this button a recording could only be
+            // finished, never thrown away.
+            Button(action: onCancel) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 24, height: 24)
+                    .background(Circle().fill(Color.primary.opacity(0.1)))
+            }
+            .buttonStyle(.plain)
+            .dmTooltip(tr(.discard))
         }
         .padding(.horizontal, 14).padding(.vertical, 8)
         .background(.ultraThinMaterial, in: Capsule())
@@ -61,6 +73,9 @@ final class RecordingControlWindow {
         win.isOpaque = false
         win.hasShadow = true
         win.canHide = false   // stay visible when the app is hidden during recording
+        // Follow Space switches and float over full-screen apps; otherwise the
+        // Stop control stays behind on the original Space with no way to reach it.
+        win.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
         let hostView = FirstMouseHostingView(rootView: RecordingControlView(elapsed: 0, onStop: onStop, onCancel: onCancel))
         win.contentView = hostView
         // Size the panel to the capsule's intrinsic content so the "Stop" label
