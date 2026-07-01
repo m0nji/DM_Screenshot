@@ -375,12 +375,16 @@ public sealed class CanvasControl : FrameworkElement
 
     protected override void OnKeyDown(KeyEventArgs e)
     {
+        // The inline text editor owns the keyboard: its Space bubbles here unhandled,
+        // and swallowing it both arms pan mode and blocks the character from TextInput.
+        if (_textBox is not null) { base.OnKeyDown(e); return; }
         if (e.Key == Key.Space && !_space) { _space = true; Cursor = Cursors.Hand; e.Handled = true; }
         base.OnKeyDown(e);
     }
 
     protected override void OnKeyUp(KeyEventArgs e)
     {
+        if (_textBox is not null) { base.OnKeyUp(e); return; }
         if (e.Key == Key.Space) { _space = false; Cursor = Cursors.Arrow; e.Handled = true; }
         base.OnKeyUp(e);
     }

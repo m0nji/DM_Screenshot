@@ -23,6 +23,26 @@ public record HotkeySpec(HotkeyModifiers Modifiers, uint VirtualKey)
         return new HotkeySpec(mods, vk);
     }
 
+    /// Settings-safe variant: false for combos Parse cannot read back (e.g. a
+    /// stored "Ctrl+0xBA" from an OEM key), instead of throwing into app startup.
+    public static bool TryParse(string s, out HotkeySpec spec)
+    {
+        try
+        {
+            spec = Parse(s);
+            return spec.VirtualKey != 0;
+        }
+        catch (FormatException)
+        {
+            spec = new HotkeySpec(HotkeyModifiers.None, 0);
+            return false;
+        }
+    }
+
+    /// True when Format() produces a string Parse() can read back — only such
+    /// combos may be committed to settings.
+    public bool RoundTrips => !VkToKey(VirtualKey).StartsWith("0x");
+
     public string Format()
     {
         var parts = new List<string>();

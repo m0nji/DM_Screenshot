@@ -34,6 +34,11 @@ public sealed class WgcScreenRecorder : IScreenRecorder
 {
     private const double MaxDurationSec = 60.0;
 
+    // WGC delivers at display refresh (60+ fps); the GIF pipeline only ever samples
+    // a 10 fps grid (GifPlan.DefaultFps). Keeping every frame buffers gigabytes of
+    // uncompressed bitmaps on dynamic content — throttle at capture time instead.
+    private const double MaxCaptureFps = 10.0;
+
     private GraphicsCaptureItem? _item;
     private Direct3D11CaptureFramePool? _pool;
     private GraphicsCaptureSession? _session;
@@ -42,6 +47,7 @@ public sealed class WgcScreenRecorder : IScreenRecorder
     private ID3D11DeviceContext? _vcontext;    // Vortice immediate context
 
     private readonly List<RecordedFrame> _frames = new();
+    private double _lastKeptSec = double.NegativeInfinity;  // throttle state, guarded by _gate
     private readonly object _gate = new();      // guards _frames; drains in-flight on Stop (V3)
     private readonly Stopwatch _clock = new();
     private System.Threading.Timer? _timer;
@@ -116,9 +122,12 @@ public sealed class WgcScreenRecorder : IScreenRecorder
             lock (_gate)
             {
                 if (_disposed) return;                        // recorder torn down — drop this frame
+                double t = _clock.Elapsed.TotalSeconds;
+                if (t - _lastKeptSec < 1.0 / MaxCaptureFps) return;  // above the 10 fps grid — drop
                 var bmp = CopyToBitmap(frame, _crop);
                 if (bmp is null) return;                      // V5: unreadable surface -> skip
-                _frames.Add(new RecordedFrame(bmp, _clock.Elapsed.TotalSeconds));
+                _frames.Add(new RecordedFrame(bmp, t));
+                _lastKeptSec = t;
             }
         }
         catch (Exception ex)

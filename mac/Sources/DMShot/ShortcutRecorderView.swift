@@ -41,7 +41,7 @@ struct ShortcutRecorderView: View {
         Button { toggle() } label: {
             Group {
                 if recording {
-                    Text("Press keys…")
+                    Text(tr(.pressKeys))
                         .font(.system(size: 12))
                         .foregroundStyle(Color.dmAccent)
                 } else {

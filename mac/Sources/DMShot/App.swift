@@ -490,6 +490,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 let fileURL = FileManager.default.temporaryDirectory.appendingPathComponent("\(id).gif")
                 try? data.write(to: fileURL)
                 ImageUtils.copyGIF(data: data, fileURL: fileURL)
+                gifViewer?.close()  // as in deliverGIF: don't orphan a live viewer window
                 let viewer = GIFViewerWindow()
                 viewer.show(gifData: data, title: tr(.gifViewerTitle))
                 gifViewer = viewer

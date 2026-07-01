@@ -41,6 +41,7 @@ public sealed class ShortcutRecorderControl : TextBox
 
         uint vk = (uint)KeyInterop.VirtualKeyFromKey(key);
         var spec = new HotkeySpec(mods, vk);
+        if (!spec.RoundTrips) return;  // OEM/unsupported key: Parse couldn't read it back from settings
         Hotkey = spec.Format();
         Text = Hotkey;
         HotkeyChanged?.Invoke(Hotkey);

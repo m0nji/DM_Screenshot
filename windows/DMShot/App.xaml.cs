@@ -84,10 +84,19 @@ public partial class App : Application
     private void RegisterHotkeysFromSettings()
     {
         _hotkeys.UnregisterAll();
-        _hotkeys.Register(HK_FULL, HotkeySpec.Parse(_settings.FullScreenHotkey));
-        _hotkeys.Register(HK_AREA, HotkeySpec.Parse(_settings.AreaHotkey));
-        _hotkeys.Register(HK_VIDEO_FULL, HotkeySpec.Parse(_settings.VideoFullHotkey));
-        _hotkeys.Register(HK_VIDEO_AREA, HotkeySpec.Parse(_settings.VideoAreaHotkey));
+        var defaults = new Settings.Settings();
+        RegisterHotkey(HK_FULL, _settings.FullScreenHotkey, defaults.FullScreenHotkey);
+        RegisterHotkey(HK_AREA, _settings.AreaHotkey, defaults.AreaHotkey);
+        RegisterHotkey(HK_VIDEO_FULL, _settings.VideoFullHotkey, defaults.VideoFullHotkey);
+        RegisterHotkey(HK_VIDEO_AREA, _settings.VideoAreaHotkey, defaults.VideoAreaHotkey);
+    }
+
+    // A stored combo Parse can't read (unsupported key persisted by an older build)
+    // must not crash startup in a loop — fall back to that action's default.
+    private void RegisterHotkey(int id, string stored, string fallback)
+    {
+        if (!HotkeySpec.TryParse(stored, out var spec)) spec = HotkeySpec.Parse(fallback);
+        _hotkeys.Register(id, spec);
     }
 
     private void OpenSettings()

@@ -186,7 +186,7 @@ struct EditorView: View {
                         }
                         .buttonStyle(.plain)
                         .padding(4)
-                        .dmTooltip("Delete this capture")
+                        .dmTooltip(tr(.deleteCapture))
                     }
                 }
                 .overlay(alignment: .bottomLeading) {

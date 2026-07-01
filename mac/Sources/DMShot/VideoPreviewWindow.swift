@@ -178,6 +178,7 @@ final class VideoPreviewWindow: NSObject, NSWindowDelegate {
 
             let win = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 560, height: 460),
                                styleMask: [.titled, .closable], backing: .buffered, defer: false)
+            win.isReleasedWhenClosed = false  // ARC owns the window; see teardown() comment
             win.title = tr(.previewTrimTitle)
             win.contentView = NSHostingView(rootView: view)
             win.delegate = self

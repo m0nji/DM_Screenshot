@@ -19,7 +19,7 @@ enum L: CaseIterable {
     // Settings — shortcuts
     case actionFullScreen, actionAreaSelection, actionVideoFullScreen, actionVideoSection
     case subFullScreen, subAreaSelection, subVideoFullScreen, subVideoSection
-    case resetToDefaults, needsModifier, alreadyUsedBy, systemInUse, shortcutsHint
+    case resetToDefaults, needsModifier, alreadyUsedBy, systemInUse, shortcutsHint, pressKeys
     // Menu
     case menuNewFullScreen, menuNewSelection, menuNewVideoFull, menuNewVideoSelection
     case menuOpenWindow, menuSettings, menuQuit
@@ -118,6 +118,7 @@ final class Localizer: ObservableObject {
                                             "Diese Kombination wird bereits vom System verwendet.")
         case .shortcutsHint:        return ("Click a field and press the new key combination.",
                                             "Auf ein Feld klicken und die neue Tastenkombination drücken.")
+        case .pressKeys:            return ("Press keys…", "Tastenkombination drücken…")
         case .menuNewFullScreen:    return ("New Full Screen", "Neuer Vollbild-Screenshot")
         case .menuNewSelection:     return ("New Selection", "Neue Auswahl")
         case .menuNewVideoFull:     return ("New Video (Full Screen)", "Neues Video (Vollbild)")

@@ -43,8 +43,10 @@ final class VideoRecorder: NSObject, SCStreamOutput {
             config.width = Int(crop.width * scale)
             config.height = Int(crop.height * scale)
         } else {
-            config.width = Int(display.width)           // full display, pixels
-            config.height = Int(display.height)
+            // SCDisplay reports points; multiply by the backing scale like the
+            // crop branch, or full-screen recordings come out blurry on Retina.
+            config.width = Int(CGFloat(display.width) * scale)
+            config.height = Int(CGFloat(display.height) * scale)
         }
 
         let url = FileManager.default.temporaryDirectory
@@ -65,7 +67,14 @@ final class VideoRecorder: NSObject, SCStreamOutput {
         self.input = inp
         self.sessionStarted = false
 
-        let filter = SCContentFilter(display: display, excludingWindows: [])
+        // Exclude our own windows (Stop control, region frame, editor) from the
+        // recording. Excluding the application also covers windows created after
+        // this snapshot, unlike excludingWindows.
+        let ownApp = content.applications.filter {
+            $0.bundleIdentifier == Bundle.main.bundleIdentifier
+        }
+        let filter = SCContentFilter(display: display, excludingApplications: ownApp,
+                                     exceptingWindows: [])
         let stream = SCStream(filter: filter, configuration: config, delegate: nil)
         try stream.addStreamOutput(self, type: .screen, sampleHandlerQueue: queue)
         self.stream = stream
@@ -124,6 +133,9 @@ final class VideoRecorder: NSObject, SCStreamOutput {
         input?.markAsFinished()
         await writer?.finishWriting()
         let url = (writer?.status == .completed) ? outputURL : nil
+        if url == nil, let failed = outputURL {
+            try? FileManager.default.removeItem(at: failed)  // don't leak failed recordings
+        }
         reset()
         return url
     }

@@ -26,6 +26,10 @@ final class Updater: NSObject, ObservableObject, SPUUserDriver, SPUUpdaterDelega
     private var expectedLength: UInt64 = 0
     private var receivedLength: UInt64 = 0
 
+    // Last update offered by Sparkle; survives the .available → .downloading →
+    // .extracting transitions so showReady/showUpdateInFocus can restore it.
+    private var lastFound: (version: String, notes: [ChangelogVersion])?
+
     // Stored Sparkle continuations resumed by the themed buttons.
     private var updateReply: ((SPUUserUpdateChoice) -> Void)?
     private var installReply: ((SPUUserUpdateChoice) -> Void)?
@@ -98,8 +102,9 @@ final class Updater: NSObject, ObservableObject, SPUUserDriver, SPUUpdaterDelega
     func showUpdateFound(with appcastItem: SUAppcastItem, state respState: SPUUserUpdateState,
                          reply: @escaping (SPUUserUpdateChoice) -> Void) {
         updateReply = reply
-        state = .available(version: appcastItem.displayVersionString,
-                           notes: notesNewerThanCurrent(appcastItem.displayVersionString))
+        let version = appcastItem.displayVersionString
+        lastFound = (version, notesNewerThanCurrent(version))
+        state = .available(version: version, notes: lastFound?.notes ?? [])
     }
     func showUpdateReleaseNotes(with downloadData: SPUDownloadData) { /* notes come from CHANGELOG */ }
     func showUpdateReleaseNotesFailedToDownloadWithError(_ error: Error) { /* ignore — using CHANGELOG */ }
@@ -125,8 +130,9 @@ final class Updater: NSObject, ObservableObject, SPUUserDriver, SPUUpdaterDelega
     func showExtractionReceivedProgress(_ progress: Double) { state = .extracting }
     func showReady(toInstallAndRelaunch reply: @escaping (SPUUserUpdateChoice) -> Void) {
         installReply = reply
-        if case let .available(v, _) = state { state = .readyToInstall(version: v) }
-        else { state = .readyToInstall(version: "") }
+        // State has already moved past .available (downloading/extracting), so
+        // use the stashed offer rather than pattern-matching the current state.
+        state = .readyToInstall(version: lastFound?.version ?? "")
     }
     func showInstallingUpdate(withApplicationTerminated applicationTerminated: Bool,
                               retryTerminatingApplication: @escaping () -> Void) {
@@ -136,7 +142,14 @@ final class Updater: NSObject, ObservableObject, SPUUserDriver, SPUUpdaterDelega
     func showUpdateInstalledAndRelaunched(_ relaunched: Bool, acknowledgement: @escaping () -> Void) {
         acknowledgement()
     }
-    func showUpdateInFocus() {}
+    func showUpdateInFocus() {
+        // Sparkle calls this instead of starting a new session when one is already
+        // in progress (e.g. a scheduled check already found an update). Without
+        // restoring the state, a manual "Check for Updates" wedges on .checking.
+        if case .checking = state, updateReply != nil, let found = lastFound {
+            state = .available(version: found.version, notes: found.notes)
+        }
+    }
     func dismissUpdateInstallation() {
         if case .checking = state { state = .idle }
         else if case .downloading = state { state = .idle }
