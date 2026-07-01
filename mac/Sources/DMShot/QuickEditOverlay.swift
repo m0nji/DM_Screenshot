@@ -123,11 +123,16 @@ final class QuickEditOverlay {
             onCopy: onCopy, onSave: onSave, onEditInMain: onEditInMain,
             onClose: { [weak self] in self?.close(); self?.onClose() })
         let win = OverlayWindow(
-            contentRect: screen.frame, styleMask: .borderless,
+            contentRect: screen.frame, styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered, defer: false)
         win.isOpaque = false
         win.backgroundColor = .clear
         win.level = .floating
+        win.hidesOnDeactivate = false   // NSPanel defaults to true — keep the overlay up
+        // Appear on the ACTIVE Space (incl. over full-screen apps) — the capture
+        // was just taken there. Without this the bar opens on the app's own Space
+        // and is simply invisible from a full-screen app.
+        win.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
         win.contentView = NSHostingView(rootView: view)
         win.setFrame(screen.frame, display: true)
         window = win
@@ -140,8 +145,10 @@ final class QuickEditOverlay {
             return event
         }
 
+        // No NSApp.activate: the non-activating panel becomes key on its own
+        // (keyboard + toolbar work), and activating would switch away from a
+        // full-screen app's Space before the bar is visible.
         win.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
     }
 
     func close() {

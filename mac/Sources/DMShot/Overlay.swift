@@ -1,7 +1,10 @@
 import AppKit
 
-/// Borderless window that can become key (so it receives Esc).
-final class OverlayWindow: NSWindow {
+/// Borderless non-activating panel that can become key (so it receives Esc)
+/// WITHOUT activating the app. Activating (the old approach) makes macOS switch
+/// away from a full-screen app's Space before the overlay is visible — the user
+/// saw only a crosshair cursor and no frozen image until the Space settled.
+final class OverlayWindow: NSPanel {
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { true }
 }
@@ -246,7 +249,6 @@ final class OverlayController {
     /// Like `begin`, but reports the selected display + pixel rect (for video).
     func beginRectSelection(captures: [DisplayCapture], showLoupe: Bool) {
         close()
-        NSApp.activate(ignoringOtherApps: true)
         for cap in captures {
             let view = SelectionView(capture: cap, showLoupe: showLoupe)
             view.onSelect = { [weak self] pixelRect in
@@ -254,26 +256,12 @@ final class OverlayController {
                 self?.onCompleteRect?(cap, pixelRect)
             }
             view.onCancel = { [weak self] in self?.close(); self?.onCancel?() }
-            let win = OverlayWindow(contentRect: cap.frameGlobal, styleMask: .borderless,
-                                    backing: .buffered, defer: false)
-            win.isOpaque = true; win.backgroundColor = .black; win.level = .screenSaver
-            // Show on the active Space, over full-screen apps, instead of
-            // triggering a Space switch when a full-screen app is frontmost.
-            win.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
-            win.contentView = view
-            win.setFrame(cap.frameGlobal, display: true)
-            win.makeKeyAndOrderFront(nil); win.makeFirstResponder(view)
-            NSCursor.crosshair.set()
-            windows.append(win)
+            show(view: view, on: cap.frameGlobal)
         }
     }
 
     func begin(captures: [DisplayCapture], showLoupe: Bool) {
         close()
-        // Become frontmost first so the windows below come up as key in the
-        // active app — a prerequisite for the crosshair cursor to apply on hover
-        // without requiring an initial click.
-        NSApp.activate(ignoringOtherApps: true)
         for cap in captures {
             let view = SelectionView(capture: cap, showLoupe: showLoupe)
             view.onSelect = { [weak self] pixelRect in
@@ -291,24 +279,33 @@ final class OverlayController {
                 self?.close()
                 self?.onCancel?()
             }
-            let win = OverlayWindow(
-                contentRect: cap.frameGlobal, styleMask: .borderless,
-                backing: .buffered, defer: false)
-            win.isOpaque = true
-            win.backgroundColor = .black
-            win.level = .screenSaver
-            // Show on the active Space, over full-screen apps, instead of
-            // triggering a Space switch when a full-screen app is frontmost.
-            win.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
-            win.contentView = view
-            win.setFrame(cap.frameGlobal, display: true)
-            win.makeKeyAndOrderFront(nil)
-            win.makeFirstResponder(view)
-            // Prime the crosshair immediately so it's correct from the first
-            // frame, before the user moves the mouse.
-            NSCursor.crosshair.set()
-            windows.append(win)
+            show(view: view, on: cap.frameGlobal)
         }
+    }
+
+    /// One overlay panel per display. Deliberately NO NSApp.activate here: the
+    /// non-activating panel becomes key on its own (canBecomeKey), so Esc and the
+    /// first drag work while the frontmost app — including a full-screen one —
+    /// stays active and no Space switch is triggered. The crosshair cursor is
+    /// handled by the view's .activeAlways tracking area, not by activation.
+    private func show(view: SelectionView, on frameGlobal: CGRect) {
+        let win = OverlayWindow(
+            contentRect: frameGlobal, styleMask: [.borderless, .nonactivatingPanel],
+            backing: .buffered, defer: false)
+        win.isOpaque = true
+        win.backgroundColor = .black
+        win.level = .screenSaver
+        win.hidesOnDeactivate = false   // NSPanel defaults to true — keep the overlay up
+        // Show on the active Space, over full-screen apps.
+        win.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
+        win.contentView = view
+        win.setFrame(frameGlobal, display: true)
+        win.makeKeyAndOrderFront(nil)
+        win.makeFirstResponder(view)
+        // Prime the crosshair immediately so it's correct from the first
+        // frame, before the user moves the mouse.
+        NSCursor.crosshair.set()
+        windows.append(win)
     }
 
     func close() {
