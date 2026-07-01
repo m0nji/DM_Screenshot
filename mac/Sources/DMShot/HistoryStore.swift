@@ -27,6 +27,22 @@ final class HistoryStore: ObservableObject {
     private let dir: URL
     private let maxEntries = 10
 
+    /// Heavy pixel work (full-res PNG encode, thumbnail render, GIF writes) runs
+    /// on this serial queue: a 5K PNG encode takes hundreds of ms and used to
+    /// block the main thread between hotkey press and the editor appearing.
+    /// `items`, the caches, and `objectWillChange` stay main-thread-only.
+    private let ioQueue = DispatchQueue(label: "DMShot.HistoryStore.io", qos: .utility)
+
+    /// Decoded thumbnails by id — the sidebar asks for these on every SwiftUI
+    /// body evaluation (i.e. every model tick during a drag); re-reading PNGs
+    /// from disk each time caused constant I/O. Bounded by `maxEntries`.
+    private var thumbCache: [String: NSImage] = [:]
+
+    /// Originals/GIFs whose disk write is still in flight, so an immediate
+    /// history click can't race the background write.
+    private var pendingOriginals: [String: CGImage] = [:]
+    private var pendingGIFs: [String: Data] = [:]
+
     init() {
         let base = FileManager.default.urls(
             for: .applicationSupportDirectory, in: .userDomainMask)[0]
@@ -54,30 +70,49 @@ final class HistoryStore: ObservableObject {
     }
 
     func addCapture(id: String, original: CGImage, annotations: [Annotation]) {
-        if let png = ImageUtils.pngData(original) { try? png.write(to: pngURL(id)) }
-        writeThumb(id: id, image: original)
-        writeAnnotations(id: id, annotations: annotations)
         items.insert(HistoryItemMeta(id: id, createdAt: Date().timeIntervalSince1970), at: 0)
-        evict()
+        pendingOriginals[id] = original
+        let evicted = evict()
         saveIndex()
+        ioQueue.async { [weak self] in
+            guard let self else { return }
+            if let png = ImageUtils.pngData(original) { try? png.write(to: self.pngURL(id)) }
+            self.writeAnnotations(id: id, annotations: annotations)
+            self.writeThumb(id: id, image: original)
+            evicted.forEach(self.removeFiles)
+            DispatchQueue.main.async { self.pendingOriginals[id] = nil }
+        }
     }
 
     func updateEntry(id: String, annotations: [Annotation], flattened: CGImage) {
-        writeAnnotations(id: id, annotations: annotations)
-        writeThumb(id: id, image: flattened)
-        objectWillChange.send()
+        ioQueue.async { [weak self] in
+            guard let self else { return }
+            self.writeAnnotations(id: id, annotations: annotations)
+            self.writeThumb(id: id, image: flattened)
+        }
     }
 
     func addVideo(id: String, gifData: Data, thumbnail: CGImage) {
-        try? gifData.write(to: gifURL(id))
-        writeThumb(id: id, image: thumbnail)
         items.insert(HistoryItemMeta(id: id, createdAt: Date().timeIntervalSince1970, kind: .video), at: 0)
-        evict()
+        pendingGIFs[id] = gifData
+        let evicted = evict()
         saveIndex()
+        ioQueue.async { [weak self] in
+            guard let self else { return }
+            try? gifData.write(to: self.gifURL(id))
+            self.writeThumb(id: id, image: thumbnail)
+            evicted.forEach(self.removeFiles)
+            DispatchQueue.main.async { self.pendingGIFs[id] = nil }
+        }
     }
 
-    func loadGIF(_ id: String) -> Data? { try? Data(contentsOf: gifURL(id)) }
+    func loadGIF(_ id: String) -> Data? {
+        if let pending = pendingGIFs[id] { return pending }
+        return try? Data(contentsOf: gifURL(id))
+    }
 
+    /// Renders + writes the thumbnail (on `ioQueue`), then publishes it into the
+    /// main-thread cache so the sidebar refreshes exactly once when it's ready.
     private func writeThumb(id: String, image: CGImage) {
         let maxW: CGFloat = 320
         let scale = min(1, maxW / CGFloat(image.width))
@@ -91,8 +126,12 @@ final class HistoryStore: ObservableObject {
         else { return }
         ctx.interpolationQuality = .high
         ctx.draw(image, in: CGRect(x: 0, y: 0, width: w, height: h))
-        if let thumb = ctx.makeImage(), let png = ImageUtils.pngData(thumb) {
-            try? png.write(to: thumbURL(id))
+        guard let thumb = ctx.makeImage() else { return }
+        if let png = ImageUtils.pngData(thumb) { try? png.write(to: thumbURL(id)) }
+        DispatchQueue.main.async { [weak self] in
+            guard let self, self.items.contains(where: { $0.id == id }) else { return }
+            self.thumbCache[id] = NSImage(cgImage: thumb, size: NSSize(width: w, height: h))
+            self.objectWillChange.send()
         }
     }
 
@@ -106,29 +145,51 @@ final class HistoryStore: ObservableObject {
     func delete(_ id: String) {
         guard items.contains(where: { $0.id == id }) else { return }
         items.removeAll { $0.id == id }
+        forget(id)
+        saveIndex()
+        ioQueue.async { [weak self] in self?.removeFiles(id) }
+    }
+
+    /// Trims `items` to the cap and returns the evicted ids; the caller removes
+    /// their files (on `ioQueue`, after any in-flight writes for them).
+    private func evict() -> [String] {
+        var evicted: [String] = []
+        while items.count > maxEntries {
+            evicted.append(items.removeLast().id)
+        }
+        evicted.forEach(forget)
+        return evicted
+    }
+
+    private func forget(_ id: String) {
+        thumbCache[id] = nil
+        pendingOriginals[id] = nil
+        pendingGIFs[id] = nil
+    }
+
+    private func removeFiles(_ id: String) {
         try? FileManager.default.removeItem(at: pngURL(id))
         try? FileManager.default.removeItem(at: thumbURL(id))
         try? FileManager.default.removeItem(at: jsonURL(id))
         try? FileManager.default.removeItem(at: gifURL(id))
-        saveIndex()
     }
 
-    private func evict() {
-        while items.count > maxEntries {
-            let old = items.removeLast()
-            try? FileManager.default.removeItem(at: pngURL(old.id))
-            try? FileManager.default.removeItem(at: thumbURL(old.id))
-            try? FileManager.default.removeItem(at: jsonURL(old.id))
-            try? FileManager.default.removeItem(at: gifURL(old.id))
-        }
+    /// Blocks until all queued background I/O has hit disk. Used by tests; the
+    /// app itself never needs to block on history writes.
+    func flushIO() {
+        ioQueue.sync { }
     }
 
     func thumbnail(_ id: String) -> NSImage? {
-        guard let data = try? Data(contentsOf: thumbURL(id)) else { return nil }
-        return NSImage(data: data)
+        if let cached = thumbCache[id] { return cached }
+        guard let data = try? Data(contentsOf: thumbURL(id)),
+              let img = NSImage(data: data) else { return nil }
+        thumbCache[id] = img
+        return img
     }
 
     func loadOriginal(_ id: String) -> CGImage? {
+        if let pending = pendingOriginals[id] { return pending }
         guard let data = try? Data(contentsOf: pngURL(id)),
               let rep = NSBitmapImageRep(data: data) else { return nil }
         return rep.cgImage

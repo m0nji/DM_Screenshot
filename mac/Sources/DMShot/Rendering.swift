@@ -24,6 +24,7 @@ enum SceneRenderer {
         let imgRect = CGRect(x: 0, y: 0, width: image.width, height: image.height)
         drawImage(image, in: imgRect)
         for a in annotations { drawAnnotation(a, base: image) }
+        pruneBlurCache(keeping: annotations, base: image)
     }
 
     /// Draw a CGImage upright in a flipped (top-left origin) context. CGContextDrawImage
@@ -192,8 +193,26 @@ enum SceneRenderer {
             options: [.usesLineFragmentOrigin, .usesFontLeading])
     }
 
+    /// Per-annotation cache for the blurred regions: the canvas redraws the whole
+    /// scene on every mouse-move, and re-running CIGaussianBlur for every blur
+    /// annotation per frame stalls drags. Entries are validated against
+    /// (base identity, rect, radius) and pruned after each draw pass so deleted
+    /// annotations and replaced base images don't pin their bitmaps.
+    /// Main-thread only, like all callers.
+    private static var blurCache: [UUID: (base: CGImage, rect: CGRect, radius: CGFloat, blurred: CGImage)] = [:]
+
+    private static func pruneBlurCache(keeping annotations: [Annotation], base: CGImage) {
+        guard !blurCache.isEmpty else { return }
+        let valid = Set(annotations.lazy.filter { $0.kind == .blur }.map(\.id))
+        blurCache = blurCache.filter { $0.value.base === base && valid.contains($0.key) }
+    }
+
     private static func drawBlur(_ a: Annotation, base: CGImage) {
         let r = a.normalizedRect.integral
+        if let c = blurCache[a.id], c.base === base, c.rect == r, c.radius == a.blurRadius {
+            drawImage(c.blurred, in: r)
+            return
+        }
         guard let region = ImageUtils.crop(base, to: r) else { return }
         let ci = CIImage(cgImage: region)
         guard let filter = CIFilter(name: "CIGaussianBlur") else { return }
@@ -202,6 +221,7 @@ enum SceneRenderer {
         guard let output = filter.outputImage,
               let blurred = ciContext.createCGImage(output, from: ci.extent)
         else { return }
+        blurCache[a.id] = (base, r, a.blurRadius, blurred)
         drawImage(blurred, in: r)
     }
 }

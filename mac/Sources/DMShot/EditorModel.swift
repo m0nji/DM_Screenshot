@@ -75,11 +75,17 @@ final class EditorModel: ObservableObject {
     }
 
     /// The base, pre-annotation image cropped to the current view — the source for
-    /// the blur background (keeps live preview == export).
+    /// the blur background (keeps live preview == export). Cached: the canvas asks
+    /// for this on every draw, and the stable identity is also what lets
+    /// FrameRenderer's blur-fill cache hit across draws and export.
+    private var blurSourceCache: (base: CGImage, crop: CGRect, result: CGImage)?
     var blurSourceImage: CGImage? {
         guard let image else { return nil }
-        if let crop, let c = ImageUtils.crop(image, to: crop) { return c }
-        return image
+        guard let crop else { return image }
+        if let c = blurSourceCache, c.base === image, c.crop == crop { return c.result }
+        guard let cropped = ImageUtils.crop(image, to: crop) else { return image }
+        blurSourceCache = (image, crop, cropped)
+        return cropped
     }
 
     // FrameBackground ⇄ UserDefaults ("solid:#hex" | "gradient:warm" | "blur").

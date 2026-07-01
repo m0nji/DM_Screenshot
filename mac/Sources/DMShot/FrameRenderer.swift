@@ -78,21 +78,32 @@ enum FrameRenderer {
         let fillRect = CGRect(
             x: outerRect.midX - fillW / 2, y: outerRect.midY - fillH / 2, width: fillW, height: fillH)
         let radius = FrameGeometry.blurRadius(innerSize: innerRect.size)
-        let ci = CIImage(cgImage: source)
-        let blurred: CGImage = {
-            guard let f = CIFilter(name: "CIGaussianBlur") else { return source }
-            f.setValue(ci.clampedToExtent(), forKey: kCIInputImageKey)
-            f.setValue(radius, forKey: kCIInputRadiusKey)
-            guard let out = f.outputImage, let cg = ciContext.createCGImage(out, from: ci.extent)
-            else { return source }
-            return cg
-        }()
+        let blurred = blurredFill(source: source, radius: radius)
         ctx.saveGState()
         ctx.clip(to: outerRect)
         ctx.draw(blurred, in: fillRect)
         ctx.setFillColor(NSColor(white: 0, alpha: FramePresets.blurDarken).cgColor)
         ctx.fill(outerRect)
         ctx.restoreGState()
+    }
+
+    /// Single-entry cache for the Gaussian-blurred fill. The live canvas draws the
+    /// background on every redraw (i.e. every mouse-move while dragging), and
+    /// re-blurring a full-resolution capture per frame stalls the main thread.
+    /// The result only changes with the source (identity — EditorModel keeps it
+    /// stable) or the radius. Main-thread only, like all callers.
+    private static var blurFillCache: (source: CGImage, radius: CGFloat, blurred: CGImage)?
+
+    private static func blurredFill(source: CGImage, radius: CGFloat) -> CGImage {
+        if let c = blurFillCache, c.source === source, c.radius == radius { return c.blurred }
+        let ci = CIImage(cgImage: source)
+        guard let f = CIFilter(name: "CIGaussianBlur") else { return source }
+        f.setValue(ci.clampedToExtent(), forKey: kCIInputImageKey)
+        f.setValue(radius, forKey: kCIInputRadiusKey)
+        guard let out = f.outputImage, let cg = ciContext.createCGImage(out, from: ci.extent)
+        else { return source }
+        blurFillCache = (source, radius, cg)
+        return cg
     }
 
     private static func roundedPath(_ rect: CGRect, radius: CGFloat) -> NSBezierPath {

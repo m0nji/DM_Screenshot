@@ -23,7 +23,8 @@ final class HistoryStoreVideoTests: XCTestCase {
         let img = GIFEncoderTests.solid(8, 8, r: 1, g: 2, b: 3)
         let gif = try XCTUnwrap(GIFEncoder.encode(frames: [img, img], frameDelay: 0.1))
         store.addVideo(id: id, gifData: gif, thumbnail: img)
-        defer { store.delete(id) }
+        store.flushIO()  // writes are async since the ioQueue change
+        defer { store.delete(id); store.flushIO() }
 
         XCTAssertEqual(store.items.first?.id, id)
         XCTAssertEqual(store.items.first?.kind, .video)
@@ -42,7 +43,8 @@ final class HistoryStoreVideoTests: XCTestCase {
             ids.append(id)
             store.addVideo(id: id, gifData: gif, thumbnail: img)
         }
-        defer { for id in ids { store.delete(id) } }
+        store.flushIO()  // let async writes + the queued eviction removal settle
+        defer { for id in ids { store.delete(id) }; store.flushIO() }
 
         let oldest = ids.first!
         XCTAssertFalse(store.items.contains { $0.id == oldest })  // evicted from index

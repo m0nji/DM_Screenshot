@@ -196,9 +196,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             .store(in: &cancellables)
     }
 
+    /// Last state written to history, so the debounced pipeline — which also fires
+    /// for plain `model.load(...)` (opening an entry) — doesn't re-flatten and
+    /// rewrite files when nothing changed.
+    private var lastPersisted: (id: String, annotations: [Annotation], crop: CGRect?)?
+
     private func persistCurrent() {
-        guard let id = model.entryID, let flat = model.flatten() else { return }
+        guard let id = model.entryID else { return }
+        if let last = lastPersisted, last.id == id,
+           last.annotations == model.annotations, last.crop == model.crop { return }
+        guard let flat = model.flatten() else { return }
+        lastPersisted = (id, model.annotations, model.crop)
         history.updateEntry(id: id, annotations: model.annotations, flattened: flat)
+    }
+
+    /// Call right after `model.load(...)`: the freshly loaded state is on disk already.
+    private func markPersisted() {
+        lastPersisted = model.entryID.map { ($0, model.annotations, model.crop) }
     }
 
     // MARK: - Capture
@@ -344,6 +358,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         let id = "\(Int(Date().timeIntervalSince1970 * 1000))"
         history.addCapture(id: id, original: image, annotations: [])
         model.load(image: image, entryID: id)
+        markPersisted()
         lastCaptureScreenFrame = screenFrame
         switch appSettings.afterCapture {
         case .mainWindow: showEditor()
@@ -499,6 +514,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         }
         guard let img = history.loadOriginal(id) else { return }
         model.load(image: img, entryID: id, annotations: history.loadAnnotations(id))
+        markPersisted()
     }
 
     private func deleteHistory(_ id: String) {
@@ -509,8 +525,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         // entry, or detach so debounced persistence won't recreate the files.
         if let next = history.items.first, let img = history.loadOriginal(next.id) {
             model.load(image: img, entryID: next.id, annotations: history.loadAnnotations(next.id))
+            markPersisted()
         } else {
             model.entryID = nil
+            lastPersisted = nil
         }
     }
 

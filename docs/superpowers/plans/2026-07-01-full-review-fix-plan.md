@@ -27,7 +27,7 @@ code-reviewed but unbuilt (no Windows machine) — verify before release.
 
 ---
 
-## Phase 2 — macOS editor performance (the "drag feels bad" cluster)
+## Phase 2 — macOS editor performance (DONE on `perf/editor-caches` — items 1–5; item 6 deferred)
 
 These compound: with Background=Blur on a 5K capture, one mouse-drag currently does
 a full-image CIGaussianBlur + per-blur-annotation blurs + up to 10 thumbnail PNG
@@ -38,7 +38,7 @@ reads *per mouse-move*.
 3. **H In-memory thumbnail cache.** `HistoryStore.thumbnail` (`HistoryStore.swift:126-129`) does disk read + PNG decode; `EditorView.swift:149-157` calls it on every model tick (i.e. every drag move). Cache `NSImage` by id, invalidate on updateEntry/delete.
 4. **M Move auto-persist off the main thread.** `App.swift:192-202` debounced persist runs full-res `flatten()` + PNG encode synchronously on main; also fires on plain `model.load(...)` (rewrites files just for opening an entry). Flatten+encode on a background queue; skip persist when nothing changed.
 5. **M Capture delivery I/O off main thread.** `App.swift:342-345` + `HistoryStore.addCapture` PNG-encode + write the full capture before Quick-Edit appears (beachball on 5K). Copy to clipboard first, persist async. Same for `deliverGIF`'s double multi-MB write (`App.swift:309-315`).
-6. **L Overlay repaint.** `Overlay.swift:68-93` full-image repaint + new `NSImage` wrapper per mouse-move. Optional: layer-backed dim + mask.
+6. **L Overlay repaint.** `Overlay.swift:68-93` full-image repaint + new `NSImage` wrapper per mouse-move. Optional: layer-backed dim + mask. *(Deferred — not part of the editor-caches branch.)*
 
 Parity note: 1–3 are mac-only perf internals. Windows has its own equivalents in Phase 5.
 
