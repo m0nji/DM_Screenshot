@@ -76,7 +76,9 @@ public partial class QuickEditOverlayWindow : Window
         {
             if (e.Key == Key.Escape) CloseOverlay();
             else if (e.Key == Key.Delete) Canvas.DeleteSelected();
+            else if (e.Key == Key.Z && Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift)) Canvas.Model.Redo();
             else if (e.Key == Key.Z && (Keyboard.Modifiers & ModifierKeys.Control) != 0) Canvas.Model.Undo();
+            else if (e.Key == Key.Y && (Keyboard.Modifiers & ModifierKeys.Control) != 0) Canvas.Model.Redo();
         };
         // Hook base Window.Closed so every close path (Alt+F4, shutdown, CloseOverlay) fires Dismissed.
         ((System.Windows.Window)this).Closed += (_, _) => { _shown = false; Dismissed?.Invoke(); };
@@ -141,6 +143,7 @@ public partial class QuickEditOverlayWindow : Window
     // "photo.artframe"-like icon (matches EditorWindow.xaml BgButton): outer frame + top-bar + left-bar
     private const string BgGeo = "M2,3 L22,3 L22,21 L2,21 Z M2,8 L22,8 M7,3 L7,8";
     private const string UndoGeo  = "M9,6 L5,9.5 L9,13 M5,9.5 L14,9.5 C17,9.5 19,11.6 19,14.2 C19,16.8 17,18.5 14.3,18.5 L11,18.5";
+    private const string RedoGeo  = "M15,6 L19,9.5 L15,13 M19,9.5 L10,9.5 C7,9.5 5,11.6 5,14.2 C5,16.8 7,18.5 9.7,18.5 L13,18.5";
     private const string CloseGeo = "M6.5,6.5 L17.5,17.5 M17.5,6.5 L6.5,17.5";
     // Action icons mirror the macOS toolbar's SF Symbols so both platforms read identically.
     // doc.on.doc: a full front page (bottom-left) with the back page's top/right edges peeking out.
@@ -177,6 +180,7 @@ public partial class QuickEditOverlayWindow : Window
         row.Children.Add(IconAction(Icon(BgGeo, false), Loc.Instance["background"], ToggleFrameFlyout));
         row.Children.Add(BuildSizeControl());   // always-visible size / blur-strength slider
         row.Children.Add(IconAction(Icon(UndoGeo, false), Loc.Instance["undo"], () => Canvas.Model.Undo()));
+        row.Children.Add(IconAction(Icon(RedoGeo, false), Loc.Instance["redo"], () => Canvas.Model.Redo()));
         row.Children.Add(Divider());
         // Icon-only actions (no text labels), matching the macOS Quick-Edit toolbar.
         row.Children.Add(IconAction(Icon(CloseGeo, false), Loc.Instance["close"], CloseOverlay));

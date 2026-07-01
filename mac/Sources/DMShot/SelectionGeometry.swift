@@ -183,6 +183,32 @@ enum SelectionGeometry {
         }
     }
 
+    /// True when `point` selects the annotation's body. Line kinds (arrow,
+    /// underline) test distance to the segment instead of rect containment —
+    /// a long diagonal arrow's mostly-empty bounding box used to occlude
+    /// everything under it. Mirrored in windows SelectionGeometry.
+    static func bodyHit(_ annotation: Annotation, at point: CGPoint) -> Bool {
+        switch annotation.kind {
+        case .arrow, .underline:
+            // Same tolerance formula as the Windows SelectionGeometry.HitTest.
+            let tolerance = max(8, annotation.strokeWidth + 6)
+            let a = CGPoint(x: annotation.x, y: annotation.y)
+            let b = CGPoint(x: annotation.x + annotation.width,
+                            y: annotation.y + annotation.height)
+            return distanceToSegment(point, a, b) <= tolerance
+        default:
+            return bodyHitRect(for: annotation).contains(point)
+        }
+    }
+
+    static func distanceToSegment(_ p: CGPoint, _ a: CGPoint, _ b: CGPoint) -> CGFloat {
+        let dx = b.x - a.x, dy = b.y - a.y
+        let lenSq = dx * dx + dy * dy
+        guard lenSq > 0 else { return distance(from: p, to: a) }
+        let t = max(0, min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / lenSq))
+        return distance(from: p, to: CGPoint(x: a.x + t * dx, y: a.y + t * dy))
+    }
+
     private static func distance(from a: CGPoint, to b: CGPoint) -> CGFloat {
         hypot(a.x - b.x, a.y - b.y)
     }

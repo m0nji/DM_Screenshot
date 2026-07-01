@@ -208,7 +208,12 @@ enum SceneRenderer {
     }
 
     private static func drawBlur(_ a: Annotation, base: CGImage) {
-        let r = a.normalizedRect.integral
+        // Clamp to the image: ImageUtils.crop clamps the SOURCE anyway, so an
+        // off-image rect used to stretch the smaller blurred region into the
+        // full unclamped rect — misaligned smearing at the edges.
+        let imageBounds = CGRect(x: 0, y: 0, width: base.width, height: base.height)
+        let r = a.normalizedRect.integral.intersection(imageBounds).integral
+        guard !r.isEmpty else { return }
         if let c = blurCache[a.id], c.base === base, c.rect == r, c.radius == a.blurRadius {
             drawImage(c.blurred, in: r)
             return

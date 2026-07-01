@@ -71,6 +71,9 @@ public sealed class EditorModel
         int idx = _items.IndexOf(a);
         if (idx < 0) return;
         Do(() => _items.Remove(a), () => _items.Insert(idx, a));
+        // Recompute like Undo/Redo do, or deleting step 3 of 1-2-3 makes the
+        // next step "4" while undoing the same edit correctly yields "3".
+        _stepCounter = _items.Select(x => x.StepNumber).DefaultIfEmpty(0).Max();
     }
 
     public void SetCrop(PixelRect? rect)
@@ -103,6 +106,7 @@ public sealed class EditorModel
         Crop = crop;
         _undo.Clear();
         _redo.Clear();
+        ResetCoalescing();
         _stepCounter = _items.Select(a => a.StepNumber).DefaultIfEmpty(0).Max();
         ResetZoom();
         Changed?.Invoke();
@@ -114,6 +118,52 @@ public sealed class EditorModel
         var before = a.Clone();
         mutate(a);
         RecordMutation(a, before);
+    }
+
+    // ── Gesture coalescing ──
+    // Continuous controls (the stroke/blur sliders) fire per tick. One undo
+    // command per tick floods the stack — Ctrl+Z then rewinds the slider one
+    // notch at a time. Coalescing: the first tick of a gesture captures the
+    // before-state; each further tick with the same (annotation, prop) replaces
+    // the top command so the whole gesture stays ONE undo step. Any other
+    // recording operation (or Undo/Redo/ReplaceDocument) ends the gesture.
+    // Mirrors updateCoalesced in the macOS EditorModel — keep behavior identical.
+    private Annotation? _coalesceTarget;
+    private string? _coalesceProp;
+    private Annotation? _coalesceBefore;
+    private bool _coalescePushed;
+
+    public void MutateCoalesced(Annotation a, string prop, Action<Annotation> mutate)
+    {
+        if (!_items.Contains(a)) return;
+        if (!ReferenceEquals(_coalesceTarget, a) || _coalesceProp != prop)
+        {
+            _coalesceTarget = a;
+            _coalesceProp = prop;
+            _coalesceBefore = a.Clone();
+            _coalescePushed = false;
+        }
+        mutate(a);
+        var before = _coalesceBefore!.Clone();
+        var after = a.Clone();
+        if (_coalescePushed && _undo.Count > 0) _undo.Pop();
+        _coalescePushed = false;
+        if (!SameAnnotation(before, after))
+        {
+            // Push directly (not via Record) so the coalescing state survives.
+            _undo.Push(new EditCommand(() => CopyAnnotation(after, a), () => CopyAnnotation(before, a)));
+            _redo.Clear();
+            _coalescePushed = true;
+        }
+        Changed?.Invoke();
+    }
+
+    private void ResetCoalescing()
+    {
+        _coalesceTarget = null;
+        _coalesceProp = null;
+        _coalesceBefore = null;
+        _coalescePushed = false;
     }
 
     public void RecordMutation(Annotation a, Annotation before)
@@ -135,6 +185,7 @@ public sealed class EditorModel
 
     private void Record(Action apply, Action revert)
     {
+        ResetCoalescing();
         _undo.Push(new EditCommand(apply, revert));
         _redo.Clear();
         Changed?.Invoke();
@@ -169,6 +220,7 @@ public sealed class EditorModel
     public void Undo()
     {
         if (_undo.Count == 0) return;
+        ResetCoalescing();
         var command = _undo.Pop();
         command.Revert();
         _redo.Push(command);
@@ -179,6 +231,7 @@ public sealed class EditorModel
     public void Redo()
     {
         if (_redo.Count == 0) return;
+        ResetCoalescing();
         var command = _redo.Pop();
         command.Apply();
         _undo.Push(command);

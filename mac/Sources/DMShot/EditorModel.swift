@@ -120,14 +120,34 @@ final class EditorModel: ObservableObject {
         self.tool = .select
         undoStack = []
         redoStack = []
+        coalesceKey = nil
         stepCounter = Self.maxStepLabel(in: annotations)
         resetZoom()
     }
 
     func snapshot() {
+        coalesceKey = nil
         undoStack.append(documentState)
         if undoStack.count > 50 { undoStack.removeFirst() }
         redoStack = []
+    }
+
+    /// Continuous controls (color wheel, sliders) fire per tick. A snapshot per
+    /// tick floods the undo stack and evicts real history; recording nothing
+    /// makes the whole gesture invisible to undo. Coalescing: the first update
+    /// for a key snapshots, further updates with the same key fold into it, and
+    /// any other undo-recording operation (or undo/redo/load) resets the key so
+    /// the next gesture gets its own undo step. Mirrored in the Windows
+    /// EditorModel — keep behavior identical.
+    private var coalesceKey: String?
+
+    func updateCoalesced(_ id: UUID, key: String, _ transform: (inout Annotation) -> Void) {
+        guard let idx = annotations.firstIndex(where: { $0.id == id }) else { return }
+        if coalesceKey != key {
+            snapshot()          // resets coalesceKey — reclaim it for this gesture
+            coalesceKey = key
+        }
+        transform(&annotations[idx])
     }
 
     func add(_ a: Annotation) {
@@ -148,6 +168,9 @@ final class EditorModel: ObservableObject {
         snapshot()
         annotations.removeAll { $0.id == id }
         selectedID = nil
+        // Recompute like undo/redo do, or deleting step 3 of 1-2-3 makes the
+        // next step "4" while undoing the same edit correctly yields "3".
+        stepCounter = Self.maxStepLabel(in: annotations)
     }
 
     func remove(_ id: UUID) {
@@ -155,6 +178,7 @@ final class EditorModel: ObservableObject {
         snapshot()
         annotations.removeAll { $0.id == id }
         if selectedID == id { selectedID = nil }
+        stepCounter = Self.maxStepLabel(in: annotations)
     }
 
     func setCrop(_ newCrop: CGRect?, record: Bool = true) {
@@ -176,6 +200,7 @@ final class EditorModel: ObservableObject {
     }
 
     private func apply(_ state: DocumentState) {
+        coalesceKey = nil
         annotations = state.annotations
         crop = state.crop
         selectedID = nil

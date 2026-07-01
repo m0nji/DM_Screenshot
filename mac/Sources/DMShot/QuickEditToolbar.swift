@@ -72,6 +72,8 @@ struct QuickEditToolbar: View {
             Divider().frame(height: 22).background(appDesign.borderColor)
             Button(action: model.undo) { Image(systemName: "arrow.uturn.backward") }
                 .buttonStyle(ToolButtonStyle(active: false, design: appDesign)).dmTooltip(tr(.undo)).disabled(model.image == nil)
+            Button(action: model.redo) { Image(systemName: "arrow.uturn.forward") }
+                .buttonStyle(ToolButtonStyle(active: false, design: appDesign)).dmTooltip(tr(.redo)).disabled(model.image == nil)
             Divider().frame(height: 22).background(appDesign.borderColor)
             Button(action: onClose) { Image(systemName: "xmark") }
                 .buttonStyle(ToolButtonStyle(active: false, design: appDesign)).dmTooltip(tr(.close))

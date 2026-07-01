@@ -165,6 +165,35 @@ final class SelectionGeometryTests: XCTestCase {
         XCTAssertEqual(hit, CGRect(x: 2, y: 12, width: 56, height: 46))
     }
 
+    func testArrowBodyHitFollowsTheSegmentNotTheBoundingBox() {
+        // Diagonal arrow (0,0)→(100,100), stroke 4 → tolerance 4*1.75+4 = 11.
+        let a = makeAnnotation(kind: .arrow, x: 0, y: 0, width: 100, height: 100)
+
+        XCTAssertTrue(SelectionGeometry.bodyHit(a, at: CGPoint(x: 50, y: 50)))    // on the line
+        XCTAssertTrue(SelectionGeometry.bodyHit(a, at: CGPoint(x: 50, y: 57)))    // ~5 px off
+        // Inside the bounding box but far from the segment (the old occlusion bug).
+        XCTAssertFalse(SelectionGeometry.bodyHit(a, at: CGPoint(x: 90, y: 10)))
+        XCTAssertFalse(SelectionGeometry.bodyHit(a, at: CGPoint(x: 10, y: 90)))
+        // Beyond the endpoints is not a hit either.
+        XCTAssertFalse(SelectionGeometry.bodyHit(a, at: CGPoint(x: 120, y: 120)))
+    }
+
+    func testRectBodyHitStillUsesPaddedRect() {
+        let r = makeAnnotation(kind: .rect, x: 10, y: 20, width: 40, height: 30)  // stroke 4
+        XCTAssertTrue(SelectionGeometry.bodyHit(r, at: CGPoint(x: 30, y: 35)))    // interior
+        XCTAssertTrue(SelectionGeometry.bodyHit(r, at: CGPoint(x: 4, y: 14)))     // in the -8 pad
+        XCTAssertFalse(SelectionGeometry.bodyHit(r, at: CGPoint(x: 0, y: 0)))
+    }
+
+    func testDistanceToSegmentClampsToEndpoints() {
+        let a = CGPoint(x: 0, y: 0), b = CGPoint(x: 10, y: 0)
+        XCTAssertEqual(SelectionGeometry.distanceToSegment(CGPoint(x: 5, y: 3), a, b), 3, accuracy: 1e-9)
+        XCTAssertEqual(SelectionGeometry.distanceToSegment(CGPoint(x: -4, y: 0), a, b), 4, accuracy: 1e-9)
+        XCTAssertEqual(SelectionGeometry.distanceToSegment(CGPoint(x: 13, y: 4), a, b), 5, accuracy: 1e-9)
+        // Degenerate zero-length segment falls back to point distance.
+        XCTAssertEqual(SelectionGeometry.distanceToSegment(CGPoint(x: 3, y: 4), a, a), 5, accuracy: 1e-9)
+    }
+
     func testCanvasDraggingTextBodyMovesAndUndoRestores() {
         var t = makeAnnotation(kind: .text, x: 40, y: 40, width: 0, height: 0)
         t.text = "Ag"

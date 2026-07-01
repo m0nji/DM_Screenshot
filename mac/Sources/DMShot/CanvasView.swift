@@ -414,7 +414,11 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
             return
         }
         if model.tool == .crop, let d = draft {
-            let r = d.normalizedRect
+            // Clamp to the image: the canvas pad gutter (and the frame's padding
+            // ring) is draggable, but export intersects with the image bounds —
+            // an unclamped crop makes the exported size silently differ from the
+            // on-screen preview and the W×H readout.
+            let r = d.normalizedRect.intersection(CGRect(origin: .zero, size: model.pixelSize))
             if r.width > 4, r.height > 4 { model.setCrop(r) }
             return
         }
@@ -515,7 +519,7 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
 
     private func annotationHit(_ p: CGPoint) -> Annotation? {
         for a in model.annotations.reversed() {
-            if SelectionGeometry.bodyHitRect(for: a).contains(p) { return a }
+            if SelectionGeometry.bodyHit(a, at: p) { return a }
         }
         return nil
     }

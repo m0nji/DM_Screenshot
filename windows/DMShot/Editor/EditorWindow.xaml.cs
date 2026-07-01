@@ -282,6 +282,10 @@ public partial class EditorWindow : Window
     private void OnKey(object sender, KeyEventArgs e)
     {
         if (e.Key is Key.Delete or Key.Back) { Canvas.DeleteSelected(); return; }
+        if (e.Key == Key.Z && Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift))
+        {
+            Canvas.Model.Redo(); e.Handled = true; return;   // Ctrl+Shift+Z alongside Ctrl+Y
+        }
         if (Keyboard.Modifiers != ModifierKeys.Control) return;
         switch (e.Key)
         {

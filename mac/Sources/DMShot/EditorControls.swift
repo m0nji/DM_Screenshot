@@ -37,7 +37,11 @@ struct EditorColorPalette: View {
                 set: { newColor in
                     let hex = Self.hexString(from: newColor)
                     model.colorHex = hex
-                    applyColor(hex)
+                    // Continuous while dragging the wheel — coalesce into ONE
+                    // undo step instead of a snapshot per tick.
+                    if let id = model.selectedID {
+                        model.updateCoalesced(id, key: "color-\(id)") { $0.colorHex = hex }
+                    }
                 }))
         }
         .padding(12)
@@ -111,13 +115,17 @@ struct EditorContextualSlider: View {
         }
     }
 
+    // Coalesced: one undo step per slider gesture (previously record: false,
+    // which made the whole size/blur change invisible to undo).
     private func applyStroke(_ w: CGFloat) {
-        if let id = model.selectedID { model.update(id, record: false) { $0.strokeWidth = w } }
+        if let id = model.selectedID {
+            model.updateCoalesced(id, key: "stroke-\(id)") { $0.strokeWidth = w }
+        }
     }
     private func applyBlur(_ r: CGFloat) {
         if let id = model.selectedID,
            model.annotations.first(where: { $0.id == id })?.kind == .blur {
-            model.update(id, record: false) { $0.blurRadius = r }
+            model.updateCoalesced(id, key: "blur-\(id)") { $0.blurRadius = r }
         }
     }
 }

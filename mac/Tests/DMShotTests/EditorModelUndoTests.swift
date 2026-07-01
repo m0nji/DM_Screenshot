@@ -66,6 +66,63 @@ final class EditorModelUndoTests: XCTestCase {
         XCTAssertEqual(model.stepCounter, 2)
     }
 
+    func testCoalescedUpdatesAreOneUndoStep() {
+        let annotation = makeAnnotation(kind: .rect, x: 10, y: 12, width: 30, height: 20)
+        let model = EditorModel()
+        model.load(image: makeImage(100, 80), entryID: "test", annotations: [annotation])
+
+        // A slider/color-wheel gesture: many ticks, same key → one undo step.
+        for w in 5...15 {
+            model.updateCoalesced(annotation.id, key: "stroke-\(annotation.id)") {
+                $0.strokeWidth = CGFloat(w)
+            }
+        }
+        XCTAssertEqual(model.annotations[0].strokeWidth, 15)
+
+        model.undo()
+        XCTAssertEqual(model.annotations[0].strokeWidth, 4)   // whole gesture undone
+        model.redo()
+        XCTAssertEqual(model.annotations[0].strokeWidth, 15)  // and redone as one step
+    }
+
+    func testCoalescingResetsAcrossOtherOperationsAndUndo() {
+        let annotation = makeAnnotation(kind: .rect, x: 10, y: 12, width: 30, height: 20)
+        let model = EditorModel()
+        model.load(image: makeImage(100, 80), entryID: "test", annotations: [annotation])
+
+        model.updateCoalesced(annotation.id, key: "stroke") { $0.strokeWidth = 9 }
+        model.update(annotation.id) { $0.colorHex = "#000000" }   // regular record resets the key
+        model.updateCoalesced(annotation.id, key: "stroke") { $0.strokeWidth = 12 }
+
+        model.undo()   // second stroke gesture
+        XCTAssertEqual(model.annotations[0].strokeWidth, 9)
+        XCTAssertEqual(model.annotations[0].colorHex, "#000000")
+        model.undo()   // color change
+        XCTAssertEqual(model.annotations[0].colorHex, "#EF4444")
+        model.undo()   // first stroke gesture
+        XCTAssertEqual(model.annotations[0].strokeWidth, 4)
+
+        // After an undo, a new tick with the SAME key must start a fresh step.
+        model.updateCoalesced(annotation.id, key: "stroke") { $0.strokeWidth = 7 }
+        model.undo()
+        XCTAssertEqual(model.annotations[0].strokeWidth, 4)
+    }
+
+    func testDeleteRecomputesStepCounterLikeUndoDoes() {
+        let model = EditorModel()
+        model.load(
+            image: makeImage(100, 80), entryID: "test",
+            annotations: [makeStep(label: 1), makeStep(label: 2), makeStep(label: 3)])
+        XCTAssertEqual(model.stepCounter, 3)
+
+        model.selectedID = model.annotations.last?.id
+        model.removeSelected()                       // delete step 3
+        XCTAssertEqual(model.stepCounter, 2)         // next placed step is 3, not 4
+
+        model.remove(model.annotations.last!.id)     // delete step 2 via remove(_:)
+        XCTAssertEqual(model.stepCounter, 1)
+    }
+
     private func makeImage(_ width: Int, _ height: Int) -> CGImage {
         let context = CGContext(
             data: nil,

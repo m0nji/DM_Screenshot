@@ -53,7 +53,15 @@ Parity note: 1–3 are mac-only perf internals. Windows has its own equivalents 
 7. **L Loupe edge accuracy.** `LoupeMath.sampleRect` clamps the window but the crosshair stays centered (`Overlay.swift:163-170`) — wrong pixel indicated within 10 px of edges. Offset the crosshair by the clamp delta. 🍎🪟 (LoupeMath is mirrored). *(Deferred — parity-coupled, own change.)*
    Notes from implementation: mac selection clamp (item 5) matches the existing `SelectionMath.Clamp` on Windows; the visible ✕ discard button (item 3) was added on BOTH platforms; win recording-failure surfacing remains Phase 5.
 
-## Phase 4 — Undo & editing correctness (🍎🪟 parity-coupled)
+## Phase 4 — Undo & editing correctness (DONE on `fix/undo-editing-correctness`, 🍎🪟)
+
+Implementation notes: gesture coalescing added on both platforms (mac
+`EditorModel.updateCoalesced`, win `EditorModel.MutateCoalesced` — one undo step
+per slider/color-wheel gesture); items 4 (blur clamp) and 7 (segment hit-test)
+turned out to be mac-only gaps — Windows already did both (`DrawMosaic` clamps,
+`SelectionGeometry.HitTest` uses `DistToSegment`); mac hit tolerance aligned to
+the Windows formula `max(8, stroke+6)`. Win keyboard: Ctrl+Shift+Z added
+(editor + Quick-Edit), Quick-Edit redo button added on both.
 
 1. **H mac: color-wheel drag floods undo.** `EditorControls.swift:35-41` records a snapshot per tick (and wipes redo); cap-50 evicts real history. One snapshot per color-panel gesture.
 2. **M mac: stroke/blur slider edits invisible to undo** (`record: false`, no gesture snapshot — `EditorControls.swift:114-122`). 🪟 mirror-image bug: one undo entry *per slider tick* (`CanvasControl.cs:496-505`, `EditorModel.cs:111-128`). Fix both to: snapshot at gesture start, record once at gesture end.

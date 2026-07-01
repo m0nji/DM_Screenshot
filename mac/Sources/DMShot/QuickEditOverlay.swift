@@ -138,11 +138,16 @@ final class QuickEditOverlay {
         window = win
 
         escMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            if event.keyCode == 53 {  // Esc → close (overrides the canvas's deselect)
-                self?.close(); self?.onClose()
-                return nil
-            }
-            return event
+            guard event.keyCode == 53 else { return event }  // Esc only
+            // Only OUR overlay window: an app-wide monitor used to close the
+            // overlay even when Esc was pressed in the main editor window.
+            guard let self, let win = self.window, event.window === win else { return event }
+            // While typing an inline text/step comment, Esc must COMMIT the text
+            // (main-editor behavior via the canvas's doCommandBy), not tear the
+            // whole overlay down mid-sentence.
+            if win.firstResponder is NSTextView { return event }
+            self.close(); self.onClose()
+            return nil
         }
 
         // No NSApp.activate: the non-activating panel becomes key on its own

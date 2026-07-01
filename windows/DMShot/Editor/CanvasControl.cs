@@ -522,8 +522,15 @@ public sealed class CanvasControl : FrameworkElement
         var d = _draft; _draft = null;
         if (d.Kind == ToolKind.Crop)
         {
-            Model.SetCrop(new Capture.PixelRect((int)Math.Min(d.X0, d.X1), (int)Math.Min(d.Y0, d.Y1),
-                (int)Math.Abs(d.X1 - d.X0), (int)Math.Abs(d.Y1 - d.Y0)));
+            // Clamp to the image and require a real drag (matches the macOS
+            // editor's > 4 px guard): a bare click used to commit a 0×0 crop,
+            // and Copy/Save then threw on new Bitmap(0, 0).
+            int x = (int)Math.Min(d.X0, d.X1), y = (int)Math.Min(d.Y0, d.Y1);
+            int left = Math.Max(0, x), top = Math.Max(0, y);
+            int right = Math.Min(_w, x + (int)Math.Abs(d.X1 - d.X0));
+            int bottom = Math.Min(_h, y + (int)Math.Abs(d.Y1 - d.Y0));
+            if (right - left > 4 && bottom - top > 4)
+                Model.SetCrop(new Capture.PixelRect(left, top, right - left, bottom - top));
             return;
         }
         Model.Add(d);
@@ -538,15 +545,17 @@ public sealed class CanvasControl : FrameworkElement
         if (_selected is null) return;
         Model.Mutate(_selected, a => a.ColorArgb = argb);
     }
+    // Coalesced: slider drags fire per tick — one undo step per gesture instead
+    // of Ctrl+Z rewinding the slider one notch at a time.
     public void ApplyStrokeToSelected(double w)
     {
         if (_selected is null) return;
-        Model.Mutate(_selected, a => a.StrokeWidth = w);
+        Model.MutateCoalesced(_selected, "stroke", a => a.StrokeWidth = w);
     }
     public void ApplyBlurToSelected(int strength)
     {
         if (_selected is null || _selected.Kind != ToolKind.Blur) return;
-        Model.Mutate(_selected, a => a.BlurStrength = strength);
+        Model.MutateCoalesced(_selected, "blur", a => a.BlurStrength = strength);
     }
     public void DeleteSelected()
     {
