@@ -232,7 +232,10 @@ public partial class EditorWindow : Window
             OnVideoEntryActivated?.Invoke(entry);
             return;
         }
-        using var bmp = new System.Drawing.Bitmap(entry.OriginalPngPath);
+        // Decouple from the PNG: LoadImage's Clone() would share the file mapping and
+        // keep the history file locked, so deleting the open entry failed silently.
+        using var file = new System.Drawing.Bitmap(entry.OriginalPngPath);
+        using var bmp = DMShot.Platform.ImageInterop.DecoupledCopy(file);
         LoadImage(bmp);
         Canvas.Model.ReplaceDocument(entry.Annotations.Select(d => d.To()), entry.Crop);
         UpdateStatus();

@@ -171,4 +171,12 @@ public partial class OverlayWindow : Window
         Mouse.OverrideCursor = null; // release the app-wide crosshair before the overlays close
         Finished?.Invoke(this, committed);
     }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        // A close that skips Finish (Alt+F4 on the overlay) must not leave the
+        // app-wide crosshair stuck. Only clear our own override.
+        if (ReferenceEquals(Mouse.OverrideCursor, Cursors.Cross)) Mouse.OverrideCursor = null;
+        base.OnClosed(e);
+    }
 }

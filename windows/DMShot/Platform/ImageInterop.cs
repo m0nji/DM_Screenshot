@@ -22,6 +22,11 @@ public static class ImageInterop
         finally { bmp.UnlockBits(data); }
     }
 
+    /// <summary>Fully decoupled pixel copy. A Bitmap loaded from a path keeps the file
+    /// locked, and Clone() shares that mapping — this copy holds no file handle.</summary>
+    public static Bitmap DecoupledCopy(Bitmap src)
+        => Crop(src, new PixelRect(0, 0, src.Width, src.Height));
+
     public static Bitmap Crop(Bitmap src, PixelRect r)
     {
         var rect = new Rectangle(r.X, r.Y, Math.Max(1, r.Width), Math.Max(1, r.Height));

@@ -379,7 +379,7 @@ public partial class QuickEditOverlayWindow : Window
         _sizeIsBlur = blur;
         _sizeLabel.Text = Loc.Instance[blur ? "blur" : "size"];
         _sizeSlider.Minimum = blur ? 4 : 1;
-        _sizeSlider.Maximum = blur ? 40 : 24;
+        _sizeSlider.Maximum = blur ? 40 : 20;   // stroke max matches the main editor (full mac-range alignment: Phase 6)
         double val = blur
             ? (sel is { Kind: ToolKind.Blur } b ? b.BlurStrength : Canvas.ActiveBlurStrength)
             : (sel is { } s && s.Kind != ToolKind.Blur ? s.StrokeWidth : Canvas.ActiveStroke);
