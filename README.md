@@ -3,6 +3,8 @@
 A fast, native screenshot & annotation tool. **macOS** ships first (native Swift /
 AppKit / ScreenCaptureKit); **Windows** follows as a separate native project.
 
+> **Just want to install it?** Grab the ready-made app package for your operating system from the [Releases page](https://github.com/m0nji/DM_Screenshot/releases/latest) — no build step required.
+
 > Architecture note: an earlier cross-platform prototype (Tauri + React) was dropped
 > because the web overlay never felt instant enough. We now use a native app per
 > platform — the macOS app lives in `mac/`, Windows will live in `windows/`.
