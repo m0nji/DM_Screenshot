@@ -99,10 +99,19 @@ public static class GifEncoder
 
     private static int Centi(double delaySec) => Math.Max(1, (int)Math.Round(delaySec * 100.0));
 
-    private static Image<Rgba32> ToImageSharp(Drawing.Bitmap bmp)
+    private static Image<Bgra32> ToImageSharp(Drawing.Bitmap bmp)
     {
-        using var ms = new MemoryStream();
-        bmp.Save(ms, ImageFormat.Png);
-        return Image.Load<Rgba32>(ms.ToArray());
+        int w = bmp.Width, h = bmp.Height;
+        var data = bmp.LockBits(new Drawing.Rectangle(0, 0, w, h), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+        try
+        {
+            // GDI Format32bppArgb is BGRA in memory — load it directly, no PNG round-trip.
+            var pixels = new byte[w * h * 4];
+            int row = w * 4;
+            for (int y = 0; y < h; y++)
+                System.Runtime.InteropServices.Marshal.Copy(data.Scan0 + y * data.Stride, pixels, y * row, row);
+            return Image.LoadPixelData<Bgra32>(pixels, w, h);
+        }
+        finally { bmp.UnlockBits(data); }
     }
 }

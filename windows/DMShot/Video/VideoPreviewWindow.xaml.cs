@@ -13,6 +13,7 @@ public partial class VideoPreviewWindow : Window, IDisposable
     private double _trimStart;
     private double _trimEnd;
     private bool _createdGif;
+    private bool _rendering;   // 5.1: GIF render runs off-thread; freeze playback + disable Create meanwhile
     private bool _disposed;
 
     public event Action<double, double>? CreateGifRequested;
@@ -73,7 +74,7 @@ public partial class VideoPreviewWindow : Window, IDisposable
     // ── Frame display ──────────────────────────────────────────────────────
     private void ShowFrame(int i)
     {
-        if (_disposed) return;
+        if (_disposed || _rendering) return; // while rendering, the background thread owns the bitmaps
         Preview.Source = ImageInterop.ToBitmapSource(_frames[i].Image);
         // Update scrub without re-triggering its ValueChanged handler.
         Scrub.ValueChanged -= Scrub_ValueChanged;
@@ -104,6 +105,7 @@ public partial class VideoPreviewWindow : Window, IDisposable
     // ── Slider handlers ───────────────────────────────────────────────────
     private void Scrub_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
+        if (_rendering) return;
         // Scrubbing pauses auto-play and shows the frame nearest to the drag position.
         _timer.Stop();
         ShowFrameAt(e.NewValue);
@@ -181,16 +183,20 @@ public partial class VideoPreviewWindow : Window, IDisposable
         return unit == 0 ? $"{bytes} {units[unit]}" : $"{value:0.#} {units[unit]}";
     }
 
-    /// <summary>Disable Create GIF when the trim region is empty.</summary>
+    /// <summary>Disable Create GIF when the trim region is empty or a render is running.</summary>
     private void UpdateCreateGifEnabled()
     {
-        CreateGifButton.IsEnabled = _trimEnd > _trimStart;
+        CreateGifButton.IsEnabled = !_rendering && _trimEnd > _trimStart;
     }
 
     // ── Create GIF ─────────────────────────────────────────────────────────
     private void Raise()
     {
         _createdGif = true;
+        _rendering = true;
+        _timer.Stop();                                  // frame bitmaps now belong to the render thread
+        Cursor = System.Windows.Input.Cursors.Wait;
+        UpdateCreateGifEnabled();
         CreateGifRequested?.Invoke(_trimStart, _trimEnd);
     }
 

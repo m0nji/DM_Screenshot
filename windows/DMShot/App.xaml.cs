@@ -350,17 +350,19 @@ public partial class App : Application
         _preview?.Close();                                          // V15: close prior before new
         var preview = new VideoPreviewWindow(frames);
         _preview = preview;
-        preview.CreateGifRequested += (start, end) => { DeliverGif(frames, start, end); preview.Close(); };
+        preview.CreateGifRequested += async (start, end) => { await DeliverGifAsync(frames, start, end); preview.Close(); };
         preview.Closed += (_, _) => { if (ReferenceEquals(_preview, preview)) _preview = null; };
         // Discarded: frames are disposed by the preview's own OnClosed (V9), nothing to do here.
         preview.Show(); preview.Activate();                        // V20: preview to foreground
     }
 
-    private void DeliverGif(IReadOnlyList<RecordedFrame> frames, double start, double end)
+    private async System.Threading.Tasks.Task DeliverGifAsync(IReadOnlyList<RecordedFrame> frames, double start, double end)
     {
         try
         {
-            var (gif, thumb) = GifRenderer.Render(frames, start, end);
+            // 5.1: render + encode off the dispatcher — a 30 s trim froze the UI ("Not Responding").
+            // The preview pauses playback while rendering, so nothing else touches the frame bitmaps.
+            var (gif, thumb) = await System.Threading.Tasks.Task.Run(() => GifRenderer.Render(frames, start, end));
             if (gif.Length == 0) { thumb.Dispose(); return; }     // I2: guard empty GIF before AddVideo
             HistoryEntry entry;
             using (thumb) { entry = _history.AddVideo(thumb, gif, DateTime.UtcNow); }
