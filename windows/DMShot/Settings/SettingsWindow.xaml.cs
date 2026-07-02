@@ -106,26 +106,74 @@ public partial class SettingsWindow : Window
             })));
     }
 
+    // Per-row validation errors (needs-modifier / duplicate), keyed by hotkey id —
+    // mirrors mac's lastError map next to the registration failure (systemInUse).
+    private readonly Dictionary<int, string> _shortcutErrors = new();
+
+    private (int Id, string Title, Func<string> Get, Action<string> Set)[] ShortcutRows() => new (int, string, Func<string>, Action<string>)[]
+    {
+        (App.HK_FULL, Loc.Instance["actionFullScreen"], () => _settings.FullScreenHotkey, v => _settings.FullScreenHotkey = v),
+        (App.HK_AREA, Loc.Instance["actionAreaSelection"], () => _settings.AreaHotkey, v => _settings.AreaHotkey = v),
+        (App.HK_VIDEO_FULL, Loc.Instance["actionVideoFull"], () => _settings.VideoFullHotkey, v => _settings.VideoFullHotkey = v),
+        (App.HK_VIDEO_AREA, Loc.Instance["actionVideoArea"], () => _settings.VideoAreaHotkey, v => _settings.VideoAreaHotkey = v),
+    };
+
     private void ShowShortcuts()
     {
         if (Pane is null) return;
         Pane.Children.Clear();
         Pane.Children.Add(SectionTitle(Loc.Instance["sectionShortcuts"]));
-        // Commit re-registers the hotkeys (App handles Saved synchronously), so rebuild
-        // the section right after: a refused RegisterHotKey shows/clears its row error.
-        Pane.Children.Add(Row(Loc.Instance["actionFullScreen"], _settings.FullScreenHotkey, App.HK_FULL,
-            h => { _settings.FullScreenHotkey = h; Commit(); ShowShortcuts(); }));
-        Pane.Children.Add(Row(Loc.Instance["actionAreaSelection"], _settings.AreaHotkey, App.HK_AREA,
-            h => { _settings.AreaHotkey = h; Commit(); ShowShortcuts(); }));
-        Pane.Children.Add(Row(Loc.Instance["actionVideoFull"], _settings.VideoFullHotkey, App.HK_VIDEO_FULL,
-            h => { _settings.VideoFullHotkey = h; Commit(); ShowShortcuts(); }));
-        Pane.Children.Add(Row(Loc.Instance["actionVideoArea"], _settings.VideoAreaHotkey, App.HK_VIDEO_AREA,
-            h => { _settings.VideoAreaHotkey = h; Commit(); ShowShortcuts(); }));
+        foreach (var row in ShortcutRows())
+            Pane.Children.Add(Row(row.Title, row.Get(), row.Id, h => SetHotkey(row.Id, h)));
+
+        var reset = new Button
+        {
+            Content = Loc.Instance["resetToDefaults"],
+            HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 14, 0, 0)
+        };
+        reset.Click += (_, _) =>
+        {
+            var d = new Settings();
+            _settings.FullScreenHotkey = d.FullScreenHotkey;
+            _settings.AreaHotkey = d.AreaHotkey;
+            _settings.VideoFullHotkey = d.VideoFullHotkey;
+            _settings.VideoAreaHotkey = d.VideoAreaHotkey;
+            _shortcutErrors.Clear();
+            Commit();
+            ShowShortcuts();
+        };
+        Pane.Children.Add(reset);
+
         Pane.Children.Add(new TextBlock
         {
             Text = Loc.Instance["shortcutsHint"],
-            Foreground = TextDim, Margin = new Thickness(0, 14, 0, 0), TextWrapping = TextWrapping.Wrap
+            Foreground = TextDim, Margin = new Thickness(0, 10, 0, 0), TextWrapping = TextWrapping.Wrap
         });
+    }
+
+    /// <summary>Validate (modifier required, no duplicates — mac parity) and save a recorded
+    /// combo. Commit re-registers the hotkeys (App handles Saved synchronously), so the
+    /// rebuild right after also shows/clears the RegisterHotKey systemInUse row error.</summary>
+    private void SetHotkey(int id, string combo)
+    {
+        _shortcutErrors.Remove(id);
+        if (!Platform.HotkeySpec.TryParse(combo, out var spec) || spec.Modifiers == Platform.HotkeyModifiers.None)
+        {
+            _shortcutErrors[id] = Loc.Instance["needsModifier"];
+            ShowShortcuts();
+            return;
+        }
+        var conflict = ShortcutRows().FirstOrDefault(r => r.Id != id && r.Get() == combo);
+        if (conflict.Title is not null)
+        {
+            _shortcutErrors[id] = string.Format(Loc.Instance["alreadyUsedBy"], conflict.Title);
+            ShowShortcuts();
+            return;
+        }
+        foreach (var row in ShortcutRows())
+            if (row.Id == id) row.Set(combo);
+        Commit();
+        ShowShortcuts();
     }
 
     private FrameworkElement Row(string label, string current, int hotkeyId, Action<string> onSet)
@@ -143,15 +191,19 @@ public partial class SettingsWindow : Window
             VerticalAlignment = VerticalAlignment.Center
         });
         sp.Children.Add(rec);
-        if (IsHotkeyRegistrationFailed?.Invoke(hotkeyId) != true) return sp;
 
-        // The OS refused this combination — mirror mac's systemInUse row error.
+        // Row error, mac precedence: OS registration failure first, then validation.
+        string? error = IsHotkeyRegistrationFailed?.Invoke(hotkeyId) == true
+            ? Loc.Instance["systemInUse"]
+            : _shortcutErrors.TryGetValue(hotkeyId, out var msg) ? msg : null;
+        if (error is null) return sp;
+
         var panel = new StackPanel();
         panel.Children.Add(sp);
         panel.Children.Add(new TextBlock
         {
-            Text = Loc.Instance["systemInUse"],
-            Foreground = new SolidColorBrush(Color.FromRgb(0xE0, 0x6C, 0x5A)),
+            Text = error,
+            Foreground = new SolidColorBrush(Color.FromRgb(0xFF, 0x8A, 0x8A)),   // mac's error tint
             FontSize = 12, Margin = new Thickness(150, 0, 0, 4), TextWrapping = TextWrapping.Wrap
         });
         return panel;
