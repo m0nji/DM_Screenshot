@@ -23,7 +23,7 @@ public class SettingsTests : IDisposable
         var s = store.Load();
         Assert.Equal("Ctrl+Shift+1", s.FullScreenHotkey);
         Assert.Equal("Ctrl+Shift+2", s.AreaHotkey);
-        Assert.Equal(3, s.StrokeWidth);     // remembered-annotation defaults
+        Assert.Equal(4, s.StrokeWidth);     // remembered-annotation defaults (4 px = mac)
         Assert.Equal(12, s.BlurStrength);
         Assert.Equal(AppDesign.Black, s.AppDesign);
     }

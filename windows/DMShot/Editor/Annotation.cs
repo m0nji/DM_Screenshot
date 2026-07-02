@@ -9,8 +9,8 @@ public sealed class Annotation
     public double Y0 { get; set; }
     public double X1 { get; set; }
     public double Y1 { get; set; }
-    public uint ColorArgb { get; set; } = 0xFFC97B4A; // DM orange default
-    public double StrokeWidth { get; set; } = 3;
+    public uint ColorArgb { get; set; } = 0xFFEF4444; // mac default annotation red
+    public double StrokeWidth { get; set; } = 4;
     public string Text { get; set; } = "";
     public int StepNumber { get; set; }
     public int BlurStrength { get; set; } = 12;

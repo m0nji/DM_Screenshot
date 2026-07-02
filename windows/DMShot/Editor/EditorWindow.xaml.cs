@@ -61,6 +61,7 @@ public partial class EditorWindow : Window
         Canvas.ActiveBlurStrength = (int)BlurSlider.Value;
         StrokeVal.Text = $"{(int)StrokeSlider.Value}px";
         BlurVal.Text = $"{(int)BlurSlider.Value}";
+        ShowSwatch(Canvas.ActiveColor);   // swatch reflects the red default, not the accent
         _syncing = false;
     }
 

@@ -305,9 +305,10 @@ public partial class QuickEditOverlayWindow : Window
 
     // ===== Color + Size flyouts =====
 
+    // Same 7 colors as the main editor popover and mac's editorPalette (PARITY).
     private static readonly uint[] Palette =
     {
-        0xFFE5484D, 0xFFF5A623, 0xFF2E9E4F, 0xFF3B7DD8, 0xFF8E5AC8, 0xFF1A1A1A, 0xFFFFFFFF, 0xFFC97B4A
+        0xFFEF4444, 0xFFF59E0B, 0xFF10B981, 0xFF3B82F6, 0xFF8B5CF6, 0xFF000000, 0xFFFFFFFF
     };
     private FrameworkElement? _flyout;
 
@@ -378,8 +379,8 @@ public partial class QuickEditOverlayWindow : Window
         _sizeSyncing = true;
         _sizeIsBlur = blur;
         _sizeLabel.Text = Loc.Instance[blur ? "blur" : "size"];
-        _sizeSlider.Minimum = blur ? 4 : 1;
-        _sizeSlider.Maximum = blur ? 40 : 20;   // stroke max matches the main editor (full mac-range alignment: Phase 6)
+        _sizeSlider.Minimum = blur ? 2 : 1;
+        _sizeSlider.Maximum = blur ? 60 : 20;   // blur 2–60 = mac; stroke max = main editor
         double val = blur
             ? (sel is { Kind: ToolKind.Blur } b ? b.BlurStrength : Canvas.ActiveBlurStrength)
             : (sel is { } s && s.Kind != ToolKind.Blur ? s.StrokeWidth : Canvas.ActiveStroke);

@@ -87,8 +87,8 @@ public sealed class CanvasControl : FrameworkElement
         get => _activeTool;
         set { if (_activeTool != value) { CommitTextEdit(); _activeTool = value; } }
     }
-    public uint ActiveColor { get; set; } = 0xFFC97B4A;
-    public double ActiveStroke { get; set; } = 3;
+    public uint ActiveColor { get; set; } = 0xFFEF4444;   // mac default annotation red
+    public double ActiveStroke { get; set; } = 4;
     public int ActiveBlurStrength { get; set; } = 12;
 
     /// <summary>Inset (DIP) kept around the image when fitting it into the viewport. The main

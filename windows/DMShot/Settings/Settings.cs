@@ -16,8 +16,8 @@ public sealed class Settings
     public string Language { get; set; } = "en";
 
     // Annotation defaults remembered across restarts and shared by the main editor and the
-    // Quick-Edit overlay. Match the CanvasControl/editor-slider defaults (3 px / blur 12).
-    public double StrokeWidth { get; set; } = 3;
+    // Quick-Edit overlay. Match the CanvasControl/editor-slider defaults (4 px / blur 12 = mac).
+    public double StrokeWidth { get; set; } = 4;
     public int BlurStrength { get; set; } = 12;
 
     // Frame / pretty-background style (Task 10). Enums stored as strings for JSON round-trip.

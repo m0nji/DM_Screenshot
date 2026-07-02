@@ -144,8 +144,8 @@
           <Popup x:Name="ColorPopup" PlacementTarget="{Binding ElementName=ColorSwatchButton}" Placement="Bottom" StaysOpen="False" AllowsTransparency="True">
             <Border Background="{DynamicResource DmSurface}" BorderBrush="{DynamicResource DmBorder}" BorderThickness="1" CornerRadius="10" Padding="12" Margin="0,6,0,0">
               <StackPanel Width="176">
+                <!-- Palette = the 7 mac editor colors (PARITY: mac editorPalette) -->
                 <UniformGrid Columns="4">
-                  <Button Style="{StaticResource Swatch}" Background="#C97B4A" Tag="#C97B4A" Click="PaletteClick"/>
                   <Button Style="{StaticResource Swatch}" Background="#EF4444" Tag="#EF4444" Click="PaletteClick"/>
                   <Button Style="{StaticResource Swatch}" Background="#F59E0B" Tag="#F59E0B" Click="PaletteClick"/>
                   <Button Style="{StaticResource Swatch}" Background="#10B981" Tag="#10B981" Click="PaletteClick"/>
@@ -157,7 +157,7 @@
                 <Rectangle Height="1" Fill="{DynamicResource DmBorder}" Margin="0,10"/>
                 <StackPanel Orientation="Horizontal">
                   <TextBlock Text="{loc:Tr hex}" Foreground="{DynamicResource DmTextDim}" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                  <TextBox x:Name="HexBox" Style="{StaticResource DmTextBox}" Width="110" Text="#C97B4A" KeyDown="HexChanged"/>
+                  <TextBox x:Name="HexBox" Style="{StaticResource DmTextBox}" Width="110" Text="#EF4444" KeyDown="HexChanged"/>
                 </StackPanel>
               </StackPanel>
             </Border>
@@ -168,12 +168,12 @@
           <!-- Contextual slider: Size (default) or Blur -->
           <StackPanel x:Name="SizePanel" Orientation="Horizontal" VerticalAlignment="Center">
             <TextBlock Text="{loc:Tr size}" Foreground="{DynamicResource DmTextDim}" VerticalAlignment="Center" Margin="0,0,6,0"/>
-            <Slider x:Name="StrokeSlider" Width="96" Minimum="1" Maximum="20" Value="3" VerticalAlignment="Center"/>
-            <TextBlock x:Name="StrokeVal" Text="3px" Width="34" Margin="6,0,0,0" VerticalAlignment="Center" FontFamily="Consolas"/>
+            <Slider x:Name="StrokeSlider" Width="96" Minimum="1" Maximum="20" Value="4" VerticalAlignment="Center"/>
+            <TextBlock x:Name="StrokeVal" Text="4px" Width="34" Margin="6,0,0,0" VerticalAlignment="Center" FontFamily="Consolas"/>
           </StackPanel>
           <StackPanel x:Name="BlurPanel" Orientation="Horizontal" VerticalAlignment="Center" Visibility="Collapsed">
             <TextBlock Text="{loc:Tr blur}" Foreground="{DynamicResource DmTextDim}" VerticalAlignment="Center" Margin="0,0,6,0"/>
-            <Slider x:Name="BlurSlider" Width="96" Minimum="4" Maximum="40" Value="12" VerticalAlignment="Center"/>
+            <Slider x:Name="BlurSlider" Width="96" Minimum="2" Maximum="60" Value="12" VerticalAlignment="Center"/>
             <TextBlock x:Name="BlurVal" Text="12" Width="34" Margin="6,0,0,0" VerticalAlignment="Center" FontFamily="Consolas"/>
           </StackPanel>
 
