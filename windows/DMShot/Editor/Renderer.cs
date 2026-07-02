@@ -65,6 +65,11 @@ public static class Renderer
         return baseImage.Clone(rect, baseImage.PixelFormat);
     }
 
+    /// <summary>Draws a single annotation with an (ox, oy) image-space offset — the live
+    /// canvas renders the gesture-active shape into a patch bitmap through this (5.2).</summary>
+    public static void DrawAnnotation(Graphics g, Annotation a, double ox, double oy, Bitmap baseImage)
+        => DrawGdi(g, a, ox, oy, baseImage);
+
     private static void DrawGdi(Graphics g, Annotation a, double ox, double oy, Bitmap baseImage)
     {
         float x0 = (float)(a.X0 - ox), y0 = (float)(a.Y0 - oy);

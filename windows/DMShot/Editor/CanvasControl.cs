@@ -15,6 +15,14 @@ public sealed class CanvasControl : FrameworkElement
     // a flat placeholder, matching macOS where drawBackground is shared by export and the canvas.
     private BitmapSource? _blurPreview;
     private (int x, int y, int w, int h) _blurPreviewKey;
+    // 5.2: cached composite of the COMMITTED annotations (frozen). Rebuilt only when the
+    // model changes, an inline edit starts/ends, or the gesture-active annotation changes;
+    // mouse-moves during a drag draw just the active shape as a small GDI patch on top,
+    // instead of re-running the full-size RenderComposite + copy every frame.
+    private BitmapSource? _composite;
+    private Annotation? _compositeExcluded;   // gesture-active annotation left out of the cache
+    private Annotation? _compositeEditing;    // _editingAnno the cache was built against
+    private bool _compositeDirty = true;
     private Annotation? _draft;                // shape being drawn
     private Annotation? _selected;             // shape selected with the Select tool
     private Point _start;
@@ -93,7 +101,7 @@ public sealed class CanvasControl : FrameworkElement
 
     public CanvasControl()
     {
-        Model.Changed += () => { InvalidateVisual(); ContentChanged?.Invoke(); };
+        Model.Changed += () => { _compositeDirty = true; InvalidateVisual(); ContentChanged?.Invoke(); };
         Focusable = true;
     }
 
@@ -105,6 +113,7 @@ public sealed class CanvasControl : FrameworkElement
         _source = (System.Drawing.Bitmap)image.Clone();
         _w = _source.Width; _h = _source.Height;
         _blurPreview = null;   // drop the stale blur cache for the previous image
+        _composite = null; _compositeDirty = true;
         Model.SetImageSize(_w, _h);
         InvalidateVisual();
     }
@@ -197,14 +206,11 @@ public sealed class CanvasControl : FrameworkElement
             dc.PushClip(new RectangleGeometry(inner, radius, radius));
         }
 
-        IEnumerable<Annotation> anns = Model.Annotations;
-        if (_editingAnno is { Kind: ToolKind.Step } editingStep)
-            anns = anns.Select(a => ReferenceEquals(a, editingStep) ? StripComment(a) : a);
-        else if (_editingAnno is not null)
-            anns = anns.Where(a => !ReferenceEquals(a, _editingAnno));
-        if (_draft is not null) anns = anns.Concat(new[] { _draft });
-        using (var comp = Renderer.RenderComposite(_source, anns))
-            dc.DrawImage(ImageInterop.ToBitmapSource(comp), new Rect(0, 0, _w, _h));
+        // Committed annotations come from the cache; only the gesture-active shape
+        // (draft being drawn, or the selection while moving/resizing) renders per frame.
+        var active = _draft ?? ((_moving || _resizing) ? _selected : null);
+        dc.DrawImage(CompositeSource(active), new Rect(0, 0, _w, _h));
+        if (active is not null) DrawActivePatch(dc, active);
 
         if (Model.BackgroundEnabled)
         {
@@ -240,6 +246,94 @@ public sealed class CanvasControl : FrameworkElement
 
         dc.Pop();   // ScaleTransform
         dc.Pop();   // TranslateTransform
+    }
+
+    /// <summary>Frozen composite of the base image + committed annotations, rebuilt only when
+    /// the model, the inline-edit filter, or the excluded gesture-active annotation changes.</summary>
+    private BitmapSource CompositeSource(Annotation? excluded)
+    {
+        if (_composite is null || _compositeDirty
+            || !ReferenceEquals(_compositeExcluded, excluded)
+            || !ReferenceEquals(_compositeEditing, _editingAnno))
+        {
+            IEnumerable<Annotation> anns = Model.Annotations;
+            if (_editingAnno is { Kind: ToolKind.Step } editingStep)
+                anns = anns.Select(a => ReferenceEquals(a, editingStep) ? StripComment(a) : a);
+            else if (_editingAnno is not null)
+                anns = anns.Where(a => !ReferenceEquals(a, _editingAnno));
+            if (excluded is not null)
+                anns = anns.Where(a => !ReferenceEquals(a, excluded));
+            using var comp = Renderer.RenderComposite(_source!, anns);
+            _composite = ImageInterop.ToBitmapSource(comp);   // copies pixels + freezes
+            _compositeExcluded = excluded;
+            _compositeEditing = _editingAnno;
+            _compositeDirty = false;
+        }
+        return _composite;
+    }
+
+    /// <summary>Draws the gesture-active annotation through the same GDI path as the committed
+    /// composite (true WYSIWYG, incl. live mosaic), but only over its own bounding box.</summary>
+    private void DrawActivePatch(DrawingContext dc, Annotation a)
+    {
+        if (a.Kind == ToolKind.Crop) return;   // crop has no rendered body (overlay only)
+        var b = ActiveBounds(a);
+        b.Intersect(new Rect(0, 0, _w, _h));   // the composite clips to the image; match it
+        if (b.IsEmpty || b.Width < 1 || b.Height < 1) return;
+        int x = (int)Math.Floor(b.X), y = (int)Math.Floor(b.Y);
+        int w = Math.Min(_w - x, (int)Math.Ceiling(b.Width) + 1);
+        int h = Math.Min(_h - y, (int)Math.Ceiling(b.Height) + 1);
+        if (w < 1 || h < 1) return;
+        using var patch = new System.Drawing.Bitmap(w, h, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+        using (var g = System.Drawing.Graphics.FromImage(patch))
+        {
+            g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            Renderer.DrawAnnotation(g, a, x, y, _source!);
+        }
+        dc.DrawImage(ImageInterop.ToBitmapSource(patch), new Rect(x, y, w, h));
+    }
+
+    /// <summary>Conservative image-space bounds of an annotation's rendered pixels (caps,
+    /// badges, bubbles, text overshoot included — a too-large box only costs a few pixels).</summary>
+    private static Rect ActiveBounds(Annotation a)
+    {
+        var r = new Rect(new Point(Math.Min(a.X0, a.X1), Math.Min(a.Y0, a.Y1)),
+                         new Point(Math.Max(a.X0, a.X1), Math.Max(a.Y0, a.Y1)));
+        double m = a.StrokeWidth + 4;
+        switch (a.Kind)
+        {
+            case ToolKind.Arrow:
+                m += a.StrokeWidth * Math.Max(2, a.StrokeWidth);   // AdjustableArrowCap scales with pen width
+                break;
+            case ToolKind.Highlighter:
+                m += Math.Max(10, a.StrokeWidth * 3);
+                break;
+            case ToolKind.Text:
+            {
+                var sz = TextLayout.Measure(a.Text, Math.Max(10, a.StrokeWidth * 5));
+                // ×1.6 headroom: the GDI font renders in points (≈1.33× WPF's pixel measure).
+                r = new Rect(a.X0, a.Y0, sz.Width * 1.6 + 8, sz.Height * 1.6 + 8);
+                break;
+            }
+            case ToolKind.Step:
+            {
+                double d = Math.Max(22, a.StrokeWidth * 7);
+                r = new Rect(a.X0, a.Y0, d, d);
+                if (!string.IsNullOrEmpty(a.Text))
+                {
+                    double fs = StepGeometry.CommentFontSize(a);
+                    var sz = TextLayout.Measure(a.Text, fs);
+                    var bo = StepGeometry.BubbleOrigin(a);
+                    double tail = StepGeometry.CommentTailLen(fs);
+                    r.Union(new Rect(bo.X - tail, bo.Y - 4,
+                                     sz.Width * 1.6 + 2 * StepGeometry.CommentPadH(fs) + tail + 16,
+                                     sz.Height * 1.6 + 2 * StepGeometry.CommentPadV(fs) + 8));
+                }
+                break;
+            }
+        }
+        r.Inflate(m, m);
+        return r;
     }
 
     private void DrawSelection(DrawingContext dc, Annotation a)
