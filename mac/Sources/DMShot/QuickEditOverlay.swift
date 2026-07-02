@@ -33,13 +33,19 @@ private struct QuickEditOverlayView: View {
                     .contentShape(Rectangle())
                     .onTapGesture { model.selectedID = nil }  // deselect, never close
 
-                // Framed capture, positioned in place.
+                // Framed capture, positioned in place. The drop shadow lives on a
+                // static shape BEHIND the canvas — .shadow directly on the canvas
+                // re-blurs the whole live layer on every mouse-move redraw, which
+                // makes annotation drags stutter (the canvas is opaque, so this
+                // renders identically).
                 CanvasView(model: model, appDesign: appDesign, pad: 0)
                     .frame(width: localCapture.width, height: localCapture.height)
                     .clipShape(RoundedRectangle(cornerRadius: 10))
                     .overlay(RoundedRectangle(cornerRadius: 10)
                         .stroke(Color.dmAccent, lineWidth: 2))
-                    .shadow(radius: 16, y: 6)
+                    .background(RoundedRectangle(cornerRadius: 10)
+                        .fill(Color.black)
+                        .shadow(radius: 16, y: 6))
                     .position(x: localCapture.midX, y: localCapture.midY)
 
                 QuickEditToolbar(

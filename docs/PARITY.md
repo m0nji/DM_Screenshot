@@ -19,6 +19,16 @@ Definition of done for a behavior change:
 
 ### Pending parity (verify on macOS)
 
+- [ ] **TODO (win): check annotation-drag render performance.** macOS fix 2026-07-02
+  (`fix/quick-edit-drag-jank`): moving/resizing an annotation no longer mutates the model per
+  mouse tick (the canvas keeps a local `liveOverride` like the draw-draft and commits once on
+  mouse-up — undo unchanged: one step per gesture); the Quick-Edit drop shadow moved off the
+  live canvas onto a static backdrop shape; the blur tool renders a 1/4-scale Gaussian preview
+  while a gesture is in flight (full-res + cache on mouse-up; export unchanged). Windows
+  (`Editor/CanvasControl.cs`, WPF) has a different rendering stack — verify on a real device
+  whether drags stutter with many/large annotations or blur, and port the local-drag-override
+  and blur-preview patterns if they do.
+
 - [ ] **TODO (mac): editor keyboard shortcuts.** The mac main editor has no ⌘C / ⌘S / ⌘Z / ⌘⇧Z /
   Delete handling (source-of-truth gap found in the 2026-07-01 review, Phase 6 item 8); Windows
   already ships Ctrl+C/S/Z/Y/Ctrl+Shift+Z/Del. Add the mac side next mac session. The win half of

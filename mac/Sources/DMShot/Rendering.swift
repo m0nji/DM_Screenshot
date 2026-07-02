@@ -20,10 +20,13 @@ extension NSColor {
 enum SceneRenderer {
     private static let ciContext = CIContext(options: nil)
 
-    static func draw(image: CGImage, annotations: [Annotation]) {
+    /// `interactiveID` marks the annotation currently being dragged (draft or
+    /// move/resize): its blur renders as a cheap downsampled preview instead of a
+    /// full-resolution CIGaussianBlur per mouse-move. Export passes nil.
+    static func draw(image: CGImage, annotations: [Annotation], interactiveID: UUID? = nil) {
         let imgRect = CGRect(x: 0, y: 0, width: image.width, height: image.height)
         drawImage(image, in: imgRect)
-        for a in annotations { drawAnnotation(a, base: image) }
+        for a in annotations { drawAnnotation(a, base: image, interactive: a.id == interactiveID) }
         pruneBlurCache(keeping: annotations, base: image)
     }
 
@@ -41,7 +44,7 @@ enum SceneRenderer {
         ctx.restoreGState()
     }
 
-    private static func drawAnnotation(_ a: Annotation, base: CGImage) {
+    private static func drawAnnotation(_ a: Annotation, base: CGImage, interactive: Bool = false) {
         let color = NSColor(hex: a.colorHex)
         let r = a.normalizedRect
         switch a.kind {
@@ -75,7 +78,7 @@ enum SceneRenderer {
         case .text:
             drawText(a, color: color)
         case .blur:
-            drawBlur(a, base: base)
+            drawBlur(a, base: base, interactive: interactive)
         }
     }
 
@@ -207,7 +210,7 @@ enum SceneRenderer {
         blurCache = blurCache.filter { $0.value.base === base && valid.contains($0.key) }
     }
 
-    private static func drawBlur(_ a: Annotation, base: CGImage) {
+    private static func drawBlur(_ a: Annotation, base: CGImage, interactive: Bool = false) {
         // Clamp to the image: ImageUtils.crop clamps the SOURCE anyway, so an
         // off-image rect used to stretch the smaller blurred region into the
         // full unclamped rect — misaligned smearing at the edges.
@@ -219,14 +222,21 @@ enum SceneRenderer {
             return
         }
         guard let region = ImageUtils.crop(base, to: r) else { return }
-        let ci = CIImage(cgImage: region)
+        // In-gesture preview: the rect changes every tick, so the cache never hits
+        // and a full-res Gaussian per mouse-move stalls the drag. A Gaussian is
+        // low-frequency — blur a 1/4-scale copy with radius/4 and let drawImage
+        // scale it back up; visually near-identical while dragging. The final
+        // full-res result is computed ONCE on mouse-up (rect stable → cached).
+        let k: CGFloat = interactive ? 4 : 1
+        var ci = CIImage(cgImage: region)
+        if k > 1 { ci = ci.transformed(by: CGAffineTransform(scaleX: 1 / k, y: 1 / k)) }
         guard let filter = CIFilter(name: "CIGaussianBlur") else { return }
         filter.setValue(ci.clampedToExtent(), forKey: kCIInputImageKey)
-        filter.setValue(a.blurRadius, forKey: kCIInputRadiusKey)
+        filter.setValue(max(1, a.blurRadius / k), forKey: kCIInputRadiusKey)
         guard let output = filter.outputImage,
               let blurred = ciContext.createCGImage(output, from: ci.extent)
         else { return }
-        blurCache[a.id] = (base, r, a.blurRadius, blurred)
+        if !interactive { blurCache[a.id] = (base, r, a.blurRadius, blurred) }
         drawImage(blurred, in: r)
     }
 }

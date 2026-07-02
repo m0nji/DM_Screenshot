@@ -15,7 +15,11 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
     private var movedOriginal: Annotation?
     private var resizeHandle: SelectionHandle?
     private var resizeOriginal: Annotation?
-    private var gestureSnapshotTaken = false
+    // The annotation being moved/resized, held LOCALLY during the gesture (like
+    // `draft`). Writing every drag tick into the model publishes objectWillChange
+    // per mouse event, which re-renders the whole SwiftUI host (toolbar, overlay
+    // chrome) alongside the canvas and makes drags stutter. Committed on mouseUp.
+    private var liveOverride: Annotation?
 
     private var spaceDown = false
     private var grabStartView: CGPoint?
@@ -154,9 +158,12 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
             p.stroke()
         }
 
-        // Selection highlight (in view space).
+        // Selection highlight (in view space). While a move/resize gesture is in
+        // flight, follow the local override — the model still holds the old geometry.
         if let id = model.selectedID,
-           let ann = model.annotations.first(where: { $0.id == id }) {
+           let ann = liveOverride?.id == id
+               ? liveOverride
+               : model.annotations.first(where: { $0.id == id }) {
             let vr = model.framedContentRect
             let r = SelectionGeometry.bounds(for: ann)
             let viewRect = NSRect(
@@ -177,6 +184,9 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
     /// Draws the base image + live annotations (skipping the one being edited).
     private func drawScene(image: CGImage) {
         var shapes = model.annotations
+        if let live = liveOverride, let idx = shapes.firstIndex(where: { $0.id == live.id }) {
+            shapes[idx] = live
+        }
         if let id = editingExistingID, let idx = shapes.firstIndex(where: { $0.id == id }) {
             if shapes[idx].kind == .step {
                 shapes[idx].text = ""
@@ -185,7 +195,10 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
             }
         }
         if let draft { shapes.append(draft) }
-        SceneRenderer.draw(image: image, annotations: shapes)
+        // The in-gesture shape gets the cheap blur preview (see SceneRenderer).
+        SceneRenderer.draw(
+            image: image, annotations: shapes,
+            interactiveID: draft?.id ?? liveOverride?.id)
     }
 
     // MARK: - Zoom / pan
@@ -281,7 +294,6 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
         }
         recomputeTransform()
         let p = toImage(convert(event.locationInWindow, from: nil))
-        gestureSnapshotTaken = false
 
         switch model.tool {
         case .select:
@@ -359,24 +371,18 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
         }
         recomputeTransform()
         let p = toImage(convert(event.locationInWindow, from: nil))
-        if model.tool == .select, let id = model.selectedID {
+        if model.tool == .select, model.selectedID != nil {
             if let handle = resizeHandle, let orig = resizeOriginal {
                 let resized = SelectionGeometry.resized(orig, dragging: handle, to: p)
-                if resized != orig {
-                    snapshotGestureIfNeeded()
-                    model.update(id, record: false) { a in
-                        a = resized
-                    }
-                }
+                if resized != orig { liveOverride = resized }
             } else if let start = moveStart, let orig = movedOriginal {
                 let dx = p.x - start.x
                 let dy = p.y - start.y
                 if dx != 0 || dy != 0 {
-                    snapshotGestureIfNeeded()
-                    model.update(id, record: false) { a in
-                        a.x = orig.x + dx
-                        a.y = orig.y + dy
-                    }
+                    var moved = orig
+                    moved.x = orig.x + dx
+                    moved.y = orig.y + dy
+                    liveOverride = moved
                 }
             }
         } else if var d = draft {
@@ -400,8 +406,15 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
             movedOriginal = nil
             resizeHandle = nil
             resizeOriginal = nil
-            gestureSnapshotTaken = false
+            liveOverride = nil
             refresh()
+        }
+        // Commit a finished move/resize gesture as ONE model change (one undo step,
+        // one objectWillChange) — the per-tick geometry lived only in liveOverride.
+        if let live = liveOverride,
+           model.annotations.contains(where: { $0.id == live.id }) {
+            model.snapshot()
+            model.update(live.id, record: false) { $0 = live }
         }
         if let start = textDragStart {
             textDragStart = nil
@@ -502,12 +515,6 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
     private func hitSelectionHandle(_ p: CGPoint, in annotation: Annotation) -> SelectionHandle? {
         let tolerance = SelectionGeometry.viewHandleHitTolerance / max(scale, 0.0001)
         return SelectionGeometry.hitHandle(at: p, in: annotation, tolerance: tolerance)
-    }
-
-    private func snapshotGestureIfNeeded() {
-        guard !gestureSnapshotTaken else { return }
-        model.snapshot()
-        gestureSnapshotTaken = true
     }
 
     private func makeAnnotation(kind: Annotation.Kind, at p: CGPoint, text: String = "") -> Annotation {
