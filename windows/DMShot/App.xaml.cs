@@ -189,9 +189,12 @@ public partial class App : Application
         _history.Add(bmp, Array.Empty<Annotation>(), null, DateTime.UtcNow);
 
         if (_settings.AfterCapture == AfterCaptureMode.QuickEdit)
-            ShowQuickEdit(result);
+            ShowQuickEdit(result);          // the overlay takes ownership of result.Image
         else
-            ShowEditorWithImage(bmp);
+        {
+            ShowEditorWithImage(bmp);       // LoadImage clones — the capture itself is done with
+            bmp.Dispose();
+        }
     }
 
     private void ShowEditorWithImage(System.Drawing.Bitmap bmp)
@@ -207,7 +210,7 @@ public partial class App : Application
 
     private void ShowQuickEdit(CaptureResult result)
     {
-        if (_quickEdit is not null) return;                 // idempotent (Q1)
+        if (_quickEdit is not null) { result.Image.Dispose(); return; }   // idempotent (Q1); nobody else owns the bitmap
         _editor?.Hide();                                    // single key window (Q6)
 
         var overlay = new QuickEditOverlayWindow(result.Image, result.ScreenRectPx, result.DisplayBoundsPx);
@@ -240,8 +243,11 @@ public partial class App : Application
         {
             var anns = overlay.Canvas.Model.Annotations.ToList();
             var crop = overlay.Canvas.Model.Crop;
-            DismissQuickEdit();
+            // Load (clones the bitmap) BEFORE dismissing: closing the overlay disposes
+            // its capture, and result.Image is that same instance.
             ShowEditorWithState(result.Image, anns, crop);  // carry annotations over (Q8)
+            DismissQuickEdit();
+            _editor?.Activate();                            // overlay close must not steal focus back
         };
         overlay.Dismissed += () => { _quickEdit = null; };
 

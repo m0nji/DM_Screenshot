@@ -124,6 +124,17 @@ public sealed class CanvasControl : FrameworkElement
         Model.ClearDocument();
     }
 
+    /// <summary>Releases the cloned source bitmap and the render caches. Used by owners with a
+    /// bounded lifetime (the Quick-Edit overlay closes per capture); OnRender no-ops afterwards.</summary>
+    public void DisposeImage()
+    {
+        _source?.Dispose();
+        _source = null;
+        _composite = null;
+        _blurPreview = null;
+        _compositeDirty = true;
+    }
+
     protected override Size MeasureOverride(Size availableSize)
     {
         _textBox?.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));

@@ -44,12 +44,17 @@ public sealed class CaptureCoordinator
                 if (done) return;
                 done = true;
                 foreach (var ov in overlays) ov.Close();
+                CaptureResult? produced = null;
                 if (committed && win.Result is { } r && r.Width > 0 && r.Height > 0)
                 {
                     var cropped = ImageInterop.Crop(win.Frozen, r);
                     var screenRect = CaptureGeometry.ScreenRect(r, d.Bounds);
-                    CaptureProduced?.Invoke(new CaptureResult(cropped, screenRect, d.Bounds));
+                    produced = new CaptureResult(cropped, screenRect, d.Bounds);
                 }
+                // The frozen per-display captures (~33 MB each at 4K) are only needed
+                // for the crop above — release them on commit AND cancel.
+                foreach (var ov in overlays) ov.Frozen.Dispose();
+                if (produced is { } p) CaptureProduced?.Invoke(p);
             };
             overlays.Add(o);
         }
@@ -79,6 +84,7 @@ public sealed class CaptureCoordinator
                 if (done) return;
                 done = true;
                 foreach (var ov in overlays) ov.Close();
+                foreach (var ov in overlays) ov.Frozen.Dispose();   // only the rect survives
                 if (committed && win.Result is { } r && r.Width > 0 && r.Height > 0)
                     VideoRequested?.Invoke(display, r);  // r = selection in display-local source px
             };

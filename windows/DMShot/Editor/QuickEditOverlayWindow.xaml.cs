@@ -81,7 +81,15 @@ public partial class QuickEditOverlayWindow : Window
             else if (e.Key == Key.Y && (Keyboard.Modifiers & ModifierKeys.Control) != 0) Canvas.Model.Redo();
         };
         // Hook base Window.Closed so every close path (Alt+F4, shutdown, CloseOverlay) fires Dismissed.
-        ((System.Windows.Window)this).Closed += (_, _) => { _shown = false; Dismissed?.Invoke(); };
+        // The overlay owns its capture (~33 MB at 4K): release it and the canvas's clone on close.
+        // Handlers that need the bitmap (Copy/Save/Edit-in-main) all run before the close.
+        ((System.Windows.Window)this).Closed += (_, _) =>
+        {
+            _shown = false;
+            Dismissed?.Invoke();
+            Canvas.DisposeImage();
+            _capture.Dispose();
+        };
     }
 
     /// <summary>Idempotent (fix Q1): a second call while already shown is a no-op.</summary>
