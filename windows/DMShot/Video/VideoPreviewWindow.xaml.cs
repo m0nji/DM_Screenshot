@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using DMShot.Localization;
 using DMShot.Platform;   // ImageInterop
@@ -9,7 +10,9 @@ public partial class VideoPreviewWindow : Window, IDisposable
 {
     private readonly IReadOnlyList<RecordedFrame> _frames;
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMilliseconds(100) };
-    private int _idx;
+    private double _playhead;                 // 5.5: time-based playback position (seconds)
+    private int _cachedIdx = -1;              // single-entry conversion cache: static/sparse
+    private BitmapSource? _cachedFrame;       // recordings re-show one frame for many ticks
     private double _trimStart;
     private double _trimEnd;
     private bool _createdGif;
@@ -61,43 +64,47 @@ public partial class VideoPreviewWindow : Window, IDisposable
     private void Advance()
     {
         if (_frames.Count == 0) return;
-        _idx = (_idx + 1) % _frames.Count;
-
-        // Loop within the trim region.
-        double t = _frames[_idx].TimeSec;
-        if (t < _trimStart || t > _trimEnd)
-            _idx = NearestIndex(_trimStart);
-
-        ShowFrame(_idx);
+        // Time-based: each 100 ms tick advances the playhead 100 ms and shows the
+        // frame at-or-before it (the old one-frame-per-tick stepping played sparse
+        // recordings too fast — a 10 s static capture flashed by in under a second).
+        _playhead += 0.1;
+        if (_playhead > _trimEnd || _playhead < _trimStart) _playhead = _trimStart;
+        ShowPlayhead();
     }
 
     // ── Frame display ──────────────────────────────────────────────────────
-    private void ShowFrame(int i)
+    private void ShowPlayhead()
     {
         if (_disposed || _rendering) return; // while rendering, the background thread owns the bitmaps
-        Preview.Source = ImageInterop.ToBitmapSource(_frames[i].Image);
+        int i = IndexAtOrBefore(_playhead);
+        if (i != _cachedIdx)
+        {
+            _cachedFrame = ImageInterop.ToBitmapSource(_frames[i].Image);
+            _cachedIdx = i;
+        }
+        Preview.Source = _cachedFrame;
         // Update scrub without re-triggering its ValueChanged handler.
         Scrub.ValueChanged -= Scrub_ValueChanged;
-        Scrub.Value = _frames[i].TimeSec;
+        Scrub.Value = _playhead;
         Scrub.ValueChanged += Scrub_ValueChanged;
-        PlayheadLabel.Text = $"{_frames[i].TimeSec:F1}s";
+        PlayheadLabel.Text = $"{_playhead:F1}s";
     }
 
     private void ShowFrameAt(double t)
     {
-        int i = NearestIndex(t);
-        _idx = i;
-        ShowFrame(i);
+        _playhead = t;
+        ShowPlayhead();
     }
 
-    private int NearestIndex(double t)
+    /// <summary>Index of the last frame whose timestamp is ≤ t (frames are time-ordered);
+    /// the first frame when t precedes the recording.</summary>
+    private int IndexAtOrBefore(double t)
     {
         int best = 0;
-        double bd = double.MaxValue;
         for (int i = 0; i < _frames.Count; i++)
         {
-            double d = Math.Abs(_frames[i].TimeSec - t);
-            if (d < bd) { bd = d; best = i; }
+            if (_frames[i].TimeSec > t) break;
+            best = i;
         }
         return best;
     }
@@ -218,6 +225,7 @@ public partial class VideoPreviewWindow : Window, IDisposable
         if (_disposed) return;
         _disposed = true;
         _timer.Stop();
+        _cachedFrame = null; _cachedIdx = -1;
         foreach (var f in _frames) f.Image.Dispose();
     }
 }
