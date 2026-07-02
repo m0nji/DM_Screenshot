@@ -30,6 +30,7 @@ public partial class App : Application
     // ── Video recording lifecycle state ──
     private IScreenRecorder? _recorder;
     private RecordingControlWindow? _control;
+    private RecordingRegionFrame? _regionFrame;
     private DispatcherTimer? _controlTimer;
     private VideoPreviewWindow? _preview;
 
@@ -346,6 +347,14 @@ public partial class App : Application
         // A stop/cancel may have fired while StartAsync was awaiting; bail if we're no longer current.
         if (!ReferenceEquals(_recorder, recorder)) return;
 
+        // Section recordings get a visible accent frame around the recorded region
+        // (mac parity); full-display recordings need none.
+        if (crop is { } region)
+        {
+            _regionFrame = new RecordingRegionFrame(display.Bounds, region);
+            _regionFrame.Show();
+        }
+
         var control = new RecordingControlWindow();
         _control = control;
         control.StopRequested += FinishRecording;                  // V7
@@ -361,6 +370,7 @@ public partial class App : Application
     private void FinishRecording()
     {
         _controlTimer?.Stop(); _controlTimer = null;
+        _regionFrame?.Close(); _regionFrame = null;
         _control?.Close(); _control = null;
         var frames = _recorder?.Stop() ?? new List<RecordedFrame>();
         _recorder?.Dispose(); _recorder = null;
@@ -371,6 +381,7 @@ public partial class App : Application
     private void CancelRecording()
     {
         _controlTimer?.Stop(); _controlTimer = null;
+        _regionFrame?.Close(); _regionFrame = null;
         _control?.Close(); _control = null;
         _recorder?.Cancel(); _recorder?.Dispose(); _recorder = null; // V4: discard, no finalize
     }
