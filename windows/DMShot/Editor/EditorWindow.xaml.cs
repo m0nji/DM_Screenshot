@@ -20,7 +20,7 @@ public partial class EditorWindow : Window
     /// <summary>V17: invoked when a video history entry is clicked, instead of loading it as an image.</summary>
     public Action<HistoryEntry>? OnVideoEntryActivated { get; set; }
 
-    public sealed record HistoryVM(string Id, System.Windows.Media.ImageSource Thumb);
+    public sealed record HistoryVM(string Id, System.Windows.Media.ImageSource Thumb, bool IsVideo);
     public HistoryStore? Store { get; set; }
 
     private bool _syncing;
@@ -199,7 +199,7 @@ public partial class EditorWindow : Window
         if (Store is null) return;
         HistoryList.ItemsSource = Store.Entries
             .OrderByDescending(e => e.CreatedUtc)
-            .Select(e => new HistoryVM(e.Id, LoadFrozen(e.ThumbnailPngPath)))
+            .Select(e => new HistoryVM(e.Id, LoadFrozen(e.ThumbnailPngPath), e.Kind == HistoryKind.Video))
             .ToList();
     }
 

@@ -77,6 +77,7 @@ public partial class App : Application
         _tray.OpenRequested += ShowEditor;
         _tray.SettingsRequested += OpenSettings;
         _tray.QuitRequested += () => Shutdown();
+        UpdateTrayHotkeyHints();
         _tray.Show();
 
         // Velopack-backed auto-update. Created on the UI thread so the service captures
@@ -104,6 +105,20 @@ public partial class App : Application
         if (!_hotkeys.Register(id, spec)) _hotkeyFailures.Add(id);
     }
 
+    /// <summary>Tray menu hints show the EFFECTIVE combos (same fallback as RegisterHotkey).</summary>
+    private void UpdateTrayHotkeyHints()
+    {
+        if (_tray is null) return;
+        var d = new Settings.Settings();
+        static string Effective(string stored, string fallback)
+            => HotkeySpec.TryParse(stored, out _) ? stored : fallback;
+        _tray.SetHotkeyHints(
+            Effective(_settings.FullScreenHotkey, d.FullScreenHotkey),
+            Effective(_settings.AreaHotkey, d.AreaHotkey),
+            Effective(_settings.VideoFullHotkey, d.VideoFullHotkey),
+            Effective(_settings.VideoAreaHotkey, d.VideoAreaHotkey));
+    }
+
     private void OpenSettings()
     {
         var w = new SettingsWindow(_settings, _settingsStore, _updater)
@@ -115,6 +130,7 @@ public partial class App : Application
             _settings = s;
             AppDesignTheme.Apply(_settings.AppDesign);
             RegisterHotkeysFromSettings();
+            UpdateTrayHotkeyHints();
         };
         w.Show();
     }

@@ -89,7 +89,10 @@ public sealed class HistoryStore
 
     private static void SaveThumb(Bitmap src, string path)
     {
-        int w = 200, h = Math.Max(1, (int)(src.Height * (200.0 / src.Width)));
+        // mac parity (writeThumb): max width 320, never upscale small captures.
+        double scale = Math.Min(1.0, 320.0 / src.Width);
+        int w = Math.Max(1, (int)(src.Width * scale));
+        int h = Math.Max(1, (int)(src.Height * scale));
         using var t = new Bitmap(w, h);
         using (var g = Graphics.FromImage(t))
         { g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic; g.DrawImage(src, 0, 0, w, h); }

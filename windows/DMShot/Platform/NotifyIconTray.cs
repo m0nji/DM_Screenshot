@@ -29,6 +29,18 @@ public sealed class NotifyIconTray : ITrayIcon
         Loc.Instance.LanguageChanged += BuildMenu;
     }
 
+    // Effective hotkeys shown as menu hints (mac parity: updateMenuTitles).
+    private string? _hintFull, _hintArea, _hintVideoFull, _hintVideoArea;
+
+    public void SetHotkeyHints(string full, string area, string videoFull, string videoArea)
+    {
+        _hintFull = full; _hintArea = area; _hintVideoFull = videoFull; _hintVideoArea = videoArea;
+        BuildMenu();
+    }
+
+    private static string WithHint(string title, string? hint)
+        => string.IsNullOrEmpty(hint) ? title : $"{title}  ({hint})";
+
     // Rebuilt on language change so the tray menu follows the active language.
     private void BuildMenu()
     {
@@ -37,10 +49,10 @@ public sealed class NotifyIconTray : ITrayIcon
         // A Separator inside a menu is styled via MenuItem.SeparatorStyleKey, NOT typeof(Separator)
         // — keying it wrong left the OS default (a bright white line) showing on the dark menu.
         menu.Resources.Add(MenuItem.SeparatorStyleKey, SeparatorStyle);
-        menu.Items.Add(Item(Loc.Instance["menuNewFullScreen"], () => FullScreenRequested?.Invoke()));
-        menu.Items.Add(Item(Loc.Instance["menuNewSelection"], () => AreaRequested?.Invoke()));
-        menu.Items.Add(Item(Loc.Instance["menuNewVideoFull"], () => VideoFullRequested?.Invoke()));
-        menu.Items.Add(Item(Loc.Instance["menuNewVideoArea"], () => VideoAreaRequested?.Invoke()));
+        menu.Items.Add(Item(WithHint(Loc.Instance["menuNewFullScreen"], _hintFull), () => FullScreenRequested?.Invoke()));
+        menu.Items.Add(Item(WithHint(Loc.Instance["menuNewSelection"], _hintArea), () => AreaRequested?.Invoke()));
+        menu.Items.Add(Item(WithHint(Loc.Instance["menuNewVideoFull"], _hintVideoFull), () => VideoFullRequested?.Invoke()));
+        menu.Items.Add(Item(WithHint(Loc.Instance["menuNewVideoArea"], _hintVideoArea), () => VideoAreaRequested?.Invoke()));
         menu.Items.Add(new Separator());
         menu.Items.Add(Item(Loc.Instance["menuOpenWindow"], () => OpenRequested?.Invoke()));
         menu.Items.Add(Item(Loc.Instance["menuSettings"], () => SettingsRequested?.Invoke()));
