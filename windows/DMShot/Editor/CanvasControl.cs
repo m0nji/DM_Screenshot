@@ -484,6 +484,9 @@ public sealed class CanvasControl : FrameworkElement
         // and swallowing it both arms pan mode and blocks the character from TextInput.
         if (_textBox is not null) { base.OnKeyDown(e); return; }
         if (e.Key == Key.Space && !_space) { _space = true; Cursor = Cursors.Hand; e.Handled = true; }
+        // Esc deselects (mac parity). Handled, so in Quick-Edit the FIRST Esc peels the
+        // selection and only a second one reaches the overlay's close handler.
+        if (e.Key == Key.Escape && _selected is not null) { SetSelected(null); e.Handled = true; }
         base.OnKeyDown(e);
     }
 

@@ -5,8 +5,10 @@ enum GIFPlan {
     static let defaultFPS: Double = 10
     static let defaultMaxWidth: Int = 1000
     /// Rough average compressed bytes per output pixel per frame. Tuned down from a
-    /// naive 0.5 because the encoder applies inter-frame transparency optimization,
-    /// which collapses the (usually large) static regions of screen recordings.
+    /// naive 0.5 because whole-static frames are collapsed upstream by the dedup pass
+    /// and LZW compresses the mostly-flat content of screen recordings well. (The mac
+    /// encoder writes full frames — no inter-frame delta optimization; Windows'
+    /// ImageSharp additionally delta-crops frames, see PARITY.md step 6.)
     static let bytesPerPixelPerFrame: Double = 0.25
 
     /// Sample times (seconds, relative to range start) for `duration` at `fps`.
