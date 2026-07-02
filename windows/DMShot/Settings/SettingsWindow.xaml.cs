@@ -17,6 +17,10 @@ public partial class SettingsWindow : Window
     private readonly UpdaterService _updater;
     public event Action<Settings>? Saved;
 
+    /// <summary>Queried per hotkey id (App.HK_*) to show the "in use by the system"
+    /// row error — RegisterHotKey failures are re-evaluated on every Saved.</summary>
+    public Func<int, bool>? IsHotkeyRegistrationFailed { get; init; }
+
     private Brush Text => (Brush)FindResource("DmText");
     private Brush TextDim => (Brush)FindResource("DmTextDim");
 
@@ -107,10 +111,16 @@ public partial class SettingsWindow : Window
         if (Pane is null) return;
         Pane.Children.Clear();
         Pane.Children.Add(SectionTitle(Loc.Instance["sectionShortcuts"]));
-        Pane.Children.Add(Row(Loc.Instance["actionFullScreen"], _settings.FullScreenHotkey, h => { _settings.FullScreenHotkey = h; Commit(); }));
-        Pane.Children.Add(Row(Loc.Instance["actionAreaSelection"], _settings.AreaHotkey, h => { _settings.AreaHotkey = h; Commit(); }));
-        Pane.Children.Add(Row(Loc.Instance["actionVideoFull"], _settings.VideoFullHotkey, h => { _settings.VideoFullHotkey = h; Commit(); }));
-        Pane.Children.Add(Row(Loc.Instance["actionVideoArea"], _settings.VideoAreaHotkey, h => { _settings.VideoAreaHotkey = h; Commit(); }));
+        // Commit re-registers the hotkeys (App handles Saved synchronously), so rebuild
+        // the section right after: a refused RegisterHotKey shows/clears its row error.
+        Pane.Children.Add(Row(Loc.Instance["actionFullScreen"], _settings.FullScreenHotkey, App.HK_FULL,
+            h => { _settings.FullScreenHotkey = h; Commit(); ShowShortcuts(); }));
+        Pane.Children.Add(Row(Loc.Instance["actionAreaSelection"], _settings.AreaHotkey, App.HK_AREA,
+            h => { _settings.AreaHotkey = h; Commit(); ShowShortcuts(); }));
+        Pane.Children.Add(Row(Loc.Instance["actionVideoFull"], _settings.VideoFullHotkey, App.HK_VIDEO_FULL,
+            h => { _settings.VideoFullHotkey = h; Commit(); ShowShortcuts(); }));
+        Pane.Children.Add(Row(Loc.Instance["actionVideoArea"], _settings.VideoAreaHotkey, App.HK_VIDEO_AREA,
+            h => { _settings.VideoAreaHotkey = h; Commit(); ShowShortcuts(); }));
         Pane.Children.Add(new TextBlock
         {
             Text = Loc.Instance["shortcutsHint"],
@@ -118,7 +128,7 @@ public partial class SettingsWindow : Window
         });
     }
 
-    private FrameworkElement Row(string label, string current, Action<string> onSet)
+    private FrameworkElement Row(string label, string current, int hotkeyId, Action<string> onSet)
     {
         var rec = new ShortcutRecorderControl
         {
@@ -133,7 +143,18 @@ public partial class SettingsWindow : Window
             VerticalAlignment = VerticalAlignment.Center
         });
         sp.Children.Add(rec);
-        return sp;
+        if (IsHotkeyRegistrationFailed?.Invoke(hotkeyId) != true) return sp;
+
+        // The OS refused this combination — mirror mac's systemInUse row error.
+        var panel = new StackPanel();
+        panel.Children.Add(sp);
+        panel.Children.Add(new TextBlock
+        {
+            Text = Loc.Instance["systemInUse"],
+            Foreground = new SolidColorBrush(Color.FromRgb(0xE0, 0x6C, 0x5A)),
+            FontSize = 12, Margin = new Thickness(150, 0, 0, 4), TextWrapping = TextWrapping.Wrap
+        });
+        return panel;
     }
 
     private void ShowLanguage()

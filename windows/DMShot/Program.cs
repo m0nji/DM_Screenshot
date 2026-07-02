@@ -16,6 +16,13 @@ public static class Program
     {
         VelopackApp.Build().Run();
 
+        // Single instance: two processes would race the global hotkeys and the tray
+        // icon. The mutex lives for the app's lifetime; a second launch exits quietly
+        // (the first instance's tray icon IS the UI — nothing to activate).
+        using var instanceLock = new System.Threading.Mutex(
+            initiallyOwned: true, @"Local\DMShot.SingleInstance", out bool createdNew);
+        if (!createdNew) return;
+
         var app = new App();
         app.InitializeComponent();
         app.Run();

@@ -33,7 +33,11 @@ public partial class App : Application
     private DispatcherTimer? _controlTimer;
     private VideoPreviewWindow? _preview;
 
-    private const int HK_FULL = 1, HK_AREA = 2, HK_VIDEO_FULL = 3, HK_VIDEO_AREA = 4;
+    internal const int HK_FULL = 1, HK_AREA = 2, HK_VIDEO_FULL = 3, HK_VIDEO_AREA = 4;
+
+    // Hotkey ids whose RegisterHotKey call was refused (combination taken system-wide);
+    // Settings shows these under the matching shortcut row (mac parity: systemInUse).
+    private readonly HashSet<int> _hotkeyFailures = new();
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -84,6 +88,7 @@ public partial class App : Application
     private void RegisterHotkeysFromSettings()
     {
         _hotkeys.UnregisterAll();
+        _hotkeyFailures.Clear();
         var defaults = new Settings.Settings();
         RegisterHotkey(HK_FULL, _settings.FullScreenHotkey, defaults.FullScreenHotkey);
         RegisterHotkey(HK_AREA, _settings.AreaHotkey, defaults.AreaHotkey);
@@ -96,12 +101,15 @@ public partial class App : Application
     private void RegisterHotkey(int id, string stored, string fallback)
     {
         if (!HotkeySpec.TryParse(stored, out var spec)) spec = HotkeySpec.Parse(fallback);
-        _hotkeys.Register(id, spec);
+        if (!_hotkeys.Register(id, spec)) _hotkeyFailures.Add(id);
     }
 
     private void OpenSettings()
     {
-        var w = new SettingsWindow(_settings, _settingsStore, _updater);
+        var w = new SettingsWindow(_settings, _settingsStore, _updater)
+        {
+            IsHotkeyRegistrationFailed = id => _hotkeyFailures.Contains(id)
+        };
         w.Saved += s =>
         {
             _settings = s;

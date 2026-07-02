@@ -21,11 +21,12 @@ public sealed class Win32HotkeyManager : IHotkeyManager
         _source.AddHook(WndProc);
     }
 
-    public void Register(int id, HotkeySpec spec)
+    public bool Register(int id, HotkeySpec spec)
     {
         // MOD_NOREPEAT (0x4000) avoids auto-repeat storms.
-        RegisterHotKey(_source.Handle, id, (uint)spec.Modifiers | 0x4000, spec.VirtualKey);
-        _ids.Add(id);
+        bool ok = RegisterHotKey(_source.Handle, id, (uint)spec.Modifiers | 0x4000, spec.VirtualKey);
+        if (ok) _ids.Add(id);
+        return ok;
     }
 
     public void UnregisterAll()
