@@ -4,6 +4,18 @@ All notable changes to DM_Screenshot. Newest version first. Always written in En
 
 ## [Unreleased]
 
+## 0.6.0 – 2026-07-02
+- feat: Video recordings now include the mouse cursor, and section recordings show a thin accent frame around exactly the region being captured (Windows)
+- feat: Settings flags shortcut problems like macOS — combos without a modifier or already used by another action are rejected with an inline error, system-wide conflicts are shown, and a new "Reset to defaults" button restores the stock hotkeys (Windows)
+- feat: The tray menu shows each capture action's current hotkey, and video entries in the history sidebar carry a play badge; thumbnails are sharper (up to 320 px, small captures no longer upscaled) (Windows)
+- change: The default annotation color is now the same red as macOS, the editor and Quick-Edit share macOS's 7-color palette, the default stroke is 4 px and the blur strength range is 2–60 (Windows)
+- fix: Creating a GIF no longer freezes the app — rendering runs in the background while the preview shows a busy state (Windows)
+- fix: Dragging and drawing annotations stays smooth on large captures, even with several blur/mosaic regions (Windows)
+- fix: Text annotations keep exactly the size shown while typing when committed, and the step badge matches macOS sizing (existing saved text renders slightly smaller — that is the corrected size) (Windows)
+- fix: The recording preview plays at real speed (a 10-second recording takes 10 seconds) with a linear scrubber (Windows)
+- fix: Memory is properly released after captures, Quick-Edit sessions and recordings (previously ~100 MB per 4K capture accumulated) (Windows)
+- fix: The recording pill is centered on the recording display and never sits behind the taskbar on mixed-DPI setups; only one app instance runs at a time; the crosshair cursor no longer sticks after abnormally closing the capture overlay; deleting the history entry that is currently open in the editor works; Esc deselects the selected annotation; the area-selection dimming matches macOS (Windows)
+
 ## 0.5.3 – 2026-06-29
 - fix: The Windows Quick-Edit Background flyout is now only as wide as its controls and sits as a separate panel centred under the toolbar, instead of stretching a dark band across the full toolbar width (Windows)
 
