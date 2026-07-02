@@ -98,14 +98,18 @@ public static class Renderer
                 break;
             case ToolKind.Text:
                 using (var b = new SolidBrush(color))
-                using (var f = new Font("Segoe UI", (float)Math.Max(10, a.StrokeWidth * 5)))
+                // GraphicsUnit.Pixel: the inline TextBox, TextLayout.Measure and
+                // SelectionGeometry.BBox all treat this number as WPF pixels — a
+                // point-based font rendered ~33% larger the moment text committed.
+                using (var f = new Font("Segoe UI", (float)Math.Max(10, a.StrokeWidth * 5), System.Drawing.FontStyle.Regular, GraphicsUnit.Pixel))
                     g.DrawString(a.Text, f, b, x0, y0);
                 break;
             case ToolKind.Step:
                 float d = (float)Math.Max(22, a.StrokeWidth * 7);
                 using (var b = new SolidBrush(color))
                 using (var tb = new SolidBrush(Color.White))
-                using (var f = new Font("Segoe UI", d * 0.45f, System.Drawing.FontStyle.Bold))
+                // 0.5×d in pixels = mac's boldSystemFont(ofSize: radius) and the WPF mirror.
+                using (var f = new Font("Segoe UI", d * 0.5f, System.Drawing.FontStyle.Bold, GraphicsUnit.Pixel))
                 {
                     g.FillEllipse(b, x0, y0, d, d);
                     var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
@@ -114,7 +118,7 @@ public static class Renderer
                 if (!string.IsNullOrEmpty(a.Text))
                 {
                     float fs = (float)StepGeometry.CommentFontSize(a);
-                    using var cf = new Font("Segoe UI", fs, System.Drawing.FontStyle.Bold);
+                    using var cf = new Font("Segoe UI", fs, System.Drawing.FontStyle.Bold, GraphicsUnit.Pixel);
                     var csz = g.MeasureString(a.Text, cf);
                     float padH = (float)StepGeometry.CommentPadH(fs), padV = (float)StepGeometry.CommentPadV(fs);
                     var bo = StepGeometry.BubbleOrigin(a);
