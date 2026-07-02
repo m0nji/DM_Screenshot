@@ -420,5 +420,13 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.6.0/DM_Screenshot-v0.6.0.dmg" type="application/octet-stream" sparkle:edSignature="9WbHO49YJTcqEv0di0LDsygfRPOPvYJJx9HyQMxbqE4B7yMbvHBDsEpABUPTmbdPWne+gU0DCFqiY7KHIwfMCw==" length="2431788" />
 </item>
 
+<item>
+  <title>Version 0.6.1</title>
+  <description><![CDATA[<ul><li>fix: Moving, resizing and drawing annotations in the Quick-Edit overlay no longer stutters, especially on busy systems (e.g. during a video call) — dragging no longer re-renders the whole overlay per mouse move, and blur regions show a lightweight preview while dragging that snaps to full quality on release; exported images are unchanged (macOS)</li></ul>]]></description>
+  <sparkle:version>0.6.1</sparkle:version>
+  <sparkle:shortVersionString>0.6.1</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.6.1/DM_Screenshot-v0.6.1.dmg" type="application/octet-stream" sparkle:edSignature="X7SaDhr16S0JTskob4kyGHBQhU9xfgz272iF6wobB+9kscpayXzyAC04c8t2KNVC9JyVfscan3MzPxJRUnQaDw==" length="2435817" />
+</item>
+
 </channel>
 </rss>
