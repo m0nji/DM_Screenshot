@@ -403,5 +403,22 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.5.3/DM_Screenshot-v0.5.3.dmg" type="application/octet-stream" sparkle:edSignature="IZVdMIbVXuyoLXJVWt+w/u9e8ho8kcuwxqmVjrRyIZ1QxqO775k3xH8F+OUnDgnbjKZjfNnYOwbTcH7MpaZvBw==" length="2393450" />
 </item>
 
+<item>
+  <title>Version 0.6.0</title>
+  <description><![CDATA[<ul><li>feat: Video recordings now include the mouse cursor, and section recordings show a thin accent frame around exactly the region being captured (Windows)</li>
+<li>feat: Settings flags shortcut problems like macOS — combos without a modifier or already used by another action are rejected with an inline error, system-wide conflicts are shown, and a new "Reset to defaults" button restores the stock hotkeys (Windows)</li>
+<li>feat: The tray menu shows each capture action's current hotkey, and video entries in the history sidebar carry a play badge; thumbnails are sharper (up to 320 px, small captures no longer upscaled) (Windows)</li>
+<li>change: The default annotation color is now the same red as macOS, the editor and Quick-Edit share macOS's 7-color palette, the default stroke is 4 px and the blur strength range is 2–60 (Windows)</li>
+<li>fix: Creating a GIF no longer freezes the app — rendering runs in the background while the preview shows a busy state (Windows)</li>
+<li>fix: Dragging and drawing annotations stays smooth on large captures, even with several blur/mosaic regions (Windows)</li>
+<li>fix: Text annotations keep exactly the size shown while typing when committed, and the step badge matches macOS sizing (existing saved text renders slightly smaller — that is the corrected size) (Windows)</li>
+<li>fix: The recording preview plays at real speed (a 10-second recording takes 10 seconds) with a linear scrubber (Windows)</li>
+<li>fix: Memory is properly released after captures, Quick-Edit sessions and recordings (previously ~100 MB per 4K capture accumulated) (Windows)</li>
+<li>fix: The recording pill is centered on the recording display and never sits behind the taskbar on mixed-DPI setups; only one app instance runs at a time; the crosshair cursor no longer sticks after abnormally closing the capture overlay; deleting the history entry that is currently open in the editor works; Esc deselects the selected annotation; the area-selection dimming matches macOS (Windows)</li></ul>]]></description>
+  <sparkle:version>0.6.0</sparkle:version>
+  <sparkle:shortVersionString>0.6.0</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.6.0/DM_Screenshot-v0.6.0.dmg" type="application/octet-stream" sparkle:edSignature="9WbHO49YJTcqEv0di0LDsygfRPOPvYJJx9HyQMxbqE4B7yMbvHBDsEpABUPTmbdPWne+gU0DCFqiY7KHIwfMCw==" length="2431788" />
+</item>
+
 </channel>
 </rss>
