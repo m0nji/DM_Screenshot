@@ -4,6 +4,9 @@ All notable changes to DM_Screenshot. Newest version first. Always written in En
 
 ## [Unreleased]
 
+## 0.6.1 – 2026-07-02
+- fix: Moving, resizing and drawing annotations in the Quick-Edit overlay no longer stutters, especially on busy systems (e.g. during a video call) — dragging no longer re-renders the whole overlay per mouse move, and blur regions show a lightweight preview while dragging that snaps to full quality on release; exported images are unchanged (macOS)
+
 ## 0.6.0 – 2026-07-02
 - feat: Video recordings now include the mouse cursor, and section recordings show a thin accent frame around exactly the region being captured (Windows)
 - feat: Settings flags shortcut problems like macOS — combos without a modifier or already used by another action are rejected with an inline error, system-wide conflicts are shown, and a new "Reset to defaults" button restores the stock hotkeys (Windows)
