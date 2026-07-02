@@ -88,7 +88,8 @@ public sealed class WgcScreenRecorder : IScreenRecorder
             _pool.FrameArrived += OnFrameArrived;
 
             _session = _pool.CreateCaptureSession(_item);
-            TryDisableCaptureCursor(_session);
+            // Cursor IS recorded (mac parity: showsCursor = true); only the yellow
+            // WGC capture border is suppressed.
             TryDisableCaptureBorder(_session);
 
             _clock.Restart();
@@ -323,11 +324,6 @@ public sealed class WgcScreenRecorder : IScreenRecorder
         if (itemPtr == 0) return null;
         try { return MarshalInterface<GraphicsCaptureItem>.FromAbi(itemPtr); }
         finally { Marshal.Release(itemPtr); }
-    }
-
-    private static void TryDisableCaptureCursor(GraphicsCaptureSession session)
-    {
-        try { session.IsCursorCaptureEnabled = false; } catch { /* older OS */ }
     }
 
     private static void TryDisableCaptureBorder(GraphicsCaptureSession session)

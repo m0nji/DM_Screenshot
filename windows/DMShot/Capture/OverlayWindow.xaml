@@ -6,10 +6,11 @@
   <Grid>
     <Image x:Name="FrozenImage" Stretch="Fill"/>
     <Canvas x:Name="Overlay">
-      <Rectangle x:Name="DimTop" Fill="#80000000"/>
-      <Rectangle x:Name="DimBottom" Fill="#80000000"/>
-      <Rectangle x:Name="DimLeft" Fill="#80000000"/>
-      <Rectangle x:Name="DimRight" Fill="#80000000"/>
+      <!-- 0x59 = 0.35 alpha, mac's dim value -->
+      <Rectangle x:Name="DimTop" Fill="#59000000"/>
+      <Rectangle x:Name="DimBottom" Fill="#59000000"/>
+      <Rectangle x:Name="DimLeft" Fill="#59000000"/>
+      <Rectangle x:Name="DimRight" Fill="#59000000"/>
       <Rectangle x:Name="SelRect" Stroke="#C97B4A" StrokeThickness="1.5"/>
       <Border x:Name="ReadoutBox" Background="#CC1F1F24" CornerRadius="3" Padding="6,2">
         <TextBlock x:Name="Readout" Foreground="White" FontSize="12"/>
