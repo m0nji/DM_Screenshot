@@ -412,13 +412,17 @@ public partial class App : Application
     /// <summary>Place the control bottom-center of the recording display, in physical pixels (DPI-safe).</summary>
     private static void PositionControlBottomCenter(RecordingControlWindow control, DisplayInfo display)
     {
-        // The window is SizeToContent; its physical size is only known once rendered.
-        var src = System.Windows.PresentationSource.FromVisual(control);
-        double scale = src?.CompositionTarget?.TransformToDevice.M11 ?? 1.0;
+        // Use the TARGET display's scale and work area: the window spawns on the primary
+        // monitor, whose TransformToDevice mis-sizes the pill on mixed-DPI setups, and
+        // Bounds-based math parked it behind the taskbar.
+        var (work, scale) = MonitorMetrics.ForBounds(display.Bounds);
         int wPx = (int)Math.Round(control.ActualWidth * scale);
+        int hPx = (int)Math.Round(control.ActualHeight * scale);
         var b = display.Bounds;
-        int x = b.Left + (b.Width - wPx) / 2;
+        int x = work.Left + (work.Width - wPx) / 2;
         int y = b.Bottom - (int)Math.Round((control.ActualHeight + 40) * scale);
+        y = Math.Min(y, work.Bottom - hPx - 8);   // never behind a bottom taskbar
+        y = Math.Max(y, work.Top);
         var h = new System.Windows.Interop.WindowInteropHelper(control).Handle;
         SetWindowPos(h, IntPtr.Zero, x, y, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
     }
