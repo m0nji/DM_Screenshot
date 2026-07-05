@@ -39,7 +39,7 @@ enum L: CaseIterable {
     case bgCornerNone, bgCornerSoft, bgCornerRound
     case bgBlur
     // Video preview / trim + GIF viewer
-    case previewTrimTitle, startLabel, endLabel, discard, createGIF, estimatedGIFSize, gifViewerTitle
+    case previewTrimTitle, startLabel, endLabel, discard, createGIF, creatingGIF, estimatedGIFSize, gifViewerTitle
     // Recording errors + selection overlay
     case recordingFailedTitle, recordingFailedBody, recordingFailedBodyGeneric, overlayHint
     // Dialog buttons
@@ -183,6 +183,7 @@ final class Localizer: ObservableObject {
         case .endLabel:             return ("End", "Ende")
         case .discard:              return ("Discard", "Verwerfen")
         case .createGIF:            return ("Create GIF", "GIF erstellen")
+        case .creatingGIF:          return ("Creating GIF…", "GIF wird erstellt…")
         case .estimatedGIFSize:     return ("Estimated GIF size: %@", "Geschätzte GIF-Größe: %@")
         case .gifViewerTitle:       return ("DM Screenshot — GIF", "DM Screenshot — GIF")
         case .recordingFailedTitle: return ("Recording failed", "Aufnahme fehlgeschlagen")

@@ -29,6 +29,14 @@ Definition of done for a behavior change:
   whether drags stutter with many/large annotations or blur, and port the local-drag-override
   and blur-preview patterns if they do.
 
+- [ ] **TODO (win): verify the trim-timeline rework on a device.** 2026-07-05
+  (`feat/trim-timeline`, spec `docs/superpowers/specs/2026-07-05-trim-timeline-design.md`): the
+  preview's trim UI became a single timeline (two handles + playhead, range-only loop, relative
+  time pill top-right, "Creating GIF…" feedback while rendering; handles clamp at 0.1 s min gap).
+  macOS verified on-device. Windows implemented in the same change
+  (`Video/VideoPreviewWindow.xaml(.cs)`, `Video/TrimTimelineMath.cs` + tests) but **needs an
+  on-device build + eyeball** (Canvas drag logic, DPI, dark theme, LocTests).
+
 - [ ] **TODO (mac): editor keyboard shortcuts.** The mac main editor has no ⌘C / ⌘S / ⌘Z / ⌘⇧Z /
   Delete handling (source-of-truth gap found in the 2026-07-01 review, Phase 6 item 8); Windows
   already ships Ctrl+C/S/Z/Y/Ctrl+Shift+Z/Del. Add the mac side next mac session. The win half of
