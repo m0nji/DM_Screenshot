@@ -7,9 +7,16 @@ import UniformTypeIdentifiers
 final class GIFViewerWindow: NSObject {
     private var window: NSWindow?
     private var gifData: Data?
+    private var imageView: NSImageView?
+    private var convertButton: NSButton?
+    private var convertSpinner: NSProgressIndicator?
+    /// Post-hoc Standard→Small hook (wired by the app layer): takes the current
+    /// GIF, returns the converted one — or nil, in which case nothing changes.
+    private var onConvert: ((Data) async -> Data?)?
 
-    func show(gifData: Data, title: String = "GIF") {
+    func show(gifData: Data, title: String = "GIF", onConvert: ((Data) async -> Data?)? = nil) {
         self.gifData = gifData
+        self.onConvert = onConvert
         guard let image = NSImage(data: gifData) else { return }
 
         let imageView = NSImageView()
@@ -17,6 +24,7 @@ final class GIFViewerWindow: NSObject {
         imageView.imageScaling = .scaleProportionallyUpOrDown
         imageView.animates = true   // NSImageView auto-animates animated GIFs
         imageView.translatesAutoresizingMaskIntoConstraints = false
+        self.imageView = imageView
 
         let saveButton = NSButton(title: tr(.saveEllipsis), target: self, action: #selector(saveGIF))
         saveButton.bezelStyle = .rounded
@@ -43,6 +51,29 @@ final class GIFViewerWindow: NSObject {
             copyButton.centerYAnchor.constraint(equalTo: saveButton.centerYAnchor),
         ])
 
+        // One-way Standard→Small conversion — only when it would actually shrink.
+        if onConvert != nil, GIFResample.isConvertibleToSmall(gifData) {
+            let convert = NSButton(title: tr(.gifConvertToSmall), target: self,
+                                   action: #selector(convertToSmall))
+            convert.bezelStyle = .rounded
+            convert.translatesAutoresizingMaskIntoConstraints = false
+            let spinner = NSProgressIndicator()
+            spinner.style = .spinning
+            spinner.controlSize = .small
+            spinner.isHidden = true
+            spinner.translatesAutoresizingMaskIntoConstraints = false
+            container.addSubview(convert)
+            container.addSubview(spinner)
+            NSLayoutConstraint.activate([
+                convert.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 12),
+                convert.centerYAnchor.constraint(equalTo: saveButton.centerYAnchor),
+                spinner.leadingAnchor.constraint(equalTo: convert.trailingAnchor, constant: 6),
+                spinner.centerYAnchor.constraint(equalTo: convert.centerYAnchor),
+            ])
+            convertButton = convert
+            convertSpinner = spinner
+        }
+
         let size = image.size
         let w = min(max(size.width, 280), 900)
         let h = min(max(size.height, 200), 700) + 44
@@ -57,6 +88,25 @@ final class GIFViewerWindow: NSObject {
         win.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
         window = win
+    }
+
+    @objc private func convertToSmall() {
+        guard let data = gifData, let onConvert else { return }
+        convertButton?.isEnabled = false
+        convertSpinner?.isHidden = false
+        convertSpinner?.startAnimation(nil)
+        Task { @MainActor in
+            let small = await onConvert(data)
+            convertSpinner?.stopAnimation(nil)
+            convertSpinner?.isHidden = true
+            if let small {
+                gifData = small
+                imageView?.image = NSImage(data: small)
+                convertButton?.isHidden = true   // one-way; already small now
+            } else {
+                convertButton?.isEnabled = true  // failed: original untouched
+            }
+        }
     }
 
     @objc private func copyGIF() {
