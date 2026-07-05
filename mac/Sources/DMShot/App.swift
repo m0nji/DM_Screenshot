@@ -35,6 +35,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         // Seed the shared localizer from the persisted setting before building
         // AppKit menus, then rebuild menu + window titles live on changes.
         Localizer.shared.language = appSettings.language
+        // Allow cursor changes while the app is inactive — the capture overlay
+        // and Quick-Edit are non-activating panels (see BackgroundCursor.swift).
+        BackgroundCursor.enable()
         setupStatusItem()
         setupHotkeys()
         setupPersistence()
