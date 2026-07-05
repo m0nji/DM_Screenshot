@@ -428,5 +428,21 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.6.1/DM_Screenshot-v0.6.1.dmg" type="application/octet-stream" sparkle:edSignature="X7SaDhr16S0JTskob4kyGHBQhU9xfgz272iF6wobB+9kscpayXzyAC04c8t2KNVC9JyVfscan3MzPxJRUnQaDw==" length="2435817" />
 </item>
 
+<item>
+  <title>Version 0.7.0</title>
+  <description><![CDATA[<ul><li>feat: The recording preview trims with a single QuickTime-style timeline — two drag handles, a playhead marker, and playback that loops only the kept range; dragging a handle pauses on the exact cut frame, and a time readout over the video shows the position within the trimmed range (macOS + Windows)</li>
+<li>feat: GIFs can be created in a new "Small" quality (5 fps, max 800 px — roughly a quarter of the size) via a Standard | Small picker in the preview; the size estimate follows the selection (macOS + Windows)</li>
+<li>feat: Existing GIFs can be converted to Small afterwards ("Convert to Small" in the GIF viewer) — the history entry and clipboard copy are replaced, so no duplicate versions pile up (macOS + Windows)</li>
+<li>feat: Creating a GIF shows visible progress ("Creating GIF…" with a spinner) instead of appearing to do nothing on long clips (macOS; Windows gains the same label next to its busy state)</li>
+<li>fix: The crosshair cursor appears again — and immediately, without moving the mouse — when starting an area capture or section recording; it broke in 0.6.0 when the capture overlay stopped activating the app (macOS)</li>
+<li>fix: Tooltips in the Quick-Edit bar and on the recording control work again (same 0.6.0 regression) (macOS)</li>
+<li>fix: Hovering the area-selection overlay no longer redraws the whole frozen screen per mouse move when the zoom loupe is off (macOS)</li>
+<li>fix: Recorder start-up state is published race-free to the capture stream's queue (macOS)</li>
+<li>change: A divider now separates the Background button from the color picker in the editor and Quick-Edit toolbars (macOS + Windows)</li></ul>]]></description>
+  <sparkle:version>0.7.0</sparkle:version>
+  <sparkle:shortVersionString>0.7.0</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.7.0/DM_Screenshot-v0.7.0.dmg" type="application/octet-stream" sparkle:edSignature="9pWrJgwf+58mATaGMjc8ZLwADywKgsaCA3aYhHvyZYp9n8B8iyLhnyIaIe6SLMRtt4C93P4t+b3QtE9mWkIoDQ==" length="2483489" />
+</item>
+
 </channel>
 </rss>
