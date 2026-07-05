@@ -41,6 +41,36 @@ public sealed class NotifyIconTray : ITrayIcon
     private static string WithHint(string title, string? hint)
         => string.IsNullOrEmpty(hint) ? title : $"{title}  ({hint})";
 
+    // Active update hint (spec 2026-07-05, mac parity): accent dot on the tray
+    // icon + first menu item opening Settings while an update is actionable.
+    private string? _updateVersion;
+
+    public void SetUpdateHint(string? version)
+    {
+        if (_updateVersion == version) return;
+        _updateVersion = version;
+        _icon.IconSource = version is null ? LoadIcon() : BadgedIcon(LoadIcon());
+        BuildMenu();
+    }
+
+    /// <summary>Base icon with a DM-accent dot at the top-right (rendered composite —
+    /// the icon file itself stays untouched).</summary>
+    private static ImageSource BadgedIcon(ImageSource baseIcon)
+    {
+        const int size = 32;
+        var dv = new DrawingVisual();
+        using (var dc = dv.RenderOpen())
+        {
+            dc.DrawImage(baseIcon, new System.Windows.Rect(0, 0, size, size));
+            var accent = new SolidColorBrush(Color.FromRgb(0xC9, 0x7B, 0x4A));
+            dc.DrawEllipse(accent, null, new System.Windows.Point(size - 6, 6), 5.5, 5.5);
+        }
+        var rtb = new RenderTargetBitmap(size, size, 96, 96, PixelFormats.Pbgra32);
+        rtb.Render(dv);
+        rtb.Freeze();
+        return rtb;
+    }
+
     // Rebuilt on language change so the tray menu follows the active language.
     private void BuildMenu()
     {
@@ -49,6 +79,12 @@ public sealed class NotifyIconTray : ITrayIcon
         // A Separator inside a menu is styled via MenuItem.SeparatorStyleKey, NOT typeof(Separator)
         // — keying it wrong left the OS default (a bright white line) showing on the dark menu.
         menu.Resources.Add(MenuItem.SeparatorStyleKey, SeparatorStyle);
+        if (_updateVersion is not null)
+        {
+            menu.Items.Add(Item(string.Format(Loc.Instance["menuUpdateAvailable"], _updateVersion),
+                                () => SettingsRequested?.Invoke()));
+            menu.Items.Add(new Separator());
+        }
         menu.Items.Add(Item(WithHint(Loc.Instance["menuNewFullScreen"], _hintFull), () => FullScreenRequested?.Invoke()));
         menu.Items.Add(Item(WithHint(Loc.Instance["menuNewSelection"], _hintArea), () => AreaRequested?.Invoke()));
         menu.Items.Add(Item(WithHint(Loc.Instance["menuNewVideoFull"], _hintVideoFull), () => VideoFullRequested?.Invoke()));
