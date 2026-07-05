@@ -208,26 +208,33 @@ private struct PreviewView: View {
                 .labelsHidden()
                 .fixedSize()
                 .disabled(state.rendering)
-                Group {
-                    Text("\(String(format: "%.1f", max(0, state.end - state.start)))s")
-                    Text(String(format: tr(.estimatedGIFSize), sizeLabel(state.estimatedBytes)))
-                }
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                Spacer()
+                // Rendering runs seconds-long for big clips; without visible
+                // feedback the click on "Create GIF" looks like it did nothing.
+                // The progress REPLACES duration+estimate (stale while rendering)
+                // so the row never overflows and wraps the button labels.
                 if state.rendering {
-                    // Rendering runs seconds-long for big clips; without visible
-                    // feedback the click on "Create GIF" looks like it did nothing.
                     ProgressView().controlSize(.small)
                     Text(tr(.creatingGIF))
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                } else {
+                    Group {
+                        Text("\(String(format: "%.1f", max(0, state.end - state.start)))s")
+                        Text(String(format: tr(.estimatedGIFSize), sizeLabel(state.estimatedBytes)))
+                    }
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
                 }
+                Spacer()
                 Button(tr(.discard), action: onDiscard)
                     .disabled(state.rendering)
+                    .fixedSize()
                 Button(tr(.createGIF), action: onCreate)
                     .buttonStyle(AccentFilledButtonStyle())
                     .disabled(state.rendering || state.end <= state.start)
+                    .fixedSize()
             }
         }
         .padding(16)
@@ -322,7 +329,7 @@ final class VideoPreviewWindow: NSObject, NSWindowDelegate {
                 onScrub: { [weak self] time, _ in self?.scrub(to: time) },
                 onRelease: { [weak self] kind in self?.endScrub(returnToStart: kind != .playhead) })
 
-            let win = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 560, height: 460),
+            let win = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 640, height: 470),
                                styleMask: [.titled, .closable], backing: .buffered, defer: false)
             win.isReleasedWhenClosed = false  // ARC owns the window; see teardown() comment
             win.title = tr(.previewTrimTitle)
