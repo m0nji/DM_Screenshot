@@ -202,7 +202,16 @@ private struct PreviewView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 Spacer()
+                if state.rendering {
+                    // Rendering runs seconds-long for big clips; without visible
+                    // feedback the click on "Create GIF" looks like it did nothing.
+                    ProgressView().controlSize(.small)
+                    Text(tr(.creatingGIF))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
                 Button(tr(.discard), action: onDiscard)
+                    .disabled(state.rendering)
                 Button(tr(.createGIF), action: onCreate)
                     .buttonStyle(AccentFilledButtonStyle())
                     .disabled(state.rendering || state.end <= state.start)
