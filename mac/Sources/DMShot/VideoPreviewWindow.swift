@@ -5,7 +5,8 @@ import SwiftUI
 
 /// Samples a trimmed range of the asset into an optimized GIF (pipeline steps 5–6).
 enum GIFRenderer {
-    static func render(asset: AVAsset, start: Double, end: Double) async -> (data: Data, thumbnail: CGImage)? {
+    static func render(asset: AVAsset, start: Double, end: Double,
+                       quality: GIFQuality = .standard) async -> (data: Data, thumbnail: CGImage)? {
         let duration = max(0, end - start)
         let gen = AVAssetImageGenerator(asset: asset)
         gen.appliesPreferredTrackTransform = true
@@ -20,15 +21,15 @@ enum GIFRenderer {
         // Kept frames are spooled to disk (StreamingGIFBuilder) instead of held
         // as CGImages, and the last kept frame's bytes are cached so each grid
         // frame is rendered to RGBA exactly once.
-        let base = 1.0 / GIFPlan.defaultFPS
+        let base = 1.0 / quality.fps
         let dupTolerance = 0.002   // ≤0.2% of pixels changed → treat as held frame
         let builder = StreamingGIFBuilder()
         var thumbnail: CGImage?
         var lastKeptBytes: [UInt8]?
-        for t in GIFPlan.frameTimes(duration: duration) {
+        for t in GIFPlan.frameTimes(duration: duration, fps: quality.fps) {
             let time = CMTime(seconds: start + t, preferredTimescale: 600)
             guard let result = try? await gen.image(at: time) else { continue }
-            let frame = ImageUtils.scaled(result.image, toWidth: GIFPlan.defaultMaxWidth)
+            let frame = ImageUtils.scaled(result.image, toWidth: quality.maxWidth)
             guard let bytes = GIFEncoder.rgbaBytes(frame) else { continue }
             if let last = lastKeptBytes,
                !GIFEncoder.differsBeyond(last, bytes, tolerance: dupTolerance) {
@@ -53,7 +54,10 @@ private final class PreviewState: ObservableObject {
     @Published var rendering = false
     /// Playhead position in asset seconds (driven by the periodic time observer).
     @Published var current: Double = 0
+    /// Output level; deliberately NOT persisted — every preview starts Standard.
+    @Published var quality: GIFQuality = .standard
     let duration: Double
+    /// RAW video pixel size — the estimate scales it per selected quality.
     let width: Int
     let height: Int
     init(duration: Double, width: Int, height: Int) {
@@ -63,8 +67,9 @@ private final class PreviewState: ObservableObject {
         self.height = height
     }
     var estimatedBytes: Int {
-        let frames = GIFPlan.frameTimes(duration: max(0, end - start)).count
-        return GIFPlan.estimatedBytes(frameCount: frames, width: width, height: height)
+        let frames = GIFPlan.frameTimes(duration: max(0, end - start), fps: quality.fps).count
+        let s = GIFPlan.scaledSize(width: width, height: height, maxWidth: quality.maxWidth)
+        return GIFPlan.estimatedBytes(frameCount: frames, width: s.width, height: s.height)
     }
 }
 
@@ -262,9 +267,8 @@ final class VideoPreviewWindow: NSObject, NSWindowDelegate {
             } else {
                 raw = CGSize(width: 1000, height: 600)
             }
-            let scaled = GIFPlan.scaledSize(width: Int(raw.width), height: Int(raw.height))
             let state = PreviewState(duration: duration.isFinite ? duration : 0,
-                                     width: scaled.width, height: scaled.height)
+                                     width: Int(raw.width), height: Int(raw.height))
             self.state = state
             // Loop within the kept range — end-of-file case (trim end == clip end)…
             loopObserver = NotificationCenter.default.addObserver(
@@ -297,7 +301,8 @@ final class VideoPreviewWindow: NSObject, NSWindowDelegate {
                     Task {
                         let result = await GIFRenderer.render(asset: asset,
                                                               start: state.start,
-                                                              end: state.end)
+                                                              end: state.end,
+                                                              quality: state.quality)
                         await MainActor.run {
                             state.rendering = false
                             if let result { self.onCreateGIF(result.data, result.thumbnail) }
