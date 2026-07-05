@@ -127,6 +127,8 @@
             </Border>
           </Popup>
 
+          <Rectangle Style="{StaticResource VDivider}"/>
+
           <!-- Color swatch + popover -->
           <Button x:Name="ColorSwatchButton" Click="OpenColorPopup" Cursor="Hand" ToolTip="{loc:Tr color}">
             <Button.Template>

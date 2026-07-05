@@ -185,7 +185,9 @@ public partial class QuickEditOverlayWindow : Window
         }
         row.Children.Add(Divider());
         row.Children.Add(IconAction(Icon(ColorGeo, true), Loc.Instance["color"], ToggleColorFlyout));
+        row.Children.Add(Divider());   // mac parity: color | divider | background | divider | slider
         row.Children.Add(IconAction(Icon(BgGeo, false), Loc.Instance["background"], ToggleFrameFlyout));
+        row.Children.Add(Divider());
         row.Children.Add(BuildSizeControl());   // always-visible size / blur-strength slider
         row.Children.Add(IconAction(Icon(UndoGeo, false), Loc.Instance["undo"], () => Canvas.Model.Undo()));
         row.Children.Add(IconAction(Icon(RedoGeo, false), Loc.Instance["redo"], () => Canvas.Model.Redo()));
