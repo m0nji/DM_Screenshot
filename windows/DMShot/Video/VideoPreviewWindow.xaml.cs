@@ -231,6 +231,8 @@ public partial class VideoPreviewWindow : Window, IDisposable
         _timer.Stop();                                  // frame bitmaps now belong to the render thread
         Cursor = System.Windows.Input.Cursors.Wait;
         RenderingLabel.Visibility = Visibility.Visible; // mac parity: visible "Creating GIF…" feedback
+        DurationLabel.Visibility = Visibility.Collapsed;      // mac parity: progress REPLACES the
+        EstimatedSizeLabel.Visibility = Visibility.Collapsed; // stale duration/estimate readouts
         DiscardButton.IsEnabled = false;
         QualityStandard.IsEnabled = false;
         QualitySmall.IsEnabled = false;
