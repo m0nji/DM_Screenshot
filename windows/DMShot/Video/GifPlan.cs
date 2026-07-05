@@ -1,6 +1,19 @@
 namespace DMShot.Video;
 
 /// <summary>
+/// The two selectable GIF output levels (spec 2026-07-05, mac parity: GIFQuality).
+/// Standard is the unchanged default pipeline; Small trades fidelity for roughly a
+/// quarter of the size (half the frames × ~2/3 the pixels).
+/// </summary>
+public enum GifQuality { Standard, Small }
+
+public static class GifQualityExtensions
+{
+    public static double Fps(this GifQuality q) => q == GifQuality.Small ? 5.0 : GifPlan.DefaultFps;
+    public static int MaxWidth(this GifQuality q) => q == GifQuality.Small ? 800 : GifPlan.DefaultMaxWidth;
+}
+
+/// <summary>
 /// Pure planning math for GIF encoding (no I/O). Shared contract for both platforms;
 /// a direct port of the macOS GIFPlan.swift. bytesPerPixelPerFrame is tuned to 0.25
 /// because frame-dedup collapses the (usually large) static regions of screen recordings.

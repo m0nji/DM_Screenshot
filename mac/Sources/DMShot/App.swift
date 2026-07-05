@@ -399,8 +399,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         // brought to the front. It's also saved to history.
         gifViewer?.close()
         let viewer = GIFViewerWindow()
-        viewer.show(gifData: data, title: tr(.gifViewerTitle))
+        viewer.show(gifData: data, title: tr(.gifViewerTitle),
+                    onConvert: gifConvertHandler(id: id))
         gifViewer = viewer
+    }
+
+    /// Post-hoc Standard→Small for the GIF viewer: re-encode off-main, replace
+    /// the history entry in place, refresh the clipboard, hand the small GIF
+    /// back to the viewer. Nil = conversion failed, original stays.
+    private func gifConvertHandler(id: String) -> (Data) async -> Data? {
+        { [weak self] data in
+            let result = await Task.detached(priority: .userInitiated) {
+                GIFResample.makeSmall(gifData: data)
+            }.value
+            guard let result, let self else { return nil }
+            await MainActor.run {
+                self.history.updateVideo(id: id, gifData: result.data, thumbnail: result.thumbnail)
+                let fileURL = FileManager.default.temporaryDirectory.appendingPathComponent("\(id).gif")
+                try? result.data.write(to: fileURL)
+                ImageUtils.copyGIF(data: result.data, fileURL: fileURL)
+                NSLog("DMShot: converted GIF %@ to Small (%.1f MB)", id,
+                      Double(result.data.count) / 1_048_576)
+            }
+            return result.data
+        }
     }
 
     /// Returns true if Screen Recording is granted. If not, shows exactly ONE
@@ -575,7 +597,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 ImageUtils.copyGIF(data: data, fileURL: fileURL)
                 gifViewer?.close()  // as in deliverGIF: don't orphan a live viewer window
                 let viewer = GIFViewerWindow()
-                viewer.show(gifData: data, title: tr(.gifViewerTitle))
+                viewer.show(gifData: data, title: tr(.gifViewerTitle),
+                            onConvert: gifConvertHandler(id: id))
                 gifViewer = viewer
             }
             return

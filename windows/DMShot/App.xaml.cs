@@ -391,24 +391,24 @@ public partial class App : Application
         _preview?.Close();                                          // V15: close prior before new
         var preview = new VideoPreviewWindow(frames);
         _preview = preview;
-        preview.CreateGifRequested += async (start, end) => { await DeliverGifAsync(frames, start, end); preview.Close(); };
+        preview.CreateGifRequested += async (start, end, quality) => { await DeliverGifAsync(frames, start, end, quality); preview.Close(); };
         preview.Closed += (_, _) => { if (ReferenceEquals(_preview, preview)) _preview = null; };
         // Discarded: frames are disposed by the preview's own OnClosed (V9), nothing to do here.
         preview.Show(); preview.Activate();                        // V20: preview to foreground
     }
 
-    private async System.Threading.Tasks.Task DeliverGifAsync(IReadOnlyList<RecordedFrame> frames, double start, double end)
+    private async System.Threading.Tasks.Task DeliverGifAsync(IReadOnlyList<RecordedFrame> frames, double start, double end, GifQuality quality = GifQuality.Standard)
     {
         try
         {
             // 5.1: render + encode off the dispatcher — a 30 s trim froze the UI ("Not Responding").
             // The preview pauses playback while rendering, so nothing else touches the frame bitmaps.
-            var (gif, thumb) = await System.Threading.Tasks.Task.Run(() => GifRenderer.Render(frames, start, end));
+            var (gif, thumb) = await System.Threading.Tasks.Task.Run(() => GifRenderer.Render(frames, start, end, quality));
             if (gif.Length == 0) { thumb.Dispose(); return; }     // I2: guard empty GIF before AddVideo
             HistoryEntry entry;
             using (thumb) { entry = _history.AddVideo(thumb, gif, DateTime.UtcNow); }
             _clipboard.SetGif(gif, entry.GifPath);                 // auto-copy the GIF
-            var viewer = new GifViewerWindow(gif, entry.GifPath, _clipboard);
+            var viewer = new GifViewerWindow(gif, entry.GifPath, _clipboard, GifConvertedHandler(entry));
             viewer.Show(); viewer.Activate();                      // V20
             _editor?.RefreshHistory();
         }
@@ -426,11 +426,22 @@ public partial class App : Application
         {
             var bytes = File.ReadAllBytes(entry.GifPath);
             _clipboard.SetGif(bytes, entry.GifPath);
-            var viewer = new GifViewerWindow(bytes, entry.GifPath, _clipboard);
+            var viewer = new GifViewerWindow(bytes, entry.GifPath, _clipboard, GifConvertedHandler(entry));
             viewer.Show(); viewer.Activate();
         }
         catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"open gif failed: {ex}"); }
     }
+
+    /// <summary>Post-hoc Standard→Small (mac parity): called by the viewer on the UI
+    /// thread with the converted GIF — replace the history entry in place, refresh
+    /// the clipboard and the sidebar thumbnail.</summary>
+    private Action<byte[], System.Drawing.Bitmap> GifConvertedHandler(HistoryEntry entry)
+        => (smallGif, thumbnail) =>
+        {
+            _history.UpdateVideo(entry, smallGif, thumbnail);
+            _clipboard.SetGif(smallGif, entry.GifPath);
+            _editor?.RefreshHistory();
+        };
 
     [DllImport("user32.dll")] private static extern bool SetWindowPos(
         IntPtr hWnd, IntPtr after, int x, int y, int cx, int cy, uint flags);

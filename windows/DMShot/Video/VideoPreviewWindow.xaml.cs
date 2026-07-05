@@ -19,8 +19,10 @@ public partial class VideoPreviewWindow : Window, IDisposable
     private bool _rendering;   // 5.1: GIF render runs off-thread; freeze playback + disable Create meanwhile
     private bool _disposed;
 
-    public event Action<double, double>? CreateGifRequested;
+    public event Action<double, double, GifQuality>? CreateGifRequested;
     public event Action? Discarded;
+
+    private GifQuality Quality => QualitySmall.IsChecked == true ? GifQuality.Small : GifQuality.Standard;
 
     public VideoPreviewWindow(IReadOnlyList<RecordedFrame> frames)
     {
@@ -47,6 +49,8 @@ public partial class VideoPreviewWindow : Window, IDisposable
         };
 
         // Wire up controls (timeline drag handlers are attached in XAML).
+        QualityStandard.Checked += (_, _) => UpdateDuration();   // estimate follows the level
+        QualitySmall.Checked    += (_, _) => UpdateDuration();
         CreateGifButton.Click   += (_, _) => Raise();
         DiscardButton.Click     += (_, _) => { Discarded?.Invoke(); Close(); };
     }
@@ -195,8 +199,8 @@ public partial class VideoPreviewWindow : Window, IDisposable
     private long EstimateGifBytes(double durationSec)
     {
         if (_frames.Count == 0) return 0;
-        var (w, h) = GifPlan.ScaledSize(_frames[0].Image.Width, _frames[0].Image.Height);
-        int frameCount = GifPlan.FrameTimes(durationSec).Length;
+        var (w, h) = GifPlan.ScaledSize(_frames[0].Image.Width, _frames[0].Image.Height, Quality.MaxWidth());
+        int frameCount = GifPlan.FrameTimes(durationSec, Quality.Fps()).Length;
         return GifPlan.EstimatedBytes(frameCount, w, h);
     }
 
@@ -228,8 +232,10 @@ public partial class VideoPreviewWindow : Window, IDisposable
         Cursor = System.Windows.Input.Cursors.Wait;
         RenderingLabel.Visibility = Visibility.Visible; // mac parity: visible "Creating GIF…" feedback
         DiscardButton.IsEnabled = false;
+        QualityStandard.IsEnabled = false;
+        QualitySmall.IsEnabled = false;
         UpdateCreateGifEnabled();
-        CreateGifRequested?.Invoke(_trimStart, _trimEnd);
+        CreateGifRequested?.Invoke(_trimStart, _trimEnd, Quality);
     }
 
     // ── Teardown ──────────────────────────────────────────────────────────

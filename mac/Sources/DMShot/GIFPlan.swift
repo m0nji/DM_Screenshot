@@ -1,5 +1,27 @@
 import Foundation
 
+/// The two selectable GIF output levels (spec 2026-07-05). Standard is the
+/// unchanged default pipeline; Small trades fidelity for roughly a quarter of
+/// the size (half the frames × ~2/3 the pixels).
+enum GIFQuality: CaseIterable {
+    case standard
+    case small
+
+    var fps: Double {
+        switch self {
+        case .standard: return GIFPlan.defaultFPS
+        case .small: return 5
+        }
+    }
+
+    var maxWidth: Int {
+        switch self {
+        case .standard: return GIFPlan.defaultMaxWidth
+        case .small: return 800
+        }
+    }
+}
+
 /// Pure planning math for GIF encoding (no I/O). Shared contract for both platforms.
 enum GIFPlan {
     static let defaultFPS: Double = 10

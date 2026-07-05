@@ -10,15 +10,16 @@ public static class GifRenderer
     private const double DupTolerance = 0.002; // ≤0.2% RGB pixels changed -> merge
 
     public static (byte[] Gif, Bitmap Thumbnail) Render(
-        IReadOnlyList<RecordedFrame> frames, double startSec, double endSec)
+        IReadOnlyList<RecordedFrame> frames, double startSec, double endSec,
+        GifQuality quality = GifQuality.Standard)
     {
         if (frames.Count == 0) return (Array.Empty<byte>(), new Bitmap(1, 1));
 
         double duration = Math.Max(0, endSec - startSec);
-        var times = GifPlan.FrameTimes(duration); // 10fps sample grid
+        var times = GifPlan.FrameTimes(duration, quality.Fps());
 
-        // Sample the nearest captured frame to each grid time, scaled to <=1000px.
-        var (sw, sh) = GifPlan.ScaledSize(frames[0].Image.Width, frames[0].Image.Height);
+        // Sample the nearest captured frame to each grid time, scaled per quality.
+        var (sw, sh) = GifPlan.ScaledSize(frames[0].Image.Width, frames[0].Image.Height, quality.MaxWidth());
         var kept = new List<Bitmap>();
         var delays = new List<double>();
         Bitmap? prev = null;
@@ -29,12 +30,12 @@ public static class GifRenderer
             var scaled = Scale(srcFrame.Image, sw, sh);
             if (prev is not null && GifEncoder.FractionDiffering(prev, scaled) <= DupTolerance)
             {
-                delays[^1] += 1.0 / GifPlan.DefaultFps; // hold the previous frame longer
+                delays[^1] += 1.0 / quality.Fps(); // hold the previous frame longer
                 scaled.Dispose();
                 continue;
             }
             kept.Add(scaled);
-            delays.Add(1.0 / GifPlan.DefaultFps);
+            delays.Add(1.0 / quality.Fps());
             prev = scaled;
         }
 

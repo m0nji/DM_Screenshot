@@ -53,6 +53,13 @@
           </Grid.ColumnDefinitions>
 
           <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+            <!-- Quality (mac parity): Standard | Small, defaults to Standard every time -->
+            <RadioButton x:Name="QualityStandard" GroupName="gifQuality" IsChecked="True"
+                         Content="{loc:Tr gifQualityStandard}" Foreground="{DynamicResource DmText}"
+                         FontSize="12" VerticalAlignment="Center" Margin="0,0,10,0"/>
+            <RadioButton x:Name="QualitySmall" GroupName="gifQuality"
+                         Content="{loc:Tr gifQualitySmall}" Foreground="{DynamicResource DmText}"
+                         FontSize="12" VerticalAlignment="Center" Margin="0,0,16,0"/>
             <TextBlock Text="{loc:Tr duration}" Foreground="{DynamicResource DmTextDim}" FontSize="12" Margin="0,0,6,0"/>
             <TextBlock x:Name="DurationLabel" FontSize="12" FontFamily="Consolas"
                        Foreground="{DynamicResource DmText}" Text="0.0 s"/>

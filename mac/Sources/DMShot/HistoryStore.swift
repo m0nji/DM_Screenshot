@@ -106,6 +106,20 @@ final class HistoryStore: ObservableObject {
         }
     }
 
+    /// Replace an existing video entry's GIF + thumbnail in place (post-hoc
+    /// Standard→Small conversion). Same id, same list position — deliberately
+    /// no insert/evict, unlike addVideo.
+    func updateVideo(id: String, gifData: Data, thumbnail: CGImage) {
+        guard items.contains(where: { $0.id == id && $0.kind == .video }) else { return }
+        pendingGIFs[id] = gifData
+        ioQueue.async { [weak self] in
+            guard let self else { return }
+            try? gifData.write(to: self.gifURL(id))
+            self.writeThumb(id: id, image: thumbnail)
+            DispatchQueue.main.async { self.pendingGIFs[id] = nil }
+        }
+    }
+
     func loadGIF(_ id: String) -> Data? {
         if let pending = pendingGIFs[id] { return pending }
         return try? Data(contentsOf: gifURL(id))
