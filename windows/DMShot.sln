@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DMShot", "DMShot\DMShot.csproj", "{5E3FB1C3-41BB-4A4A-B816-ED72100FEDBE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DMShot.Tests", "DMShot.Tests\DMShot.Tests.csproj", "{68F633CC-7A25-4753-BDC5-C5E1BA7E5271}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{5E3FB1C3-41BB-4A4A-B816-ED72100FEDBE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5E3FB1C3-41BB-4A4A-B816-ED72100FEDBE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5E3FB1C3-41BB-4A4A-B816-ED72100FEDBE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5E3FB1C3-41BB-4A4A-B816-ED72100FEDBE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{68F633CC-7A25-4753-BDC5-C5E1BA7E5271}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{68F633CC-7A25-4753-BDC5-C5E1BA7E5271}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{68F633CC-7A25-4753-BDC5-C5E1BA7E5271}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{68F633CC-7A25-4753-BDC5-C5E1BA7E5271}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
