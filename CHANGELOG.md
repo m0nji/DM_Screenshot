@@ -4,6 +4,17 @@ All notable changes to DM_Screenshot. Newest version first. Always written in En
 
 ## [Unreleased]
 
+## 0.7.0 – 2026-07-05
+- feat: The recording preview trims with a single QuickTime-style timeline — two drag handles, a playhead marker, and playback that loops only the kept range; dragging a handle pauses on the exact cut frame, and a time readout over the video shows the position within the trimmed range (macOS + Windows)
+- feat: GIFs can be created in a new "Small" quality (5 fps, max 800 px — roughly a quarter of the size) via a Standard | Small picker in the preview; the size estimate follows the selection (macOS + Windows)
+- feat: Existing GIFs can be converted to Small afterwards ("Convert to Small" in the GIF viewer) — the history entry and clipboard copy are replaced, so no duplicate versions pile up (macOS + Windows)
+- feat: Creating a GIF shows visible progress ("Creating GIF…" with a spinner) instead of appearing to do nothing on long clips (macOS; Windows gains the same label next to its busy state)
+- fix: The crosshair cursor appears again — and immediately, without moving the mouse — when starting an area capture or section recording; it broke in 0.6.0 when the capture overlay stopped activating the app (macOS)
+- fix: Tooltips in the Quick-Edit bar and on the recording control work again (same 0.6.0 regression) (macOS)
+- fix: Hovering the area-selection overlay no longer redraws the whole frozen screen per mouse move when the zoom loupe is off (macOS)
+- fix: Recorder start-up state is published race-free to the capture stream's queue (macOS)
+- change: A divider now separates the Background button from the color picker in the editor and Quick-Edit toolbars (macOS + Windows)
+
 ## 0.6.1 – 2026-07-02
 - fix: Moving, resizing and drawing annotations in the Quick-Edit overlay no longer stutters, especially on busy systems (e.g. during a video call) — dragging no longer re-renders the whole overlay per mouse move, and blur regions show a lightweight preview while dragging that snaps to full quality on release; exported images are unchanged (macOS)
 
