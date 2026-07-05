@@ -444,5 +444,14 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.7.0/DM_Screenshot-v0.7.0.dmg" type="application/octet-stream" sparkle:edSignature="9pWrJgwf+58mATaGMjc8ZLwADywKgsaCA3aYhHvyZYp9n8B8iyLhnyIaIe6SLMRtt4C93P4t+b3QtE9mWkIoDQ==" length="2483489" />
 </item>
 
+<item>
+  <title>Version 0.7.1</title>
+  <description><![CDATA[<ul><li>feat: When an update is available, the app now says so actively — an accent dot appears on the menu-bar/tray icon and the menu gains a first item "Update to X available…" that opens Settings; both disappear once the update is installed (macOS + Windows)</li>
+<li>fix: The silent update check at launch actually reports its result now — previously a found update was dropped, so even Settings only showed it after clicking "Check for Updates" manually (macOS)</li></ul>]]></description>
+  <sparkle:version>0.7.1</sparkle:version>
+  <sparkle:shortVersionString>0.7.1</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.7.1/DM_Screenshot-v0.7.1.dmg" type="application/octet-stream" sparkle:edSignature="14Z1XfnfbjASZm1OW2ylGfm+fr6DgmwJ0VxoKwJJpN86o5s2kNBGxwpBW6zxqyyd+KBr/lwcoGdQ1xnnBxzjCg==" length="2487570" />
+</item>
+
 </channel>
 </rss>
