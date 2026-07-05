@@ -19,15 +19,17 @@ enum GIFResample {
 
         var out: [(index: Int, delay: Double)] = []
         var srcIdx = 0
-        var t = 0.0
-        while t < total || out.isEmpty {
+        // Integer tick grid (like GIFPlan.frameTimes) — accumulating `t += tick`
+        // drifts (0.2 isn't exact in binary) and produced a spurious extra tick.
+        let tickCount = max(1, Int((total * targetFPS).rounded()))
+        for k in 0..<tickCount {
+            let t = Double(k) * tick
             while srcIdx + 1 < delays.count, starts[srcIdx + 1] <= t { srcIdx += 1 }
             if !out.isEmpty, out[out.count - 1].index == srcIdx {
                 out[out.count - 1].delay += tick
             } else {
                 out.append((srcIdx, tick))
             }
-            t += tick
         }
         return out
     }
