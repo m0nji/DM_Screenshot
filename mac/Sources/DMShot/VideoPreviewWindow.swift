@@ -51,6 +51,8 @@ private final class PreviewState: ObservableObject {
     @Published var start: Double = 0
     @Published var end: Double
     @Published var rendering = false
+    /// Playhead position in asset seconds (driven by the periodic time observer).
+    @Published var current: Double = 0
     let duration: Double
     let width: Int
     let height: Int
@@ -124,6 +126,11 @@ private struct PreviewView: View {
 final class VideoPreviewWindow: NSObject, NSWindowDelegate {
     private var window: NSWindow?
     private var loopObserver: NSObjectProtocol?
+    private var timeObserver: Any?
+    private var state: PreviewState?
+    /// True while a timeline handle/playhead drag owns the player position —
+    /// suppresses the range-loop seek so it can't fight the user's scrub.
+    private var isScrubbing = false
     private var player: AVPlayer?
     private let movURL: URL
     private let onCreateGIF: (Data, CGImage) -> Void
@@ -141,12 +148,8 @@ final class VideoPreviewWindow: NSObject, NSWindowDelegate {
         let player = AVPlayer(url: movURL)
         self.player = player
         player.actionAtItemEnd = .none
-        // Auto-play and loop so the user immediately sees the clip (no black still).
-        loopObserver = NotificationCenter.default.addObserver(
-            forName: .AVPlayerItemDidPlayToEndTime, object: player.currentItem, queue: .main) { _ in
-                player.seek(to: .zero)
-                player.play()
-            }
+        // Auto-play so the user immediately sees the clip (no black still); the
+        // loop observers are registered below once the trim state exists.
         player.play()
 
         Task { @MainActor in
@@ -164,6 +167,29 @@ final class VideoPreviewWindow: NSObject, NSWindowDelegate {
             let scaled = GIFPlan.scaledSize(width: Int(raw.width), height: Int(raw.height))
             let state = PreviewState(duration: duration.isFinite ? duration : 0,
                                      width: scaled.width, height: scaled.height)
+            self.state = state
+            // Loop within the kept range — end-of-file case (trim end == clip end)…
+            loopObserver = NotificationCenter.default.addObserver(
+                forName: .AVPlayerItemDidPlayToEndTime, object: player.currentItem, queue: .main) { [weak state] _ in
+                    let start = state?.start ?? 0
+                    player.seek(to: CMTime(seconds: start, preferredTimescale: 600),
+                                toleranceBefore: .zero, toleranceAfter: .zero)
+                    player.play()
+                }
+            // …and mid-file case (user trimmed the end), plus playhead publishing.
+            timeObserver = player.addPeriodicTimeObserver(
+                forInterval: CMTime(value: 1, timescale: 30), queue: .main) { [weak self, weak state] time in
+                    guard let self, let state else { return }
+                    let t = CMTimeGetSeconds(time)
+                    state.current = t
+                    // When end == duration the end-of-file observer wraps; only
+                    // seek here for a truly trimmed end (or past-duration runaway).
+                    if !self.isScrubbing, TrimTimeline.shouldLoopBack(current: t, end: state.end),
+                       state.end < state.duration || t >= state.duration {
+                        player.seek(to: CMTime(seconds: state.start, preferredTimescale: 600),
+                                    toleranceBefore: .zero, toleranceAfter: .zero)
+                    }
+                }
 
             let view = PreviewView(
                 player: player, state: state,
@@ -196,6 +222,27 @@ final class VideoPreviewWindow: NSObject, NSWindowDelegate {
         }
     }
 
+    /// A timeline drag owns the position: pause and show the exact frame.
+    private func scrub(to time: Double) {
+        isScrubbing = true
+        player?.pause()
+        player?.seek(to: CMTime(seconds: time, preferredTimescale: 600),
+                     toleranceBefore: .zero, toleranceAfter: .zero)
+        state?.current = time
+    }
+
+    /// Drag ended. Handle drags restart the loop at the trim start so the user
+    /// immediately sees the kept range; playhead drags resume in place.
+    private func endScrub(returnToStart: Bool) {
+        isScrubbing = false
+        if returnToStart, let state {
+            player?.seek(to: CMTime(seconds: state.start, preferredTimescale: 600),
+                         toleranceBefore: .zero, toleranceAfter: .zero)
+            state.current = state.start
+        }
+        player?.play()
+    }
+
     func windowWillClose(_ notification: Notification) {
         teardown()
         try? FileManager.default.removeItem(at: movURL)
@@ -214,6 +261,9 @@ final class VideoPreviewWindow: NSObject, NSWindowDelegate {
     /// EXC_BAD_ACCESS in optimized release builds.
     private func teardown() {
         removeLoopObserver()
+        if let timeObserver { player?.removeTimeObserver(timeObserver) }
+        timeObserver = nil
+        state = nil
         player?.pause()
         player = nil
         window?.delegate = nil
