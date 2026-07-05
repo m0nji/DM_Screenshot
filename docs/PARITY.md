@@ -47,6 +47,14 @@ Definition of done for a behavior change:
   `App.xaml.cs`) **needs an on-device build + eyeball** (ImageSharp re-encode output, GifResampleTests,
   radio layout, viewer swap after convert).
 
+- [ ] **TODO (win): verify the active update hint on a device.** 2026-07-05
+  (`feat/update-hint`, spec `docs/superpowers/specs/2026-07-05-update-hint-design.md`): accent dot
+  on the tray icon + first menu item "Update to X available…" (opens Settings) while an update is
+  available/ready to install; disappears otherwise. Windows (`Update/UpdateHint.cs` + tests,
+  `Platform/NotifyIconTray.cs` badge composite via RenderTargetBitmap, `App.xaml.cs` wiring)
+  **needs an on-device build + eyeball** (badge legibility at tray size, StateChanged marshaling,
+  menu item first + separator styling).
+
 - [ ] **TODO (mac): editor keyboard shortcuts.** The mac main editor has no ⌘C / ⌘S / ⌘Z / ⌘⇧Z /
   Delete handling (source-of-truth gap found in the 2026-07-01 review, Phase 6 item 8); Windows
   already ships Ctrl+C/S/Z/Y/Ctrl+Shift+Z/Del. Add the mac side next mac session. The win half of
