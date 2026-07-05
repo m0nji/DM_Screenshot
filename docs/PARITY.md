@@ -37,6 +37,16 @@ Definition of done for a behavior change:
   (`Video/VideoPreviewWindow.xaml(.cs)`, `Video/TrimTimelineMath.cs` + tests) but **needs an
   on-device build + eyeball** (Canvas drag logic, DPI, dark theme, LocTests).
 
+- [ ] **TODO (win): verify GIF quality Standard|Small + post-hoc convert on a device.** 2026-07-05
+  (`feat/gif-quality-small`, spec `docs/superpowers/specs/2026-07-05-gif-quality-small-design.md`):
+  quality radio picker in the preview (Small = 5 fps / 800 px, never persisted; estimate follows),
+  `GifRenderer.Render(..., GifQuality)`, viewer button "Convert to Small" (one-way, replaces the
+  history entry via `HistoryStore.UpdateVideo`, refreshes clipboard + sidebar). Same change also
+  added the divider between background button and color picker in the win editor + Quick-Edit bars.
+  macOS verified on-device; Windows (`Video/GifResample.cs` + tests, `Video/GifViewerWindow.xaml(.cs)`,
+  `App.xaml.cs`) **needs an on-device build + eyeball** (ImageSharp re-encode output, GifResampleTests,
+  radio layout, viewer swap after convert).
+
 - [ ] **TODO (mac): editor keyboard shortcuts.** The mac main editor has no ⌘C / ⌘S / ⌘Z / ⌘⇧Z /
   Delete handling (source-of-truth gap found in the 2026-07-01 review, Phase 6 item 8); Windows
   already ships Ctrl+C/S/Z/Y/Ctrl+Shift+Z/Del. Add the mac side next mac session. The win half of
