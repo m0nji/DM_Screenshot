@@ -61,8 +61,14 @@ final class Updater: NSObject, ObservableObject, SPUUserDriver, SPUUpdaterDelega
         u.automaticallyDownloadsUpdates = false   // wait for the user's "Update now"
         do { try u.start() } catch { state = .error(message: error.localizedDescription); return }
         updater = u
-        // Silent launch check: no UI unless something is actually found.
-        u.checkForUpdateInformation()
+        // Silent launch check. NOT checkForUpdateInformation(): that is an
+        // information-only probe whose result Sparkle reports solely via the
+        // SPUUpdaterDelegate find callbacks (which we don't implement), so a
+        // found update was silently DROPPED — state stayed .idle and neither
+        // Settings nor the menu hint ever learned about it. A background check
+        // drives the user driver (showUpdateFound → .available with a live
+        // reply handle, so "Update now" works) and stays quiet when up to date.
+        u.checkForUpdatesInBackground()
     }
 
     // MARK: Intents (from themed UI)
