@@ -29,13 +29,7 @@ public partial class VideoPreviewWindow : Window, IDisposable
         _frames = frames;
         _trimStart = 0;
         _trimEnd = frames.Count > 0 ? frames[^1].TimeSec : 0;
-
-        // Configure slider ranges based on actual recording duration.
-        double maxT = _trimEnd;
-        Scrub.Maximum    = maxT;
-        TrimStart.Maximum = maxT;
-        TrimEnd.Maximum  = maxT;
-        TrimEnd.Value    = maxT;
+        _duration = _trimEnd;
 
         UpdateLabels();
 
@@ -52,10 +46,7 @@ public partial class VideoPreviewWindow : Window, IDisposable
             OnWindowClosed();
         };
 
-        // Wire up controls.
-        Scrub.ValueChanged      += Scrub_ValueChanged;
-        TrimStart.ValueChanged  += TrimStart_ValueChanged;
-        TrimEnd.ValueChanged    += TrimEnd_ValueChanged;
+        // Wire up controls (timeline drag handlers are attached in XAML).
         CreateGifButton.Click   += (_, _) => Raise();
         DiscardButton.Click     += (_, _) => { Discarded?.Invoke(); Close(); };
     }
@@ -83,11 +74,7 @@ public partial class VideoPreviewWindow : Window, IDisposable
             _cachedIdx = i;
         }
         Preview.Source = _cachedFrame;
-        // Update scrub without re-triggering its ValueChanged handler.
-        Scrub.ValueChanged -= Scrub_ValueChanged;
-        Scrub.Value = _playhead;
-        Scrub.ValueChanged += Scrub_ValueChanged;
-        PlayheadLabel.Text = $"{_playhead:F1}s";
+        SyncTimelineUI();
     }
 
     private void ShowFrameAt(double t)
@@ -109,53 +96,89 @@ public partial class VideoPreviewWindow : Window, IDisposable
         return best;
     }
 
-    // ── Slider handlers ───────────────────────────────────────────────────
-    private void Scrub_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    // ── Timeline drag (one track, two handles, playhead; math in TrimTimelineMath) ──
+    private enum TrimDrag { None, Start, End, Playhead }
+    private TrimDrag _drag = TrimDrag.None;
+    private const double HandleHitSlop = 12;
+    private readonly double _duration;   // full recording length (seconds)
+
+    private void Timeline_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        TrackBase.Width = Timeline.ActualWidth;
+        SyncTimelineUI();
+    }
+
+    private void SyncTimelineUI()
+    {
+        double w = Timeline.ActualWidth;
+        double sx = TrimTimelineMath.XPosition(_trimStart, _duration, w);
+        double ex = TrimTimelineMath.XPosition(_trimEnd, _duration, w);
+        double px = TrimTimelineMath.XPosition(
+            TrimTimelineMath.ClampedPlayhead(_playhead, _trimStart, _trimEnd), _duration, w);
+        Canvas.SetLeft(TrackRange, sx);
+        TrackRange.Width = Math.Max(0, ex - sx);
+        Canvas.SetLeft(PlayheadLine, px - 1);
+        Canvas.SetLeft(HandleStart, sx - 4);
+        Canvas.SetLeft(HandleEnd, ex - 4);
+        TrimStartValue.Text = $"{_trimStart:F1}s";
+        TrimEndValue.Text = $"{_trimEnd:F1}s";
+        double total = Math.Max(0, _trimEnd - _trimStart);
+        TimePill.Text = $"{TrimTimelineMath.DisplayElapsed(_playhead, _trimStart, _trimEnd):F1}s / {total:F1}s";
+    }
+
+    private void Timeline_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
     {
         if (_rendering) return;
-        // Scrubbing pauses auto-play and shows the frame nearest to the drag position.
-        _timer.Stop();
-        ShowFrameAt(e.NewValue);
-        // Resume playback on next tick.
-        _timer.Start();
+        double w = Timeline.ActualWidth;
+        double x = e.GetPosition(Timeline).X;
+        double sx = TrimTimelineMath.XPosition(_trimStart, _duration, w);
+        double ex = TrimTimelineMath.XPosition(_trimEnd, _duration, w);
+        _drag = Math.Abs(x - sx) <= HandleHitSlop ? TrimDrag.Start
+              : Math.Abs(x - ex) <= HandleHitSlop ? TrimDrag.End
+              : TrimDrag.Playhead;
+        _timer.Stop();                       // the scrub owns the playhead while dragging
+        Timeline.CaptureMouse();
+        Timeline_MouseMove(sender, e);
     }
 
-    private void TrimStart_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    private void Timeline_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
     {
-        double v = e.NewValue;
-        // Clamp: start must not exceed end.
-        if (v > _trimEnd)
+        if (_drag == TrimDrag.None || _rendering) return;
+        double t = TrimTimelineMath.TimeAtX(e.GetPosition(Timeline).X, _duration, Timeline.ActualWidth);
+        switch (_drag)
         {
-            TrimStart.Value = _trimEnd;
-            return;
+            case TrimDrag.Start:
+                _trimStart = TrimTimelineMath.ClampedStart(t, _trimEnd);
+                ShowFrameAt(_trimStart);     // live feedback: the exact first kept frame
+                break;
+            case TrimDrag.End:
+                _trimEnd = TrimTimelineMath.ClampedEnd(t, _trimStart, _duration);
+                ShowFrameAt(_trimEnd);       // live feedback: the exact last kept frame
+                break;
+            case TrimDrag.Playhead:
+                ShowFrameAt(TrimTimelineMath.ClampedPlayhead(t, _trimStart, _trimEnd));
+                break;
         }
-        _trimStart = v;
-        TrimStartLabel.Text = $"{v:F1}s";
         UpdateDuration();
         UpdateCreateGifEnabled();
+        SyncTimelineUI();
     }
 
-    private void TrimEnd_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    private void Timeline_MouseUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
     {
-        double v = e.NewValue;
-        // Clamp: end must not precede start.
-        if (v < _trimStart)
-        {
-            TrimEnd.Value = _trimStart;
-            return;
-        }
-        _trimEnd = v;
-        TrimEndLabel.Text = $"{v:F1}s";
-        UpdateDuration();
-        UpdateCreateGifEnabled();
+        if (_drag == TrimDrag.None) return;
+        bool wasHandle = _drag != TrimDrag.Playhead;
+        _drag = TrimDrag.None;
+        Timeline.ReleaseMouseCapture();
+        if (wasHandle) _playhead = _trimStart;   // restart the loop at the kept range
+        if (!_rendering) _timer.Start();
+        SyncTimelineUI();
     }
 
     // ── UI helpers ─────────────────────────────────────────────────────────
     private void UpdateLabels()
     {
-        TrimStartLabel.Text = $"{_trimStart:F1}s";
-        TrimEndLabel.Text   = $"{_trimEnd:F1}s";
-        PlayheadLabel.Text  = "0.0s";
+        SyncTimelineUI();
         UpdateDuration();
         UpdateCreateGifEnabled();
     }
@@ -203,6 +226,8 @@ public partial class VideoPreviewWindow : Window, IDisposable
         _rendering = true;
         _timer.Stop();                                  // frame bitmaps now belong to the render thread
         Cursor = System.Windows.Input.Cursors.Wait;
+        RenderingLabel.Visibility = Visibility.Visible; // mac parity: visible "Creating GIF…" feedback
+        DiscardButton.IsEnabled = false;
         UpdateCreateGifEnabled();
         CreateGifRequested?.Invoke(_trimStart, _trimEnd);
     }

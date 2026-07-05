@@ -14,52 +14,33 @@
             BorderBrush="{DynamicResource DmBorder}" BorderThickness="1" Padding="16,12">
       <StackPanel>
 
-        <!-- Playhead scrub -->
-        <Grid Margin="0,0,0,10">
-          <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="Auto"/>
-            <ColumnDefinition Width="*"/>
-            <ColumnDefinition Width="Auto"/>
-          </Grid.ColumnDefinitions>
-          <TextBlock Grid.Column="0" Text="{loc:Tr videoPlayhead}" Foreground="{DynamicResource DmTextDim}"
-                     FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0"/>
-          <Slider x:Name="Scrub" Grid.Column="1" Minimum="0" Maximum="1" Value="0"
-                  VerticalAlignment="Center" IsSnapToTickEnabled="False"/>
-          <TextBlock x:Name="PlayheadLabel" Grid.Column="2" FontSize="11" FontFamily="Consolas"
-                     Foreground="{DynamicResource DmTextDim}" VerticalAlignment="Center"
-                     Margin="8,0,0,0" Text="0.0s"/>
-        </Grid>
+        <!-- Trim timeline: full-duration track, accent kept-range, two handles,
+             playhead line. All math in TrimTimelineMath; drag logic in code-behind. -->
+        <Canvas x:Name="Timeline" Height="28" Margin="0,0,0,6" Background="Transparent"
+                MouseLeftButtonDown="Timeline_MouseDown" MouseMove="Timeline_MouseMove"
+                MouseLeftButtonUp="Timeline_MouseUp" SizeChanged="Timeline_SizeChanged">
+          <Border x:Name="TrackBase" Height="6" Canvas.Top="11" CornerRadius="3"
+                  Background="#33FFFFFF"/>
+          <Rectangle x:Name="TrackRange" Height="6" Canvas.Top="11"
+                     Fill="{DynamicResource DmAccent}" Opacity="0.55"/>
+          <Rectangle x:Name="PlayheadLine" Width="2" Height="18" Canvas.Top="5"
+                     Fill="#E6FFFFFF"/>
+          <Border x:Name="HandleStart" Width="8" Height="22" Canvas.Top="3" CornerRadius="3"
+                  Background="{DynamicResource DmAccent}" BorderBrush="#59FFFFFF" BorderThickness="1"/>
+          <Border x:Name="HandleEnd" Width="8" Height="22" Canvas.Top="3" CornerRadius="3"
+                  Background="{DynamicResource DmAccent}" BorderBrush="#59FFFFFF" BorderThickness="1"/>
+        </Canvas>
 
-        <!-- Trim start -->
-        <Grid Margin="0,0,0,6">
-          <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="Auto"/>
-            <ColumnDefinition Width="*"/>
-            <ColumnDefinition Width="Auto"/>
-          </Grid.ColumnDefinitions>
-          <TextBlock Grid.Column="0" Text="{loc:Tr videoTrimIn}" Foreground="{DynamicResource DmTextDim}"
-                     FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0"/>
-          <Slider x:Name="TrimStart" Grid.Column="1" Minimum="0" Maximum="1" Value="0"
-                  VerticalAlignment="Center" IsSnapToTickEnabled="False"/>
-          <TextBlock x:Name="TrimStartLabel" Grid.Column="2" FontSize="11" FontFamily="Consolas"
-                     Foreground="{DynamicResource DmTextDim}" VerticalAlignment="Center"
-                     Margin="8,0,0,0" Text="0.0s"/>
-        </Grid>
-
-        <!-- Trim end -->
+        <!-- Start / End labels under the timeline -->
         <Grid Margin="0,0,0,12">
-          <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="Auto"/>
-            <ColumnDefinition Width="*"/>
-            <ColumnDefinition Width="Auto"/>
-          </Grid.ColumnDefinitions>
-          <TextBlock Grid.Column="0" Text="{loc:Tr videoTrimOut}" Foreground="{DynamicResource DmTextDim}"
-                     FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0"/>
-          <Slider x:Name="TrimEnd" Grid.Column="1" Minimum="0" Maximum="1" Value="1"
-                  VerticalAlignment="Center" IsSnapToTickEnabled="False"/>
-          <TextBlock x:Name="TrimEndLabel" Grid.Column="2" FontSize="11" FontFamily="Consolas"
-                     Foreground="{DynamicResource DmTextDim}" VerticalAlignment="Center"
-                     Margin="8,0,0,0" Text="1.0s"/>
+          <TextBlock FontSize="11" FontFamily="Consolas" Foreground="{DynamicResource DmTextDim}"
+                     HorizontalAlignment="Left">
+            <Run Text="{loc:Tr videoTrimIn}"/><Run Text=" "/><Run x:Name="TrimStartValue" Text="0.0s"/>
+          </TextBlock>
+          <TextBlock FontSize="11" FontFamily="Consolas" Foreground="{DynamicResource DmTextDim}"
+                     HorizontalAlignment="Right">
+            <Run Text="{loc:Tr videoTrimOut}"/><Run Text=" "/><Run x:Name="TrimEndValue" Text="0.0s"/>
+          </TextBlock>
         </Grid>
 
         <!-- Duration + action buttons -->
@@ -77,6 +58,10 @@
                        Foreground="{DynamicResource DmText}" Text="0.0 s"/>
             <TextBlock x:Name="EstimatedSizeLabel" Foreground="{DynamicResource DmTextDim}"
                        FontSize="12" Margin="16,0,0,0"/>
+            <!-- Rendering feedback (mac parity: spinner + label while the GIF renders) -->
+            <TextBlock x:Name="RenderingLabel" Text="{loc:Tr creatingGif}"
+                       Foreground="{DynamicResource DmAccent}" FontSize="12"
+                       Margin="16,0,0,0" Visibility="Collapsed"/>
           </StackPanel>
 
           <Button x:Name="DiscardButton" Grid.Column="1" Content="{loc:Tr discard}"
@@ -92,7 +77,15 @@
     <!-- ===== Preview image: fills the remaining space above the buttons (last child) ===== -->
     <Border Background="#0D0D10" Margin="16,16,16,0" CornerRadius="6"
             BorderBrush="{DynamicResource DmBorder}" BorderThickness="1">
-      <Image x:Name="Preview" Stretch="Uniform"/>
+      <Grid>
+        <Image x:Name="Preview" Stretch="Uniform"/>
+        <!-- Time pill: elapsed-within-range / range length (mac parity) -->
+        <Border HorizontalAlignment="Right" VerticalAlignment="Top" Margin="8"
+                Background="#8C000000" CornerRadius="9" Padding="8,3">
+          <TextBlock x:Name="TimePill" FontSize="11" FontFamily="Consolas"
+                     Foreground="White" Text="0.0s / 0.0s"/>
+        </Border>
+      </Grid>
     </Border>
   </DockPanel>
 </Window>
