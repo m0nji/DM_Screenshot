@@ -21,6 +21,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private var settingsMenuItem: NSMenuItem?
     private var quitMenuItem: NSMenuItem?
 
+    // Active update hint (spec 2026-07-05): first menu item + accent dot on the
+    // status icon while an update is available / ready to install.
+    private var updateMenuItem: NSMenuItem?
+    private var updateMenuSeparator: NSMenuItem?
+    private var updateBadgeView: NSView?
+    private var updateHintVersion: String?
+
     private let recorder = VideoRecorder()
     private var recordingControl: RecordingControlWindow?
     private var recordingFrame: RecordingRegionFrame?
@@ -57,6 +64,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         overlay.onComplete = { [weak self] image, frame in self?.deliver(image, at: frame) }
         showEditor()
         updater.start()
+        // Active update hint: badge + menu item, driven by the updater state.
+        updater.$state
+            .receive(on: RunLoop.main)
+            .sink { [weak self] state in self?.applyUpdateHint(UpdateHint.version(for: state)) }
+            .store(in: &cancellables)
         // Register with ScreenCaptureKit so the app appears in the Screen Recording
         // list and (if needed) prompts on first launch.
         Task { await ScreenCapture.registerForScreenRecording() }
@@ -190,6 +202,46 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         openMenuItem?.title = tr(.menuOpenWindow)
         settingsMenuItem?.title = tr(.menuSettings)
         quitMenuItem?.title = tr(.menuQuit)
+        if let version = updateHintVersion {
+            updateMenuItem?.title = String(format: tr(.menuUpdateAvailable), version)
+        }
+    }
+
+    /// Show/hide the active update hint: a first "Update to X available…" menu
+    /// item (opens Settings, where the themed update flow lives) plus a small
+    /// accent dot on the status icon. `version == nil` removes both.
+    private func applyUpdateHint(_ version: String?) {
+        guard version != updateHintVersion else { return }
+        updateHintVersion = version
+        guard let menu = statusItem?.menu else { return }
+
+        if let item = updateMenuItem { menu.removeItem(item); updateMenuItem = nil }
+        if let sep = updateMenuSeparator { menu.removeItem(sep); updateMenuSeparator = nil }
+        updateBadgeView?.removeFromSuperview()
+        updateBadgeView = nil
+
+        guard let version else { return }
+        let item = NSMenuItem(title: String(format: tr(.menuUpdateAvailable), version),
+                              action: #selector(openSettings), keyEquivalent: "")
+        item.target = self
+        let sep = NSMenuItem.separator()
+        menu.insertItem(sep, at: 0)
+        menu.insertItem(item, at: 0)
+        updateMenuItem = item
+        updateMenuSeparator = sep
+
+        if let button = statusItem?.button {
+            // Colored dot as a separate layer so the icon itself stays a
+            // template image (auto-adapts to light/dark menu bars).
+            let dot = NSView(frame: NSRect(x: button.bounds.maxX - 9, y: button.bounds.maxY - 9,
+                                           width: 7, height: 7))
+            dot.wantsLayer = true
+            dot.layer?.backgroundColor = NSColor.dmAccent.cgColor
+            dot.layer?.cornerRadius = 3.5
+            dot.autoresizingMask = [.minXMargin, .minYMargin]
+            button.addSubview(dot)
+            updateBadgeView = dot
+        }
     }
 
     private func setupPersistence() {

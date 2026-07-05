@@ -84,6 +84,9 @@ public partial class App : Application
         // Velopack-backed auto-update. Created on the UI thread so the service captures
         // the dispatcher SynchronizationContext for state callbacks. Silent launch check.
         _updater = new UpdaterService();
+        // Active update hint (mac parity): tray badge + first menu item while an
+        // update is actionable. StateChanged already fires on the dispatcher.
+        _updater.StateChanged += () => _tray.SetUpdateHint(UpdateHint.VersionFor(_updater.State));
         _ = _updater.StartAsync();
     }
 
