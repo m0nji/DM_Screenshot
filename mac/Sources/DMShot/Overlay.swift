@@ -83,7 +83,22 @@ final class SelectionView: NSView {
         NSCursor.crosshair.set()
     }
 
+    /// Priming the crosshair at makeKeyAndOrderFront races the window server:
+    /// when it exposes the new window under the mouse it recomputes the cursor
+    /// itself and intermittently resets our early set() back to the arrow (the
+    /// first mouseMoved then "fixed" it). Re-asserting on first draw — i.e.
+    /// after actual exposure — wins that race deterministically.
+    private var didPrimeCursorOnDraw = false
+
     override func draw(_ dirtyRect: NSRect) {
+        if !didPrimeCursorOnDraw {
+            didPrimeCursorOnDraw = true
+            NSCursor.crosshair.set()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+                guard self?.window?.isVisible == true else { return }
+                NSCursor.crosshair.set()
+            }
+        }
         let img = ImageUtils.nsImage(capture.image)
         img.draw(in: bounds)
         NSColor.black.withAlphaComponent(0.35).setFill()
