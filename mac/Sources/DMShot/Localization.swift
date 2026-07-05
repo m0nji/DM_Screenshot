@@ -22,7 +22,7 @@ enum L: CaseIterable {
     case resetToDefaults, needsModifier, alreadyUsedBy, systemInUse, shortcutsHint, pressKeys
     // Menu
     case menuNewFullScreen, menuNewSelection, menuNewVideoFull, menuNewVideoSelection
-    case menuOpenWindow, menuSettings, menuQuit
+    case menuOpenWindow, menuSettings, menuQuit, menuUpdateAvailable
     // Permission alert
     case permTitle, permBody, relaunchNow, openSystemSettings
     // Editor
@@ -129,6 +129,7 @@ final class Localizer: ObservableObject {
         case .menuOpenWindow:       return ("Open Window", "Editor öffnen")
         case .menuSettings:         return ("Settings…", "Einstellungen…")
         case .menuQuit:             return ("Quit", "Beenden")
+        case .menuUpdateAvailable:  return ("Update to %@ available…", "Update auf %@ verfügbar…")
         case .permTitle:            return ("Screen Recording Required", "Bildschirmaufnahme erforderlich")
         case .permBody:             return (
             "Allow DM Screenshot under System Settings → Privacy & Security → Screen Recording. macOS only applies a newly granted permission after a restart — if you have already allowed it, relaunch now.",
