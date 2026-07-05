@@ -32,6 +32,39 @@ private struct DMTooltipKey: PreferenceKey {
     }
 }
 
+/// Hover detection that keeps firing while the app is INACTIVE. SwiftUI's
+/// `.onHover` goes silent in that state — and Quick-Edit + the recording
+/// control are non-activating panels (see Overlay.swift), so their tooltips
+/// died with the panel switch. An `.activeAlways` NSTrackingArea (the same
+/// remedy as the selection overlay's crosshair) hovers regardless of
+/// activation. The view never hit-tests, so clicks pass straight through.
+private struct DMAlwaysHover: NSViewRepresentable {
+    let onChange: (Bool) -> Void
+
+    func makeNSView(context: Context) -> HoverView { HoverView(onChange: onChange) }
+    func updateNSView(_ view: HoverView, context: Context) { view.onChange = onChange }
+
+    final class HoverView: NSView {
+        var onChange: (Bool) -> Void
+        init(onChange: @escaping (Bool) -> Void) {
+            self.onChange = onChange
+            super.init(frame: .zero)
+        }
+        required init?(coder: NSCoder) { fatalError() }
+        override func hitTest(_ point: NSPoint) -> NSView? { nil }
+        override func updateTrackingAreas() {
+            super.updateTrackingAreas()
+            trackingAreas.forEach(removeTrackingArea)
+            addTrackingArea(NSTrackingArea(
+                rect: .zero,
+                options: [.activeAlways, .inVisibleRect, .mouseEnteredAndExited],
+                owner: self, userInfo: nil))
+        }
+        override func mouseEntered(with event: NSEvent) { onChange(true) }
+        override func mouseExited(with event: NSEvent) { onChange(false) }
+    }
+}
+
 /// Hover detection + short pre-show delay, mirroring native tooltip timing.
 private struct DMTooltipModifier: ViewModifier {
     let text: String
@@ -40,7 +73,7 @@ private struct DMTooltipModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .onHover { inside in
+            .background(DMAlwaysHover { inside in
                 pending?.cancel()
                 if inside {
                     let work = DispatchWorkItem { show = true }
@@ -50,7 +83,7 @@ private struct DMTooltipModifier: ViewModifier {
                     pending = nil
                     show = false
                 }
-            }
+            })
             .anchorPreference(key: DMTooltipKey.self, value: .bounds) { anchor in
                 show ? DMTooltipPref(text: text, bounds: anchor) : nil
             }
