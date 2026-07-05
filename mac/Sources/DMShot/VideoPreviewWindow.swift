@@ -200,6 +200,14 @@ private struct PreviewView: View {
                 Text("\(tr(.endLabel)) \(String(format: "%.1f", state.end))s")
             }.font(.caption).foregroundStyle(.secondary)
             HStack {
+                Picker("", selection: $state.quality) {
+                    Text(tr(.gifQualityStandard)).tag(GIFQuality.standard)
+                    Text(tr(.gifQualitySmall)).tag(GIFQuality.small)
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .fixedSize()
+                .disabled(state.rendering)
                 Group {
                     Text("\(String(format: "%.1f", max(0, state.end - state.start)))s")
                     Text(String(format: tr(.estimatedGIFSize), sizeLabel(state.estimatedBytes)))
