@@ -66,10 +66,17 @@ final class VideoRecorder: NSObject, SCStreamOutput, SCStreamDelegate {
         inp.expectsMediaDataInRealTime = true
         w.add(inp)
 
-        self.outputURL = url
-        self.writer = w
-        self.input = inp
-        self.sessionStarted = false
+        // Publish the writer state via the sample-handler queue BEFORE the
+        // stream can deliver its first buffer: didOutputSampleBuffer reads these
+        // fields on `queue`, and plain assignments from this async context have
+        // no happens-before with that (the teardown paths barrier-drain, the
+        // setup path didn't). No callbacks exist yet, so sync is uncontended.
+        queue.sync {
+            self.outputURL = url
+            self.writer = w
+            self.input = inp
+            self.sessionStarted = false
+        }
 
         // Exclude our own windows (Stop control, region frame, editor) from the
         // recording. Excluding the application also covers windows created after

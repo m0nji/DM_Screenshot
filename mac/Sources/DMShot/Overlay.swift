@@ -40,6 +40,10 @@ final class SelectionView: NSView {
     // An `.activeAlways` tracking area with `.cursorUpdate` lets us set the
     // crosshair on hover regardless of activation state.
     private var crosshairTracking: NSTrackingArea?
+    /// draw() runs on every hover tick while the loupe is on; re-wrapping the
+    /// screen-sized CGImage into a fresh NSImage each frame is pure allocation
+    /// churn on a 5K display — wrap it once.
+    private lazy var captureImage = ImageUtils.nsImage(capture.image)
     private lazy var displayOriginPx: CGPoint = {
         let o = CGDisplayBounds(capture.displayID).origin
         return CGPoint(x: o.x * capture.scale, y: o.y * capture.scale)
@@ -66,16 +70,18 @@ final class SelectionView: NSView {
     override func mouseEntered(with event: NSEvent) {
         NSCursor.crosshair.set()
         currentPoint = convert(event.locationInWindow, from: nil)
-        needsDisplay = true
+        // Hover position only feeds the loupe; without it a redraw per hover
+        // tick repaints the whole frozen screen for nothing.
+        if showLoupe { needsDisplay = true }
     }
     override func mouseMoved(with event: NSEvent) {
         NSCursor.crosshair.set()
         currentPoint = convert(event.locationInWindow, from: nil)
-        needsDisplay = true
+        if showLoupe { needsDisplay = true }
     }
     override func mouseExited(with event: NSEvent) {
         currentPoint = nil
-        needsDisplay = true
+        if showLoupe { needsDisplay = true }
     }
 
     override func viewDidMoveToWindow() {
@@ -99,7 +105,7 @@ final class SelectionView: NSView {
                 NSCursor.crosshair.set()
             }
         }
-        let img = ImageUtils.nsImage(capture.image)
+        let img = captureImage
         img.draw(in: bounds)
         NSColor.black.withAlphaComponent(0.35).setFill()
         bounds.fill()
