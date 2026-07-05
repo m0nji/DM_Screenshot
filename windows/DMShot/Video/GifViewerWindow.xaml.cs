@@ -9,22 +9,27 @@ namespace DMShot.Video;
 
 public partial class GifViewerWindow : Window
 {
-    private readonly byte[] _gifBytes;
+    private byte[] _gifBytes;
     private readonly string _gifPath;
     private readonly IClipboardService _clipboard;
+    /// <summary>Post-hoc Standard→Small hook (wired by the app layer): receives the
+    /// converted GIF + thumbnail on the UI thread to replace history + clipboard.</summary>
+    private readonly Action<byte[], System.Drawing.Bitmap>? _onConverted;
 
     private readonly DispatcherTimer _timer = new();
     private IReadOnlyList<GifPreviewDecoder.Frame> _frames = Array.Empty<GifPreviewDecoder.Frame>();
     private int _frameIndex;
 
-    public GifViewerWindow(byte[] gifBytes, string gifPath, IClipboardService clipboard)
+    public GifViewerWindow(byte[] gifBytes, string gifPath, IClipboardService clipboard,
+                           Action<byte[], System.Drawing.Bitmap>? onConverted = null)
     {
         InitializeComponent();
         DMShot.Platform.DarkTitleBar.Apply(this);
 
-        _gifBytes  = gifBytes;
-        _gifPath   = gifPath;
-        _clipboard = clipboard;
+        _gifBytes    = gifBytes;
+        _gifPath     = gifPath;
+        _clipboard   = clipboard;
+        _onConverted = onConverted;
 
         // Decode into fully-composited, full-canvas frames (see GifPreviewDecoder — our
         // encoder writes cropped delta frames that must be composited before display).
@@ -51,6 +56,46 @@ public partial class GifViewerWindow : Window
         // Wire up buttons.
         SaveButton.Click += OnSaveClick;
         CopyButton.Click += OnCopyClick;
+
+        // One-way Standard→Small conversion — only when it would actually shrink.
+        if (_onConverted != null && GifResample.IsConvertibleToSmall(gifBytes))
+        {
+            ConvertButton.Visibility = Visibility.Visible;
+            ConvertButton.Click += OnConvertClick;
+        }
+    }
+
+    // ── Convert to Small (mac parity) ─────────────────────────────────────────
+    private async void OnConvertClick(object sender, RoutedEventArgs e)
+    {
+        ConvertButton.IsEnabled = false;
+        ConvertingLabel.Visibility = Visibility.Visible;
+        Cursor = System.Windows.Input.Cursors.Wait;
+        var bytes = _gifBytes;
+        var result = await System.Threading.Tasks.Task.Run(() => GifResample.MakeSmall(bytes));
+        Cursor = null;
+        ConvertingLabel.Visibility = Visibility.Collapsed;
+        if (result is null)
+        {
+            ConvertButton.IsEnabled = true;   // failed: original untouched
+            return;
+        }
+        var (smallGif, thumb) = result.Value;
+        _onConverted?.Invoke(smallGif, thumb);   // UI thread: history + clipboard
+        thumb.Dispose();
+
+        // Swap the viewer to the small GIF; the button is gone (one-way).
+        _gifBytes = smallGif;
+        _timer.Stop();
+        _frames = GifPreviewDecoder.Decode(smallGif);
+        _frameIndex = 0;
+        if (_frames.Count > 0) GifImage.Source = _frames[0].Image;
+        if (_frames.Count > 1)
+        {
+            _timer.Interval = TimeSpan.FromMilliseconds(_frames[0].DelayMs);
+            _timer.Start();
+        }
+        ConvertButton.Visibility = Visibility.Collapsed;
     }
 
     // ── Animation ─────────────────────────────────────────────────────────────

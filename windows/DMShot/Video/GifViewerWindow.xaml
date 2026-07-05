@@ -23,6 +23,12 @@
 
         <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
           <TextBlock Foreground="{DynamicResource DmTextDim}" FontSize="12" Text="{loc:Tr gifReady}"/>
+          <!-- One-way Standard→Small conversion (mac parity); hidden when already small -->
+          <Button x:Name="ConvertButton" Content="{loc:Tr gifConvertToSmall}"
+                  MinWidth="80" Height="28" Margin="12,0,0,0" Visibility="Collapsed"/>
+          <TextBlock x:Name="ConvertingLabel" Text="{loc:Tr creatingGif}"
+                     Foreground="{DynamicResource DmAccent}" FontSize="12"
+                     Margin="10,0,0,0" VerticalAlignment="Center" Visibility="Collapsed"/>
         </StackPanel>
 
         <Button x:Name="CopyButton" Grid.Column="1" Content="{loc:Tr copy}"

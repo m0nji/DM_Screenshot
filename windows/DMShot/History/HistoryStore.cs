@@ -76,6 +76,16 @@ public sealed class HistoryStore
     public string? GifPathFor(string id)
         => _entries.FirstOrDefault(e => e.Id == id && e.Kind == HistoryKind.Video)?.GifPath;
 
+    /// <summary>Replace an existing video entry's GIF + thumbnail in place (post-hoc
+    /// Standard→Small conversion). Same id, same list position — no insert/evict.</summary>
+    public void UpdateVideo(HistoryEntry entry, byte[] gifBytes, Bitmap thumbnail)
+    {
+        if (entry.Kind != HistoryKind.Video || string.IsNullOrEmpty(entry.GifPath)) return;
+        if (!_entries.Any(e => e.Id == entry.Id)) return;
+        File.WriteAllBytes(entry.GifPath, gifBytes);
+        SaveThumb(thumbnail, entry.ThumbnailPngPath);
+    }
+
     /// <summary>Removes a single entry (its PNG + thumbnail + GIF) from history. No-op if unknown.</summary>
     public void Delete(string id)
     {
