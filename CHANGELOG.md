@@ -4,6 +4,9 @@ All notable changes to DM_Screenshot. Newest version first. Always written in En
 
 ## [Unreleased]
 
+## 0.7.2 – 2026-07-07
+- change: New app icon in the DM "Graphite Sand" brand design — the familiar capture mark in the warm base-metal gradient (macOS + Windows)
+
 ## 0.7.1 – 2026-07-05
 - feat: When an update is available, the app now says so actively — an accent dot appears on the menu-bar/tray icon and the menu gains a first item "Update to X available…" that opens Settings; both disappear once the update is installed (macOS + Windows)
 - fix: The silent update check at launch actually reports its result now — previously a found update was dropped, so even Settings only showed it after clicking "Check for Updates" manually (macOS)
