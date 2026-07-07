@@ -4,6 +4,9 @@ All notable changes to DM_Screenshot. Newest version first. Always written in En
 
 ## [Unreleased]
 
+## 0.7.3 – 2026-07-07
+- change: App icon refined — the capture mark is slightly smaller so it no longer crowds the squircle edge (macOS + Windows, per DM BrandDesign v1.0.1)
+
 ## 0.7.2 – 2026-07-07
 - change: New app icon in the DM "Graphite Sand" brand design — the familiar capture mark in the warm base-metal gradient (macOS + Windows)
 

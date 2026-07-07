@@ -24,7 +24,7 @@
   <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#screenshot-graphite-sand-bg)"/>
   <rect x="100" y="100" width="824" height="412" rx="185" fill="url(#screenshot-graphite-sand-rim)"/>
   <rect x="101.5" y="101.5" width="821" height="821" rx="183.5" fill="none" stroke="#E7D7BF" stroke-opacity="0.12" stroke-width="3"/>
-  <g id="screenshot-graphite-sand-mark" fill="none" stroke="url(#screenshot-graphite-sand-metal)" stroke-width="40" stroke-linecap="round" stroke-linejoin="round" filter="url(#screenshot-graphite-sand-depth)" transform="translate(512 512) scale(1.15) translate(-512 -512)">
+  <g id="screenshot-graphite-sand-mark" fill="none" stroke="url(#screenshot-graphite-sand-metal)" stroke-width="40" stroke-linecap="round" stroke-linejoin="round" filter="url(#screenshot-graphite-sand-depth)" transform="translate(512 512) scale(1.04) translate(-512 -512)">
     <path data-role="capture-corners" d="M 360 314 H 248 V 426 M 664 314 H 776 V 426 M 360 710 H 248 V 598 M 664 710 H 776 V 598"/>
     <path data-role="capture-aperture" d="M 512 374 L 646 451 V 573 L 512 650 L 378 573 V 451 Z M 512 454 L 570 488 V 536 L 512 570 L 454 536 V 488 Z"/>
   </g>
