@@ -1,0 +1,31 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" data-variant="graphite-sand">
+  <defs>
+    <linearGradient id="screenshot-graphite-sand-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#181614"/>
+      <stop offset="1" stop-color="#090908"/>
+    </linearGradient>
+    <linearGradient id="screenshot-graphite-sand-rim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#E7D7BF" stop-opacity="0.10"/>
+      <stop offset="0.55" stop-color="#E7D7BF" stop-opacity="0.02"/>
+      <stop offset="1" stop-color="#E7D7BF" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="screenshot-graphite-sand-metal" x1="140" y1="140" x2="884" y2="884" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F3E6D4"/>
+      <stop offset="0.26" stop-color="#E7D7BF"/>
+      <stop offset="0.50" stop-color="#C7B299"/>
+      <stop offset="0.72" stop-color="#A57B58"/>
+      <stop offset="1" stop-color="#D7B98F"/>
+    </linearGradient>
+    <filter id="screenshot-graphite-sand-depth" x="-28%" y="-24%" width="156%" height="164%">
+      <feDropShadow dx="0" dy="26" stdDeviation="10" flood-color="#000000" flood-opacity="0.55"/>
+      <feDropShadow dx="0" dy="8" stdDeviation="4" flood-color="#9B7659" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#screenshot-graphite-sand-bg)"/>
+  <rect x="100" y="100" width="824" height="412" rx="185" fill="url(#screenshot-graphite-sand-rim)"/>
+  <rect x="101.5" y="101.5" width="821" height="821" rx="183.5" fill="none" stroke="#E7D7BF" stroke-opacity="0.12" stroke-width="3"/>
+  <g id="screenshot-graphite-sand-mark" fill="none" stroke="url(#screenshot-graphite-sand-metal)" stroke-width="40" stroke-linecap="round" stroke-linejoin="round" filter="url(#screenshot-graphite-sand-depth)" transform="translate(512 512) scale(1.15) translate(-512 -512)">
+    <path data-role="capture-corners" d="M 360 314 H 248 V 426 M 664 314 H 776 V 426 M 360 710 H 248 V 598 M 664 710 H 776 V 598"/>
+    <path data-role="capture-aperture" d="M 512 374 L 646 451 V 573 L 512 650 L 378 573 V 451 Z M 512 454 L 570 488 V 536 L 512 570 L 454 536 V 488 Z"/>
+  </g>
+</svg>
