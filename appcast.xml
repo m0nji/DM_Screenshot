@@ -461,5 +461,13 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.7.2/DM_Screenshot-v0.7.2.dmg" type="application/octet-stream" sparkle:edSignature="H7i2cHWUExledpGk7DcY+8ozGb/c6JVUvDlOUo+h8MGAfovgTQ2DsGCAkllSivhXMIvB013xmzxraB2N6dV6DQ==" length="2501633" />
 </item>
 
+<item>
+  <title>Version 0.7.3</title>
+  <description><![CDATA[<ul><li>change: App icon refined — the capture mark is slightly smaller so it no longer crowds the squircle edge (macOS + Windows, per DM BrandDesign v1.0.1)</li></ul>]]></description>
+  <sparkle:version>0.7.3</sparkle:version>
+  <sparkle:shortVersionString>0.7.3</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.7.3/DM_Screenshot-v0.7.3.dmg" type="application/octet-stream" sparkle:edSignature="GLT+ANoWb13wqLN4wMOlJpaNbjgl5TJ//9FbgqO79yUg2xSSEbv3hsvMai9WrZNvuBPJONvQn4XKrmhsGU1DBw==" length="2322589" />
+</item>
+
 </channel>
 </rss>
