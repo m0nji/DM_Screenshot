@@ -453,5 +453,13 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.7.1/DM_Screenshot-v0.7.1.dmg" type="application/octet-stream" sparkle:edSignature="14Z1XfnfbjASZm1OW2ylGfm+fr6DgmwJ0VxoKwJJpN86o5s2kNBGxwpBW6zxqyyd+KBr/lwcoGdQ1xnnBxzjCg==" length="2487570" />
 </item>
 
+<item>
+  <title>Version 0.7.2</title>
+  <description><![CDATA[<ul><li>change: New app icon in the DM "Graphite Sand" brand design — the familiar capture mark in the warm base-metal gradient (macOS + Windows)</li></ul>]]></description>
+  <sparkle:version>0.7.2</sparkle:version>
+  <sparkle:shortVersionString>0.7.2</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.7.2/DM_Screenshot-v0.7.2.dmg" type="application/octet-stream" sparkle:edSignature="H7i2cHWUExledpGk7DcY+8ozGb/c6JVUvDlOUo+h8MGAfovgTQ2DsGCAkllSivhXMIvB013xmzxraB2N6dV6DQ==" length="2501633" />
+</item>
+
 </channel>
 </rss>
