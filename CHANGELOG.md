@@ -4,6 +4,9 @@ All notable changes to DM_Screenshot. Newest version first. Always written in En
 
 ## [Unreleased]
 
+## 0.7.4 – 2026-07-08
+- change: App icon mark reduced further (~62% tile fill) — macOS 26 and the Windows taskbar render the tile edge-to-edge, so the previous size still crowded the edge (per DM BrandDesign v1.0.3)
+
 ## 0.7.3 – 2026-07-07
 - change: App icon refined — the capture mark is slightly smaller so it no longer crowds the squircle edge (macOS + Windows, per DM BrandDesign v1.0.1)
 
