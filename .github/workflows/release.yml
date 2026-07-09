@@ -118,13 +118,22 @@ jobs:
           set -euo pipefail
           ASSET="mac/build/DM_Screenshot-${GITHUB_REF_NAME}.dmg"
           NOTES="DM Screenshot ${GITHUB_REF_NAME} — signed & notarized macOS build. Download the .dmg, open it, and drag DM Screenshot into the Applications folder."
+          # Prerelease tags (v1.2.3-something) are test builds: marked as
+          # prerelease, and the appcast/windows steps below are skipped, so
+          # existing installs are never offered the test build via Sparkle.
+          PRE=""
+          case "${GITHUB_REF_NAME}" in *-*) PRE="--prerelease" ;; esac
           if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
             gh release upload "${GITHUB_REF_NAME}" "$ASSET" --clobber
           else
-            gh release create "${GITHUB_REF_NAME}" "$ASSET" --title "${GITHUB_REF_NAME}" --notes "$NOTES"
+            gh release create "${GITHUB_REF_NAME}" "$ASSET" --title "${GITHUB_REF_NAME}" --notes "$NOTES" $PRE
           fi
 
       - name: Generate & publish appcast
+        # Stable release tags only: a test/prerelease tag (v*-*) or a manual
+        # branch run must never land in the Sparkle appcast, or every existing
+        # install would be offered the test build as an update.
+        if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-')
         env:
           SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -183,6 +192,9 @@ jobs:
   windows:
     runs-on: windows-latest
     needs: macos
+    # Stable release tags only — test builds (v*-*) are macOS-only and must not
+    # reach the Velopack feed, which would auto-update Windows installs.
+    if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-')
     defaults:
       run:
         shell: bash
