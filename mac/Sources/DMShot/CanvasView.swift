@@ -36,6 +36,7 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
     private var editingStepFresh = false     // true while editing a JUST-placed step's comment
     private var editingStepComment = false   // true while editing a step's comment (white text in a bubble)
     private var toolObserver: AnyCancellable?
+    private let perf = CanvasPerf()
 
     init(model: EditorModel, pad: CGFloat = 24, appDesign: AppDesign = .black) {
         self.model = model
@@ -65,6 +66,7 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
                 self, selector: #selector(windowDidResignKey),
                 name: NSWindow.didResignKeyNotification, object: w)
         }
+        perf.logEnvironment(window: window, imageSize: model.pixelSize)
     }
 
     @objc private func windowDidResignKey() { endTextEditing(commit: true) }
@@ -110,6 +112,14 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
     }
 
     override func draw(_ dirtyRect: NSRect) {
+        let token = perf.beginDraw()
+        defer {
+            perf.endDraw(
+                token, imageSize: model.pixelSize, zoomPercent: model.zoomPercent,
+                annotationCount: model.annotations.count,
+                backgroundEnabled: model.backgroundEnabled, viewSize: bounds.size)
+            if CanvasPerf.hudEnabled { drawPerfHUD() }
+        }
         appDesign.appNSColor.setFill()
         bounds.fill()
         guard let image = model.image else { return }
@@ -243,6 +253,7 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
 
     override func scrollWheel(with event: NSEvent) {
         guard model.image != nil else { return }
+        perf.noteInput(event, kind: "scroll")
         let anchor = convert(event.locationInWindow, from: nil)
         if event.modifierFlags.contains(.control) || event.modifierFlags.contains(.command) {
             let factor: CGFloat = event.hasPreciseScrollingDeltas
@@ -260,6 +271,7 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
 
     override func magnify(with event: NSEvent) {
         guard model.image != nil else { return }
+        perf.noteInput(event, kind: "magnify")
         zoom(by: 1 + event.magnification, at: convert(event.locationInWindow, from: nil))
     }
 
@@ -280,6 +292,7 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
     // MARK: - Mouse
 
     override func mouseDown(with event: NSEvent) {
+        perf.noteInput(event, kind: "mouseDown")
         if spaceDown {
             grabStartView = convert(event.locationInWindow, from: nil)
             grabStartPan = model.pan
@@ -352,6 +365,7 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
     }
 
     override func mouseDragged(with event: NSEvent) {
+        perf.noteInput(event, kind: "drag")
         if let start = grabStartView, let startPan = grabStartPan {
             let cur = convert(event.locationInWindow, from: nil)
             let vr = model.framedContentRect
@@ -451,6 +465,7 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
     }
 
     override func keyDown(with event: NSEvent) {
+        perf.noteInput(event, kind: "key")
         switch event.keyCode {
         case 51, 117:  // delete / forward-delete
             model.removeSelected()
@@ -482,6 +497,34 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
     }
 
     // MARK: - Helpers
+
+    /// Debug overlay (opt-in via `defaults write de.dmscreenshot.app dmPerfHUD
+    /// -bool YES`): draw time, input→paint latency, and draws/sec directly on
+    /// the canvas, so lag on a machine without dev tools becomes measurable.
+    private func drawPerfHUD() {
+        let lines = perf.hudLines(
+            zoomPercent: model.zoomPercent,
+            annotationCount: model.annotations.count,
+            backgroundEnabled: model.backgroundEnabled)
+        let attrs: [NSAttributedString.Key: Any] = [
+            .font: NSFont.monospacedSystemFont(ofSize: 11, weight: .medium),
+            .foregroundColor: NSColor.white,
+        ]
+        let rendered = lines.map { NSAttributedString(string: $0, attributes: attrs) }
+        let lineH: CGFloat = 15
+        let width = rendered.map { $0.size().width }.max() ?? 0
+        let pad: CGFloat = 6
+        let box = NSRect(
+            x: 8, y: 8, width: width + 2 * pad,
+            height: CGFloat(rendered.count) * lineH + 2 * pad)
+        NSColor(white: 0, alpha: 0.72).setFill()
+        NSBezierPath(roundedRect: box, xRadius: 5, yRadius: 5).fill()
+        for (i, line) in rendered.enumerated() {
+            line.draw(at: NSPoint(x: box.minX + pad, y: box.minY + pad + CGFloat(i) * lineH))
+        }
+        // No self-repaint tick here: the HUD refreshes with each real draw, and
+        // forcing extra frames would distort the very rate we are measuring.
+    }
 
     private func drawSelectionHandles(for annotation: Annotation, in viewRect: CGRect) {
         for handle in SelectionGeometry.handles(for: annotation) {
@@ -613,6 +656,10 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
     }
 
     private func layoutTextEditor() {
+        perf.measureTextLayout { layoutTextEditorBody() }
+    }
+
+    private func layoutTextEditorBody() {
         guard let tv = textEditor else { return }
         tv.font = TextLayout.font(ofSize: editingFontSize * scale)
         let onImage = TextLayout.size(tv.string, fontSize: editingFontSize)
@@ -678,6 +725,7 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
     // MARK: - NSTextViewDelegate
 
     func textDidChange(_ notification: Notification) {
+        perf.noteInputNow(kind: "typing")
         layoutTextEditor()
     }
 
