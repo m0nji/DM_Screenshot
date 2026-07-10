@@ -477,5 +477,13 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.7.4/DM_Screenshot-v0.7.4.dmg" type="application/octet-stream" sparkle:edSignature="/XFEkotK+YzHHkPe6qzGO51OjOFKP36QFwMSbKD5Zp/kE/GGFn4y8cDF1C4ehpPBwAGTKrvkLguLu4X3jF+BDg==" length="2304928" />
 </item>
 
+<item>
+  <title>Version 0.7.5</title>
+  <description><![CDATA[<ul><li>fix: The annotation editor no longer lags when dragging arrows or typing step comments — a redraw feedback loop, where the editor and quick-edit canvases fought over the shared zoom indicator and repainted ~100×/second even at rest, is eliminated; the canvas now stays idle when nothing changes (macOS, M4 Pro / external 120 Hz displays)</li></ul>]]></description>
+  <sparkle:version>0.7.5</sparkle:version>
+  <sparkle:shortVersionString>0.7.5</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.7.5/DM_Screenshot-v0.7.5.dmg" type="application/octet-stream" sparkle:edSignature="+PgIsAqXHyRXuo/dLqvDd9LiCoXBX9dJDINswUDPjBSPYmNOH5qoD89C/7aQvnu7UCdJD7goZ46jiI3GfP+uBw==" length="2305290" />
+</item>
+
 </channel>
 </rss>
