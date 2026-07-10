@@ -102,9 +102,16 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
     }
 
     /// Publish the current zoom % to the model (for the toolbar), off the draw
-    /// pass and only when it actually changes, to avoid a redraw loop.
+    /// pass and only when it actually changes.
+    ///
+    /// Gated on the KEY window. With both the editor and the quick-edit overlay
+    /// canvas live at once, each computes `percent` from its own viewport, so the
+    /// two disagree (50 vs 51) and — writing this shared @Published back from the
+    /// draw pass — ping-pong via objectWillChange → refresh() → needsDisplay on
+    /// both canvases: a display-rate redraw loop. Only one window is key, so the
+    /// value converges after a single write and the loop can't form.
     private func updateZoomIndicator(percent: Int) {
-        guard model.zoomPercent != percent else { return }
+        guard window?.isKeyWindow == true, model.zoomPercent != percent else { return }
         DispatchQueue.main.async { [weak model] in
             guard let model, model.zoomPercent != percent else { return }
             model.zoomPercent = percent
