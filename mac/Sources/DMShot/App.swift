@@ -554,7 +554,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     // MARK: - Editor window
 
-    @objc private func showEditor() {
+    // @MainActor (like showQuickEdit): all call sites already run on the main
+    // actor (applicationDidFinishLaunching, deliver(), the menu selector, the
+    // onEditInMain closure), and the body calls the main-actor-isolated
+    // dismissQuickEdit().
+    @MainActor @objc private func showEditor() {
+        // bar XOR main window: never leave the quick-edit overlay canvas live
+        // beside the editor canvas — two canvases sharing the model would drive a
+        // zoom-% redraw loop (see CanvasView.updateZoomIndicator). showQuickEdit()
+        // already hides the editor for the reverse transition.
+        dismissQuickEdit()
         if editorWindow == nil {
             let view = EditorView(
                 model: model, history: history, settings: appSettings,
