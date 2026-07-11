@@ -494,5 +494,14 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.8.0/DM_Screenshot-v0.8.0.dmg" type="application/octet-stream" sparkle:edSignature="her492IqsK+0ictrWDYmoSyI3KoMxQM+dNZoduHgkH+5Em8qcQ6SwMPHaKaJMSoJDgisL3G+afjLT4Qzww/DDw==" length="2312271" />
 </item>
 
+<item>
+  <title>Version 0.8.1</title>
+  <description><![CDATA[<ul><li>fix: Settings switches now use the DM-family size (32×18, like DM Voice) — they were oversized on macOS and clipped in the Windows settings rows</li>
+<li>fix: Windows accent buttons ("Check for Updates" etc.) and the selected settings-nav label now use the correct dark text on the sand fill instead of white</li></ul>]]></description>
+  <sparkle:version>0.8.1</sparkle:version>
+  <sparkle:shortVersionString>0.8.1</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.8.1/DM_Screenshot-v0.8.1.dmg" type="application/octet-stream" sparkle:edSignature="hVcyceTVGGXj0IBbxDlUVLTtqu2eeYIgOo8iu+LVftHlbtZy71UmBSKUTZZLbdVYsRw2c+1NE13ePwB0MOvYCg==" length="2312439" />
+</item>
+
 </channel>
 </rss>
