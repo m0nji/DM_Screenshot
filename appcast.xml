@@ -485,5 +485,14 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.7.5/DM_Screenshot-v0.7.5.dmg" type="application/octet-stream" sparkle:edSignature="+PgIsAqXHyRXuo/dLqvDd9LiCoXBX9dJDINswUDPjBSPYmNOH5qoD89C/7aQvnu7UCdJD7goZ46jiI3GfP+uBw==" length="2305290" />
 </item>
 
+<item>
+  <title>Version 0.8.0</title>
+  <description><![CDATA[<ul><li>new: Graphite Sand design — the DM Apps brand look (graphite gradient background, flat calm surfaces, sand accent fills with dark labels, matching DM Voice/Workspace) joins Standard and Black Utility as the new default theme; every install is moved to it once, after which the design choice is respected again (macOS + Windows)</li>
+<li>change: Updates are now re-checked every hour while the app is running (like DM Workspace), so an available update shows up in the tray without opening Settings (macOS + Windows)</li></ul>]]></description>
+  <sparkle:version>0.8.0</sparkle:version>
+  <sparkle:shortVersionString>0.8.0</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.8.0/DM_Screenshot-v0.8.0.dmg" type="application/octet-stream" sparkle:edSignature="her492IqsK+0ictrWDYmoSyI3KoMxQM+dNZoduHgkH+5Em8qcQ6SwMPHaKaJMSoJDgisL3G+afjLT4Qzww/DDw==" length="2312271" />
+</item>
+
 </channel>
 </rss>
