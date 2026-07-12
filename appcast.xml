@@ -503,17 +503,6 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.8.1/DM_Screenshot-v0.8.1.dmg" type="application/octet-stream" sparkle:edSignature="hVcyceTVGGXj0IBbxDlUVLTtqu2eeYIgOo8iu+LVftHlbtZy71UmBSKUTZZLbdVYsRw2c+1NE13ePwB0MOvYCg==" length="2312439" />
 </item>
 
-<item>
-  <title>Version 0.8.2</title>
-  <description><![CDATA[<ul><li>fix: Recorded GIFs no longer come out near-black — a GIF-encoder library bug collapsed the color palette to a single color; both the preview and the copied/saved file were affected (Windows)</li>
-<li>fix: Creating a GIF from a recording longer than ~30 seconds no longer freezes the app — the preview is now prepared in the background while the window stays responsive ("Preparing preview…") (Windows)</li>
-<li>fix: Clicking the pinned taskbar icon (or launching the app again any other way) now reopens the main window after it was closed — previously the second launch exited silently and nothing happened (Windows)</li>
-<li>new: After installation the app now confirms it is ready — the main window opens and a tray notification appears instead of the app silently disappearing into the system tray (Windows)</li>
-<li>fix: Editor toolbar matches the macOS layout — uniform spacing between tools instead of glued-together buttons, and selected dropdown items show the correct dark label on the sand fill (Windows)</li></ul>]]></description>
-  <sparkle:version>0.8.2</sparkle:version>
-  <sparkle:shortVersionString>0.8.2</sparkle:shortVersionString>
-  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.8.2/DM_Screenshot-v0.8.2.dmg" type="application/octet-stream" sparkle:edSignature="e3kbbaQO7/7QAuhUO6UsyCH9ssaKu4oDhAhu7kRCPMhCKvXZJwJrthVGhf2tqXBIMOM85ikMgzMHNpVRFeyoAQ==" length="2313612" />
-</item>
 
 <item>
   <title>Version 0.8.3</title>
