@@ -515,5 +515,13 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.8.2/DM_Screenshot-v0.8.2.dmg" type="application/octet-stream" sparkle:edSignature="e3kbbaQO7/7QAuhUO6UsyCH9ssaKu4oDhAhu7kRCPMhCKvXZJwJrthVGhf2tqXBIMOM85ikMgzMHNpVRFeyoAQ==" length="2313612" />
 </item>
 
+<item>
+  <title>Version 0.8.3</title>
+  <description><![CDATA[<ul><li>fix: Automatic update on macOS could report "The update is improperly signed and could not be validated" and refuse to install — the release pipeline now keeps the update signature in lockstep with the published download, so updating works again (macOS)</li></ul>]]></description>
+  <sparkle:version>0.8.3</sparkle:version>
+  <sparkle:shortVersionString>0.8.3</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.8.3/DM_Screenshot-v0.8.3.dmg" type="application/octet-stream" sparkle:edSignature="mZtarh3dGjRAXEQB6wnCoWnRQCjj88beyN/7OTuZQJwTA65FfYMyBJC7cyRaRBWBWptI8jdTC/PpPk0tqWvHAg==" length="2313666" />
+</item>
+
 </channel>
 </rss>
