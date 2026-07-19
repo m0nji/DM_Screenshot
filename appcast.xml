@@ -512,5 +512,13 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.8.3/DM_Screenshot-v0.8.3.dmg" type="application/octet-stream" sparkle:edSignature="mZtarh3dGjRAXEQB6wnCoWnRQCjj88beyN/7OTuZQJwTA65FfYMyBJC7cyRaRBWBWptI8jdTC/PpPk0tqWvHAg==" length="2313666" />
 </item>
 
+<item>
+  <title>Version 0.8.4</title>
+  <description><![CDATA[<ul><li>fix: Recorded GIFs no longer show dark rounded rectangles where a context menu and its drop shadow had been — the screen capture delivers premultiplied colors for translucent content (menu shadows, acrylic), which were baked darkened into the GIF; the capture now restores the true colors, so text under a former menu/shadow stays fully readable (Windows)</li></ul>]]></description>
+  <sparkle:version>0.8.4</sparkle:version>
+  <sparkle:shortVersionString>0.8.4</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.8.4/DM_Screenshot-v0.8.4.dmg" type="application/octet-stream" sparkle:edSignature="p6vr0JiUtVegqrmI1MWV7iJHPGBklEHc4nQyaKge8k41QcgycAVQR/yhOzqI0D0kEMzc17ioUdwSAhaSyct7Dg==" length="2313787" />
+</item>
+
 </channel>
 </rss>
