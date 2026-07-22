@@ -520,5 +520,13 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.8.4/DM_Screenshot-v0.8.4.dmg" type="application/octet-stream" sparkle:edSignature="p6vr0JiUtVegqrmI1MWV7iJHPGBklEHc4nQyaKge8k41QcgycAVQR/yhOzqI0D0kEMzc17ioUdwSAhaSyct7Dg==" length="2313787" />
 </item>
 
+<item>
+  <title>Version 0.8.5</title>
+  <description><![CDATA[<ul><li>fix: Shortcut fields in Windows Settings now visibly enter recording mode when clicked and accept a new key combination; Escape or focus loss cancels without losing the saved shortcut (Windows)</li></ul>]]></description>
+  <sparkle:version>0.8.5</sparkle:version>
+  <sparkle:shortVersionString>0.8.5</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.8.5/DM_Screenshot-v0.8.5.dmg" type="application/octet-stream" sparkle:edSignature="goxafxcqKvEeiTmLB1+6KT9zy8Bi7E/adhC31GEeDL1AseWCXZvFugf6Q1avg4gfVpPcSoGu52Qvey5pOQAHBQ==" length="2313948" />
+</item>
+
 </channel>
 </rss>
