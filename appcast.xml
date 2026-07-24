@@ -528,5 +528,20 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.8.5/DM_Screenshot-v0.8.5.dmg" type="application/octet-stream" sparkle:edSignature="goxafxcqKvEeiTmLB1+6KT9zy8Bi7E/adhC31GEeDL1AseWCXZvFugf6Q1avg4gfVpPcSoGu52Qvey5pOQAHBQ==" length="2313948" />
 </item>
 
+<item>
+  <title>Version 0.8.6</title>
+  <description><![CDATA[<ul><li>fix: Recorded GIFs no longer turn into a black rectangle with scattered specks wherever the screen was moving — everything that stayed still was kept, everything that moved was lost, so a recording of a video or a scrolling window was unusable; the moving area is now reproduced correctly (Windows)</li>
+<li>fix: Longer screen recordings no longer run the machine out of memory — the recording kept every frame at full display resolution (about 18 GB for one minute on a 4K screen), although the GIF is created at a much smaller size anyway; frames are now reduced right at capture time, which uses about 15× less memory without changing the resulting GIF (Windows)</li>
+<li>fix: A damaged history file no longer prevents the app from starting — a screenshot history that was written incompletely (for example after a power loss) made the app fail on every launch; it now starts with an empty history instead (Windows)</li>
+<li>fix: Screenshots whose files were removed outside the app (cleanup tools, sync software) no longer crash the app when the sidebar refreshes or the entry is opened — the affected entry is dropped instead (Windows)</li>
+<li>fix: Saving now reports a problem instead of closing the app when the file cannot be written (read-only folder, full disk) — applies to Save in the editor, in the Quick-Edit bar and in the GIF window (Windows)</li>
+<li>fix: A failed GIF conversion no longer closes the app — the error is shown and the recording stays available (Windows)</li>
+<li>fix: Changing a setting no longer closes the app when the settings file cannot be written; "Launch at login" reports it when company policy blocks the change (Windows)</li>
+<li>fix: Version shown in Settings matches the released version again (macOS)</li></ul>]]></description>
+  <sparkle:version>0.8.6</sparkle:version>
+  <sparkle:shortVersionString>0.8.6</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.8.6/DM_Screenshot-v0.8.6.dmg" type="application/octet-stream" sparkle:edSignature="ZtgOLf8VNnH4jgRDicYkwoq71mhNFlu3yoKigTlStIlriIPO7J0TV62qZcgzVZvjpzbovmkJ9gqSnef/aBHqCg==" length="2314574" />
+</item>
+
 </channel>
 </rss>
