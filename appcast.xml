@@ -554,5 +554,16 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.8.7/DM_Screenshot-v0.8.7.dmg" type="application/octet-stream" sparkle:edSignature="qoL4Z7zc4L5TCMR5ZUG2mCw/qwY1cGqvwdqT3RaC4h/WP9rYnc1aCd3x3ME8pig8aSNbR9NYfM/5dYyKWOn6Cg==" length="2322395" />
 </item>
 
+<item>
+  <title>Version 0.9.0</title>
+  <description><![CDATA[<ul><li>new: The editor window is one calm surface instead of black bands and boxes — the title bar now matches the toolbar rather than sitting above it as a near-black strip, and the sidebar, the settings navigation and the settings options each became a single rounded panel holding plain entries, instead of a frame around every single button inside another frame (macOS, Windows)</li>
+<li>new: An empty work area is finally tellable from a dark screenshot — it carries a light diagonal hatch, so a screenshot that happens to be almost black no longer looks like nothing was loaded at all (macOS, Windows)</li>
+<li>fix: The Windows editor canvas follows the selected design again — it painted a fixed dark blue-grey regardless of whether Graphite Sand, Standard or Black Utility was chosen (Windows)</li>
+<li>fix: Spacing around the editor panels is even on all sides; the gap between the sidebar and the work area was more than three times the gap at the window edges (macOS, Windows)</li></ul>]]></description>
+  <sparkle:version>0.9.0</sparkle:version>
+  <sparkle:shortVersionString>0.9.0</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.9.0/DM_Screenshot-v0.9.0.dmg" type="application/octet-stream" sparkle:edSignature="CI5f4Ms6z9/MUMJranFEJAf+u5iKP40UIxtAC3orIfVLvS8Sf17K2Le3Qbl9gc5JBB8BtLcF7hx3RJAEM1nZDw==" length="2340983" />
+</item>
+
 </channel>
 </rss>
