@@ -543,5 +543,16 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.8.6/DM_Screenshot-v0.8.6.dmg" type="application/octet-stream" sparkle:edSignature="ZtgOLf8VNnH4jgRDicYkwoq71mhNFlu3yoKigTlStIlriIPO7J0TV62qZcgzVZvjpzbovmkJ9gqSnef/aBHqCg==" length="2314574" />
 </item>
 
+<item>
+  <title>Version 0.8.7</title>
+  <description><![CDATA[<ul><li>fix: The size shown while dragging a capture selection is the real pixel size again on macOS — on a Retina display it reported half the actual value, so a selection saved as 800 × 600 pixels was labelled 400 × 300 while dragging (macOS)</li>
+<li>fix: Clicking the dock icon of the running app reopens the editor on macOS — after closing the editor window the app kept running in the menu bar, but the dock icon no longer responded to anything, which made it look dead; a click during a capture or recording still leaves that alone (macOS)</li>
+<li>fix: Saving now reports a problem instead of failing silently on macOS — if the file could not be written (read-only folder, full disk, a file held by another program) you picked a location, pressed Save and got nothing at all, no file and no message; the same applies to saving and copying a GIF (macOS)</li>
+<li>new: The editor finally has keyboard shortcuts on macOS — ⌘C copies, ⌘S saves, ⌘Z and ⇧⌘Z undo and redo, ⌫ deletes the selected annotation; they live in a proper menu bar, so they are visible instead of hidden, and ⌘W, ⌘M and ⌘Q work as expected too. While typing an inline text annotation, ⌘C and ⌫ still act on the text, not on the screenshot (macOS)</li></ul>]]></description>
+  <sparkle:version>0.8.7</sparkle:version>
+  <sparkle:shortVersionString>0.8.7</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.8.7/DM_Screenshot-v0.8.7.dmg" type="application/octet-stream" sparkle:edSignature="qoL4Z7zc4L5TCMR5ZUG2mCw/qwY1cGqvwdqT3RaC4h/WP9rYnc1aCd3x3ME8pig8aSNbR9NYfM/5dYyKWOn6Cg==" length="2322395" />
+</item>
+
 </channel>
 </rss>
