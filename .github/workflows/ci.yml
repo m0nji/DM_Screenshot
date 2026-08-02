@@ -1,0 +1,52 @@
+name: CI
+
+# Build and test both apps WITHOUT publishing anything.
+#
+# Why this exists: `release.yml` only runs for `v*` tags, so the macOS code could
+# not be compiled at all except by cutting a release. Development happens on a
+# Windows machine where `swift` does not exist, so macOS changes were written
+# blind and a tag was the first thing that ever type-checked them — which is
+# exactly how v0.9.1 failed its own gate. This runs on every push to the mirror,
+# so the compiler answers before a release is on the line.
+
+on:
+  push:
+    branches: ['**']
+  workflow_dispatch:
+
+jobs:
+  macos:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Select latest Xcode (Swift 6 toolchain for swift-tools-version 6.0)
+        run: |
+          XC="$(ls -d /Applications/Xcode_16*.app 2>/dev/null | sort -V | tail -1)"
+          if [ -n "$XC" ]; then sudo xcode-select -s "$XC"; fi
+          swift --version
+
+      - name: Build & test
+        run: |
+          set -euo pipefail
+          cd mac
+          swift build
+          swift test
+
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Build & test
+        run: |
+          set -euo pipefail
+          dotnet build windows/DMShot/DMShot.csproj --nologo
+          dotnet test windows/DMShot.Tests --nologo
