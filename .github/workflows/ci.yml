@@ -1,0 +1,104 @@
+name: CI
+
+# Build and test both apps WITHOUT publishing anything.
+#
+# Why this exists: `release.yml` only runs for `v*` tags, so the macOS code could
+# not be compiled at all except by cutting a release. Development happens on a
+# Windows machine where `swift` does not exist, so macOS changes were written
+# blind and a tag was the first thing that ever type-checked them — which is
+# exactly how v0.9.1 failed its own gate. This runs on every push to the mirror,
+# so the compiler answers before a release is on the line.
+
+on:
+  push:
+    branches: ['**']
+  workflow_dispatch:
+
+jobs:
+  macos:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Select latest Xcode (Swift 6 toolchain for swift-tools-version 6.0)
+        run: |
+          XC="$(ls -d /Applications/Xcode_16*.app 2>/dev/null | sort -V | tail -1)"
+          if [ -n "$XC" ]; then sudo xcode-select -s "$XC"; fi
+          swift --version
+
+      - name: Build & test
+        run: |
+          set -euo pipefail
+          cd mac
+          swift build
+
+          # Re-emit any failure as a workflow ::error::, which lands in the job
+          # ANNOTATIONS. Those are readable through the public API; the raw log
+          # is not, so a failure here used to be diagnosable only by opening the
+          # web UI by hand. Keep the exit code of `swift test`, not of `tee`.
+          set +e
+          swift test 2>&1 | tee /tmp/swift-test.log
+          status=${PIPESTATUS[0]}
+          set -e
+          if [ "$status" -ne 0 ]; then
+            grep -E "error:|XCTAssert|' failed \(" /tmp/swift-test.log \
+              | head -20 \
+              | while IFS= read -r line; do echo "::error::${line}"; done
+            exit "$status"
+          fi
+
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Build & test
+        run: |
+          set -euo pipefail
+          dotnet build windows/DMShot/DMShot.csproj --nologo
+          dotnet test windows/DMShot.Tests --nologo
+
+      # Restore and publish the architecture-specific runtime pack on every push so
+      # an incompatible native dependency cannot first surface during a release.
+      - name: Publish smoke test (self-contained win-arm64)
+        run: |
+          set -euo pipefail
+          dotnet publish windows/DMShot/DMShot.csproj \
+            -c Release -r win-arm64 --self-contained true \
+            -o publish/win-arm64 --nologo
+
+      # Branch builds are intentionally not added to the public update feed. Keep a
+      # short-lived installer artifact so ARM64 hardware can be tested before merge/tag.
+      - name: Pack ARM64 test installer
+        run: |
+          set -euo pipefail
+          VERSION="$(tr -d '\r\n' < VERSION)"
+          dotnet tool install --tool-path .tools vpk --version 0.0.1298
+          export PATH="$PATH:$PWD/.tools"
+          vpk --skip-updates --yes pack \
+            --runtime win-arm64 \
+            --channel win-arm64 \
+            --packId DM_Screenshot \
+            --packVersion "$VERSION" \
+            --packDir publish/win-arm64 \
+            --mainExe DMShot.exe \
+            --packTitle "DM Screenshot" \
+            --packAuthors "DM" \
+            --icon windows/DMShot/Resources/AppIcon.ico \
+            --outputDir Releases/win-arm64
+
+      - name: Upload ARM64 test installer
+        uses: actions/upload-artifact@v7
+        with:
+          name: DM_Screenshot-win-arm64-${{ github.sha }}
+          path: Releases/win-arm64/DM_Screenshot-win-arm64-Setup.exe
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
