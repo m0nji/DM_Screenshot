@@ -581,5 +581,16 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.9.3/DM_Screenshot-v0.9.3.dmg" type="application/octet-stream" sparkle:edSignature="JxDOpkGxY29Y0OHqUIur82NnGjWMvjnVq+LSpOnFyTYQwDaZGfZPItl6lwbFh8oebkX/JtK0hJBWoUJf2ZLeCg==" length="2361768" />
 </item>
 
+<item>
+  <title>Version 0.9.4</title>
+  <description><![CDATA[<ul><li>fix: Preserve annotations, crop and background when switching history entries or restarting; retain failed saves for retry (macOS, Windows).</li>
+<li>fix: Keep step-comment editing active while saving and preserve edits when opening Quick Edit captures in the main editor (macOS, Windows).</li>
+<li>fix: Improve capture recovery and clipboard handling, including the lifetime of copied GIF files (macOS, Windows).</li>
+<li>fix: Close the GIF preview after a successful Copy action (macOS, Windows).</li></ul>]]></description>
+  <sparkle:version>0.9.4</sparkle:version>
+  <sparkle:shortVersionString>0.9.4</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.9.4/DM_Screenshot-v0.9.4.dmg" type="application/octet-stream" sparkle:edSignature="+cGkiv80BSMOMFTB7712jCKe4HfJkvwgjpRN4ztkbBfVUcfvLWaKKRDz2RM9rgGYOCD6+8i6sbkozszgsyIYCg==" length="2410873" />
+</item>
+
 </channel>
 </rss>
