@@ -32,6 +32,8 @@ enum L: CaseIterable {
     case permTitle, permBody, relaunchNow, openSystemSettings
     // Save failure (mirrors the Windows saveFailed* keys)
     case saveFailedTitle, saveFailedBody
+    case captureFailedTitle, captureFailedBody, clipboardFailedTitle, clipboardFailedBody
+    case historyFailedTitle, historyFailedBody, quitUnsavedBody, quitWithoutSaving
     // Editor
     case copy, save, saveEllipsis, undo, redo
     case editorFullScreen, editorSelection, editorVideoFullScreen, editorVideoSection
@@ -68,6 +70,14 @@ final class Localizer: ObservableObject {
 
     private static func value(_ key: L) -> (en: String, de: String) {
         switch key {
+        case .captureFailedTitle: return ("Capture failed", "Aufnahme fehlgeschlagen")
+        case .captureFailedBody: return ("Please try the capture again. %@", "Bitte starte die Aufnahme erneut. %@")
+        case .clipboardFailedTitle: return ("Could not copy", "Kopieren fehlgeschlagen")
+        case .clipboardFailedBody: return ("Your capture is still available. Please try Copy again. %@", "Deine Aufnahme ist weiterhin verfügbar. Bitte versuche erneut zu kopieren. %@")
+        case .historyFailedTitle: return ("Could not save history", "Verlauf konnte nicht gespeichert werden")
+        case .historyFailedBody: return ("The latest changes could not be saved to history. Keep the app open and save a PNG copy, or free disk space and try again. %@", "Die letzten Änderungen konnten nicht im Verlauf gespeichert werden. Lass die App geöffnet und speichere eine PNG-Kopie oder schaffe Speicherplatz und versuche es erneut. %@")
+        case .quitUnsavedBody: return ("Some captures or changes have not been saved to history. Quit anyway and lose the unsaved changes?", "Einige Aufnahmen oder Änderungen wurden nicht im Verlauf gespeichert. Trotzdem beenden und die ungespeicherten Änderungen verlieren?")
+        case .quitWithoutSaving: return ("Quit without saving", "Ohne Speichern beenden")
         case .settingsTitle:        return ("Settings", "Einstellungen")
         case .sectionGeneral:       return ("General", "Allgemein")
         case .sectionShortcuts:     return ("Shortcuts", "Kurzbefehle")

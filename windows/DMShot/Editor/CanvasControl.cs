@@ -819,7 +819,7 @@ public sealed class CanvasControl : FrameworkElement
         // Enter inserts a newline (AcceptsReturn=true).
     }
 
-    private void CommitTextEdit()
+    public void CommitTextEdit()
     {
         if (_textBox is null) return;
         var tb = _textBox;

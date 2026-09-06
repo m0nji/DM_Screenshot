@@ -1,15 +1,23 @@
 import AppKit
 
+struct HistoryDocument: Codable, Equatable {
+    var annotations: [Annotation]
+    var crop: CGRect?
+    var background: BackgroundStyle?
+}
+
 struct HistoryItemMeta: Codable, Identifiable {
     enum ItemKind: String, Codable { case image, video }
     let id: String
     let createdAt: Double
     let kind: ItemKind
+    var revision: String?
 
-    init(id: String, createdAt: Double, kind: ItemKind = .image) {
+    init(id: String, createdAt: Double, kind: ItemKind = .image, revision: String? = nil) {
         self.id = id
         self.createdAt = createdAt
         self.kind = kind
+        self.revision = revision
     }
 
     init(from decoder: Decoder) throws {
@@ -17,202 +25,292 @@ struct HistoryItemMeta: Codable, Identifiable {
         id = try c.decode(String.self, forKey: .id)
         createdAt = try c.decode(Double.self, forKey: .createdAt)
         kind = (try? c.decode(ItemKind.self, forKey: .kind)) ?? .image
+        revision = try c.decodeIfPresent(String.self, forKey: .revision)
     }
 }
 
-/// Persists the last 10 captures (original PNG + annotations JSON + thumbnail) under
-/// Application Support, restored on launch.
+/// UI/pending state belongs to the main thread. All durable changes are serialized.
+/// A new immutable revision (document + thumbnail/GIF) is published by one atomic
+/// index replacement. Until that succeeds, the previous revision remains readable.
 final class HistoryStore: ObservableObject {
     @Published private(set) var items: [HistoryItemMeta] = []
+    var onError: ((Error) -> Void)?
     private let dir: URL
     private let maxEntries = 10
-
-    /// Heavy pixel work (full-res PNG encode, thumbnail render, GIF writes) runs
-    /// on this serial queue: a 5K PNG encode takes hundreds of ms and used to
-    /// block the main thread between hotkey press and the editor appearing.
-    /// `items`, the caches, and `objectWillChange` stay main-thread-only.
     private let ioQueue = DispatchQueue(label: "DMShot.HistoryStore.io", qos: .utility)
-
-    /// Decoded thumbnails by id — the sidebar asks for these on every SwiftUI
-    /// body evaluation (i.e. every model tick during a drag); re-reading PNGs
-    /// from disk each time caused constant I/O. Bounded by `maxEntries`.
+    private var diskItems: [HistoryItemMeta] = [] // ioQueue only after init
+    private var errors: [String: Error] = [:]   // ioQueue only
+    private let failureLock = NSLock()
+    private var failedIDs: Set<String> = []     // protected by failureLock
+    private var pendingRendered: [String: CGImage] = [:] // main thread, retained until commit
+    private var pendingDeletes: Set<String> = []
     private var thumbCache: [String: NSImage] = [:]
-
-    /// Originals/GIFs whose disk write is still in flight, so an immediate
-    /// history click can't race the background write.
+    private var documents: [String: HistoryDocument] = [:]
     private var pendingOriginals: [String: CGImage] = [:]
     private var pendingGIFs: [String: Data] = [:]
 
-    init() {
-        let base = FileManager.default.urls(
-            for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        dir = base.appendingPathComponent("DMShot/history", isDirectory: true)
-        try? FileManager.default.createDirectory(
-            at: dir, withIntermediateDirectories: true)
-        load()
-    }
-
-    private var indexURL: URL { dir.appendingPathComponent("index.json") }
-    private func pngURL(_ id: String) -> URL { dir.appendingPathComponent("\(id).png") }
-    private func thumbURL(_ id: String) -> URL { dir.appendingPathComponent("\(id).thumb.png") }
-    private func jsonURL(_ id: String) -> URL { dir.appendingPathComponent("\(id).json") }
-    private func gifURL(_ id: String) -> URL { dir.appendingPathComponent("\(id).gif") }
-
-    private func load() {
+    init(root: URL? = nil) {
+        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        dir = root ?? base.appendingPathComponent("DMShot/history", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         if let data = try? Data(contentsOf: indexURL),
            let metas = try? JSONDecoder().decode([HistoryItemMeta].self, from: data) {
-            items = metas
+            items = Array(metas.filter { meta in
+                Self.validComponent(meta.id) && (meta.revision.map(Self.validComponent) ?? true)
+                    && FileManager.default.fileExists(atPath: (meta.kind == .image ? originalURL(meta.id) : assetURL(meta, "gif")).path)
+            }.sorted { $0.createdAt > $1.createdAt }.prefix(maxEntries))
+        }
+        diskItems = items
+    }
+
+    private static func validComponent(_ value: String) -> Bool {
+        !value.isEmpty && value.unicodeScalars.allSatisfy {
+            CharacterSet.alphanumerics.contains($0) || $0 == "-" || $0 == "_"
+        }
+    }
+    private var indexURL: URL { dir.appendingPathComponent("index.json") }
+    private func originalURL(_ id: String) -> URL { dir.appendingPathComponent("\(id).png") }
+    private func assetURL(_ meta: HistoryItemMeta, _ suffix: String) -> URL {
+        let stem = meta.revision.map { "\(meta.id).\($0)" } ?? meta.id
+        return dir.appendingPathComponent("\(stem).\(suffix)")
+    }
+
+    private func publishIndex(_ next: [HistoryItemMeta]) throws {
+        try JSONEncoder().encode(next).write(to: indexURL, options: .atomic)
+        diskItems = next
+    }
+
+    private func enqueue(id: String, _ operation: @escaping () throws -> Void) {
+        ioQueue.async { [self] in
+            do { try operation(); errors[id] = nil; setFailed(id, false) }
+            catch {
+                let firstFailure = errors.isEmpty
+                errors[id] = error
+                setFailed(id, true)
+                if firstFailure { DispatchQueue.main.async { [weak self] in self?.onError?(error) } }
+            }
         }
     }
 
-    private func saveIndex() {
-        if let data = try? JSONEncoder().encode(items) { try? data.write(to: indexURL) }
+    private func setFailed(_ id: String, _ failed: Bool) {
+        failureLock.lock()
+        defer { failureLock.unlock() }
+        if failed { failedIDs.insert(id) } else { failedIDs.remove(id) }
     }
 
-    func addCapture(id: String, original: CGImage, annotations: [Annotation]) {
-        items.insert(HistoryItemMeta(id: id, createdAt: Date().timeIntervalSince1970), at: 0)
+    func needsRetry(_ id: String) -> Bool {
+        failureLock.lock()
+        defer { failureLock.unlock() }
+        return failedIDs.contains(id)
+    }
+
+    /// Retry the newest in-memory snapshot, including documents no longer open.
+    func retryFailedWrites() {
+        for meta in items where needsRetry(meta.id) {
+            guard let rendered = pendingRendered[meta.id] else { continue }
+            if meta.kind == .image {
+                updateEntry(id: meta.id, document: loadDocument(meta.id), flattened: rendered)
+            } else if let data = loadGIF(meta.id) {
+                updateVideo(id: meta.id, gifData: data, thumbnail: rendered)
+            }
+        }
+        for id in pendingDeletes where needsRetry(id) { deleteFromDisk(id) }
+    }
+
+    private func committed(_ meta: HistoryItemMeta) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self, self.items.contains(where: { $0.id == meta.id && $0.revision == meta.revision }) else { return }
+            self.pendingRendered[meta.id] = nil
+        }
+    }
+
+    private func insertPending(_ meta: HistoryItemMeta) {
+        items.removeAll { $0.id == meta.id }
+        items.insert(meta, at: 0)
+        while items.count > maxEntries {
+            let id = items.removeLast().id
+            forget(id)
+            ioQueue.async { [self] in errors[id] = nil; setFailed(id, false) }
+        }
+    }
+
+    func addCapture(id: String, original: CGImage, annotations: [Annotation],
+                    crop: CGRect? = nil, background: BackgroundStyle? = nil) {
+        guard Self.validComponent(id), !items.contains(where: { $0.id == id }) else { return }
+        let meta = HistoryItemMeta(id: id, createdAt: Date().timeIntervalSince1970, revision: UUID().uuidString)
+        let document = HistoryDocument(annotations: annotations, crop: crop, background: background)
+        insertPending(meta)
         pendingOriginals[id] = original
-        let evicted = evict()
-        saveIndex()
-        ioQueue.async { [weak self] in
-            guard let self else { return }
-            if let png = ImageUtils.pngData(original) { try? png.write(to: self.pngURL(id)) }
-            self.writeAnnotations(id: id, annotations: annotations)
-            self.writeThumb(id: id, image: original)
-            evicted.forEach(self.removeFiles)
-            DispatchQueue.main.async { self.pendingOriginals[id] = nil }
+        pendingRendered[id] = original
+        documents[id] = document
+        enqueue(id: id) { [self] in
+            guard let png = ImageUtils.pngData(original) else { throw CocoaError(.fileWriteUnknown) }
+            try png.write(to: originalURL(id), options: .atomic)
+            try writeDocument(document, meta: meta, thumbnail: original)
+            try commit(meta)
+            DispatchQueue.main.async { [weak self] in self?.pendingOriginals[id] = nil }
         }
     }
 
     func updateEntry(id: String, annotations: [Annotation], flattened: CGImage) {
-        ioQueue.async { [weak self] in
-            guard let self else { return }
-            self.writeAnnotations(id: id, annotations: annotations)
-            self.writeThumb(id: id, image: flattened)
+        var document = loadDocument(id)
+        document.annotations = annotations
+        updateEntry(id: id, document: document, flattened: flattened)
+    }
+
+    func updateEntry(id: String, document: HistoryDocument, flattened: CGImage) {
+        guard let index = items.firstIndex(where: { $0.id == id && $0.kind == .image }) else { return }
+        var meta = items[index]
+        meta.revision = UUID().uuidString
+        items[index] = meta
+        pendingRendered[id] = flattened
+        documents[id] = document // a rapid history switch reads the pending state
+        let original = pendingOriginals[id]
+        enqueue(id: id) { [self] in
+            // If an initial add failed, a later save can repair it from the pending original.
+            if !FileManager.default.fileExists(atPath: originalURL(id).path), let original,
+               let png = ImageUtils.pngData(original) {
+                try png.write(to: originalURL(id), options: .atomic)
+            }
+            try writeDocument(document, meta: meta, thumbnail: flattened)
+            try commit(meta)
+            DispatchQueue.main.async { [weak self] in self?.pendingOriginals[id] = nil }
         }
     }
 
     func addVideo(id: String, gifData: Data, thumbnail: CGImage) {
-        items.insert(HistoryItemMeta(id: id, createdAt: Date().timeIntervalSince1970, kind: .video), at: 0)
-        pendingGIFs[id] = gifData
-        let evicted = evict()
-        saveIndex()
-        ioQueue.async { [weak self] in
-            guard let self else { return }
-            try? gifData.write(to: self.gifURL(id))
-            self.writeThumb(id: id, image: thumbnail)
-            evicted.forEach(self.removeFiles)
-            DispatchQueue.main.async { self.pendingGIFs[id] = nil }
-        }
+        guard Self.validComponent(id), !items.contains(where: { $0.id == id }) else { return }
+        let meta = HistoryItemMeta(id: id, createdAt: Date().timeIntervalSince1970, kind: .video, revision: UUID().uuidString)
+        insertPending(meta)
+        writeVideo(meta, data: gifData, thumbnail: thumbnail)
     }
 
-    /// Replace an existing video entry's GIF + thumbnail in place (post-hoc
-    /// Standard→Small conversion). Same id, same list position — deliberately
-    /// no insert/evict, unlike addVideo.
     func updateVideo(id: String, gifData: Data, thumbnail: CGImage) {
-        guard items.contains(where: { $0.id == id && $0.kind == .video }) else { return }
-        pendingGIFs[id] = gifData
-        ioQueue.async { [weak self] in
-            guard let self else { return }
-            try? gifData.write(to: self.gifURL(id))
-            self.writeThumb(id: id, image: thumbnail)
-            DispatchQueue.main.async { self.pendingGIFs[id] = nil }
+        guard let index = items.firstIndex(where: { $0.id == id && $0.kind == .video }) else { return }
+        var meta = items[index]
+        meta.revision = UUID().uuidString
+        items[index] = meta
+        writeVideo(meta, data: gifData, thumbnail: thumbnail)
+    }
+
+    private func writeVideo(_ meta: HistoryItemMeta, data: Data, thumbnail: CGImage) {
+        pendingGIFs[meta.id] = data
+        pendingRendered[meta.id] = thumbnail
+        enqueue(id: meta.id) { [self] in
+            try data.write(to: assetURL(meta, "gif"), options: .atomic)
+            try writeThumb(meta, image: thumbnail)
+            try commit(meta)
+            DispatchQueue.main.async { [weak self] in
+                guard let self, self.items.contains(where: { $0.id == meta.id && $0.revision == meta.revision }) else { return }
+                self.pendingGIFs[meta.id] = nil
+            }
         }
     }
 
-    func loadGIF(_ id: String) -> Data? {
-        if let pending = pendingGIFs[id] { return pending }
-        return try? Data(contentsOf: gifURL(id))
+    private func writeDocument(_ document: HistoryDocument, meta: HistoryItemMeta, thumbnail: CGImage) throws {
+        try JSONEncoder().encode(document).write(to: assetURL(meta, "json"), options: .atomic)
+        try writeThumb(meta, image: thumbnail)
     }
 
-    /// Renders + writes the thumbnail (on `ioQueue`), then publishes it into the
-    /// main-thread cache so the sidebar refreshes exactly once when it's ready.
-    private func writeThumb(id: String, image: CGImage) {
-        let maxW: CGFloat = 320
-        let scale = min(1, maxW / CGFloat(image.width))
-        let w = max(1, Int(CGFloat(image.width) * scale))
-        let h = max(1, Int(CGFloat(image.height) * scale))
-        guard
-            let ctx = CGContext(
-                data: nil, width: w, height: h, bitsPerComponent: 8, bytesPerRow: 0,
-                space: CGColorSpaceCreateDeviceRGB(),
-                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
-        else { return }
-        ctx.interpolationQuality = .high
-        ctx.draw(image, in: CGRect(x: 0, y: 0, width: w, height: h))
-        guard let thumb = ctx.makeImage() else { return }
-        if let png = ImageUtils.pngData(thumb) { try? png.write(to: thumbURL(id)) }
+    private func commit(_ meta: HistoryItemMeta) throws {
+        let previous = diskItems.first { $0.id == meta.id }
+        var next = diskItems.filter { $0.id != meta.id }
+        next.append(meta)
+        next.sort { $0.createdAt > $1.createdAt }
+        let evicted = Array(next.dropFirst(maxEntries))
+        next = Array(next.prefix(maxEntries))
+        try publishIndex(next)
+        if let previous { removeRevision(previous) }
+        evicted.forEach { removeFiles($0.id); errors[$0.id] = nil; setFailed($0.id, false) }
+        // Drop abandoned revisions from an earlier failed attempt only AFTER commit.
+        removeUnusedRevisions(meta)
+        committed(meta)
+    }
+
+    private func writeThumb(_ meta: HistoryItemMeta, image: CGImage) throws {
+        let thumb = ImageUtils.scaled(image, toWidth: 320)
+        guard let png = ImageUtils.pngData(thumb) else { throw CocoaError(.fileWriteUnknown) }
+        try png.write(to: assetURL(meta, "thumb.png"), options: .atomic)
         DispatchQueue.main.async { [weak self] in
-            guard let self, self.items.contains(where: { $0.id == id }) else { return }
-            self.thumbCache[id] = NSImage(cgImage: thumb, size: NSSize(width: w, height: h))
+            guard let self, self.items.contains(where: { $0.id == meta.id && $0.revision == meta.revision }) else { return }
+            self.thumbCache[meta.id] = ImageUtils.nsImage(thumb)
             self.objectWillChange.send()
         }
     }
 
-    private func writeAnnotations(id: String, annotations: [Annotation]) {
-        if let data = try? JSONEncoder().encode(annotations) {
-            try? data.write(to: jsonURL(id))
-        }
-    }
-
-    /// Removes a single entry (its PNG, thumbnail, annotations, and GIF if present) from history.
     func delete(_ id: String) {
         guard items.contains(where: { $0.id == id }) else { return }
         items.removeAll { $0.id == id }
         forget(id)
-        saveIndex()
-        ioQueue.async { [weak self] in self?.removeFiles(id) }
+        pendingDeletes.insert(id)
+        deleteFromDisk(id)
     }
 
-    /// Trims `items` to the cap and returns the evicted ids; the caller removes
-    /// their files (on `ioQueue`, after any in-flight writes for them).
-    private func evict() -> [String] {
-        var evicted: [String] = []
-        while items.count > maxEntries {
-            evicted.append(items.removeLast().id)
+    private func deleteFromDisk(_ id: String) {
+        enqueue(id: id) { [self] in
+            try publishIndex(diskItems.filter { $0.id != id })
+            removeFiles(id)
+            DispatchQueue.main.async { [weak self] in self?.pendingDeletes.remove(id) }
         }
-        evicted.forEach(forget)
-        return evicted
     }
 
     private func forget(_ id: String) {
         thumbCache[id] = nil
+        documents[id] = nil
+        pendingRendered[id] = nil
         pendingOriginals[id] = nil
         pendingGIFs[id] = nil
     }
 
+    private func removeRevision(_ meta: HistoryItemMeta) {
+        for suffix in ["json", "thumb.png", "gif"] { try? FileManager.default.removeItem(at: assetURL(meta, suffix)) }
+    }
     private func removeFiles(_ id: String) {
-        try? FileManager.default.removeItem(at: pngURL(id))
-        try? FileManager.default.removeItem(at: thumbURL(id))
-        try? FileManager.default.removeItem(at: jsonURL(id))
-        try? FileManager.default.removeItem(at: gifURL(id))
+        for file in (try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil)) ?? []
+            where file.lastPathComponent.hasPrefix(id + ".") {
+            try? FileManager.default.removeItem(at: file)
+        }
+    }
+    private func removeUnusedRevisions(_ meta: HistoryItemMeta) {
+        let keep = Set([originalURL(meta.id), assetURL(meta, "json"), assetURL(meta, "thumb.png"), assetURL(meta, "gif")].map(\.lastPathComponent))
+        for file in (try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil)) ?? []
+            where file.lastPathComponent.hasPrefix(meta.id + ".") && !keep.contains(file.lastPathComponent) {
+            try? FileManager.default.removeItem(at: file)
+        }
     }
 
-    /// Blocks until all queued background I/O has hit disk. Used by tests; the
-    /// app itself never needs to block on history writes.
-    func flushIO() {
-        ioQueue.sync { }
-    }
+    /// Drains durable writes, including on orderly quit. Does not wait on main callbacks.
+    @discardableResult func flushIO() -> Bool { ioQueue.sync { errors.isEmpty } }
 
     func thumbnail(_ id: String) -> NSImage? {
         if let cached = thumbCache[id] { return cached }
-        guard let data = try? Data(contentsOf: thumbURL(id)),
+        guard let meta = items.first(where: { $0.id == id }),
+              let data = try? Data(contentsOf: assetURL(meta, "thumb.png")),
               let img = NSImage(data: data) else { return nil }
         thumbCache[id] = img
         return img
     }
-
     func loadOriginal(_ id: String) -> CGImage? {
         if let pending = pendingOriginals[id] { return pending }
-        guard let data = try? Data(contentsOf: pngURL(id)),
+        guard items.contains(where: { $0.id == id }), let data = try? Data(contentsOf: originalURL(id)),
               let rep = NSBitmapImageRep(data: data) else { return nil }
         return rep.cgImage
     }
-
-    func loadAnnotations(_ id: String) -> [Annotation] {
-        guard let data = try? Data(contentsOf: jsonURL(id)),
-              let anns = try? JSONDecoder().decode([Annotation].self, from: data)
-        else { return [] }
-        return anns
+    func loadGIF(_ id: String) -> Data? {
+        if let pending = pendingGIFs[id] { return pending }
+        guard let meta = items.first(where: { $0.id == id }) else { return nil }
+        return try? Data(contentsOf: assetURL(meta, "gif"))
     }
+    func loadDocument(_ id: String) -> HistoryDocument {
+        if let pending = documents[id] { return pending }
+        let empty = HistoryDocument(annotations: [], crop: nil, background: nil)
+        guard let meta = items.first(where: { $0.id == id }),
+              let data = try? Data(contentsOf: assetURL(meta, "json")) else { return empty }
+        let document = (try? JSONDecoder().decode(HistoryDocument.self, from: data))
+            ?? (try? JSONDecoder().decode([Annotation].self, from: data)).map { HistoryDocument(annotations: $0, crop: nil, background: nil) }
+            ?? empty
+        documents[id] = document
+        return document
+    }
+    func loadAnnotations(_ id: String) -> [Annotation] { loadDocument(id).annotations }
 }

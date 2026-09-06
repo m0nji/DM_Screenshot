@@ -42,7 +42,7 @@ final class MainMenuTests: XCTestCase {
     func testUndoRoutesToTheInlineTextEditorWhileItIsFocused() {
         XCTAssertTrue(MenuRouting.routesToTextEditor(firstResponder: NSTextView()),
                       "typing in an annotation must undo the typing")
-        XCTAssertFalse(MenuRouting.routesToTextEditor(firstResponder: CanvasNSView(model: EditorModel())),
+        XCTAssertFalse(MenuRouting.routesToTextEditor(firstResponder: CanvasNSView(model: makeEditorModel())),
                        "on the canvas, undo must undo the drawing")
         XCTAssertFalse(MenuRouting.routesToTextEditor(firstResponder: nil as NSResponder?))
     }

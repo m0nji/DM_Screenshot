@@ -1,32 +1,32 @@
 import CoreGraphics
 
 /// Padding preset → fraction of the longer inner edge (symmetric on all sides).
-enum FramePadding: String, CaseIterable, Identifiable {
+enum FramePadding: String, CaseIterable, Identifiable, Codable {
     case small, medium, large
     var id: String { rawValue }
 }
 
 /// Corner preset → fraction of the shorter inner edge (radius on the screenshot).
-enum FrameCorner: String, CaseIterable, Identifiable {
+enum FrameCorner: String, CaseIterable, Identifiable, Codable {
     case none, soft, round
     var id: String { rawValue }
 }
 
 /// Preset gradient identities (concrete hex stops live in `FramePresets`).
-enum FrameGradient: String, CaseIterable, Identifiable {
+enum FrameGradient: String, CaseIterable, Identifiable, Codable {
     case warm, cool, neutral
     var id: String { rawValue }
 }
 
 /// What fills the padding ring behind the screenshot.
-enum FrameBackground: Equatable {
+enum FrameBackground: Equatable, Codable {
     case solid(String)            // hex, e.g. "#ffffff"
     case gradient(FrameGradient)
     case blur
 }
 
 /// The per-screenshot frame style. `enabled == false` ⇒ no frame at all.
-struct BackgroundStyle: Equatable {
+struct BackgroundStyle: Equatable, Codable {
     var enabled: Bool
     var padding: FramePadding
     var corner: FrameCorner

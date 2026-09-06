@@ -48,8 +48,12 @@ public sealed class GdiScreenCapturer : IScreenCapturer
     private static Bitmap CaptureRect(Rectangle r)
     {
         var bmp = new Bitmap(r.Width, r.Height, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
-        using var g = Graphics.FromImage(bmp);
-        g.CopyFromScreen(r.Left, r.Top, 0, 0, r.Size, CopyPixelOperation.SourceCopy);
-        return bmp;
+        try
+        {
+            using var g = Graphics.FromImage(bmp);
+            g.CopyFromScreen(r.Left, r.Top, 0, 0, r.Size, CopyPixelOperation.SourceCopy);
+            return bmp;
+        }
+        catch { bmp.Dispose(); throw; }
     }
 }

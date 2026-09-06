@@ -5,7 +5,7 @@ final class EditorModelTests: XCTestCase {
     /// Placing 1,2,3 then undoing must free number 3 so the next step reuses it
     /// (counter resets to the max present, not the all-time max).
     func testStepCounterResetsAfterUndo() {
-        let model = EditorModel()
+        let model = makeEditorModel()
         for _ in 0..<3 {
             model.stepCounter += 1
             var a = Annotation(
@@ -22,7 +22,7 @@ final class EditorModelTests: XCTestCase {
     }
 
     func testStepCounterRestoredOnRedo() {
-        let model = EditorModel()
+        let model = makeEditorModel()
         model.stepCounter += 1
         var a = Annotation(kind: .step, colorHex: "#EF4444", strokeWidth: 4, x: 0, y: 0, width: 0, height: 0)
         a.stepLabel = model.stepCounter

@@ -2,34 +2,46 @@ import AppKit
 import Combine
 
 final class EditorModel: ObservableObject {
+    private let defaults: UserDefaults
+    private var restoringFrame = false
+    let commitEditing = PassthroughSubject<Void, Never>()
+
     @Published var image: CGImage?
     @Published var entryID: String?
     @Published var tool: Tool = .select
     @Published var colorHex: String = "#EF4444"
     // Stroke size + blur strength are remembered across launches (UserDefaults), shared by the main
     // editor and the Quick-Edit overlay. UserDefaults coalesces writes, so per-drag didSet is cheap.
-    @Published var strokeWidth: CGFloat = (UserDefaults.standard.object(forKey: "dmStrokeWidth") as? Double).map { CGFloat($0) } ?? 4 {
-        didSet { UserDefaults.standard.set(Double(strokeWidth), forKey: "dmStrokeWidth") }
+    @Published var strokeWidth: CGFloat = 4 {
+        didSet { defaults.set(Double(strokeWidth), forKey: "dmStrokeWidth") }
     }
-    @Published var blurStrength: CGFloat = (UserDefaults.standard.object(forKey: "dmBlurStrength") as? Double).map { CGFloat($0) } ?? 12 {
-        didSet { UserDefaults.standard.set(Double(blurStrength), forKey: "dmBlurStrength") }
+    @Published var blurStrength: CGFloat = 12 {
+        didSet { defaults.set(Double(blurStrength), forKey: "dmBlurStrength") }
     }
     // Pretty-background frame style. Persisted across launches and shared by the
     // editor + Quick-Edit (like strokeWidth/blurStrength). First run: off.
-    @Published var backgroundEnabled: Bool = UserDefaults.standard.object(forKey: "dmBgEnabled") as? Bool ?? false {
-        didSet { UserDefaults.standard.set(backgroundEnabled, forKey: "dmBgEnabled") }
+    @Published var backgroundEnabled: Bool = false {
+        didSet { if !restoringFrame { defaults.set(backgroundEnabled, forKey: "dmBgEnabled") } }
     }
-    @Published var framePadding: FramePadding = FramePadding(
-        rawValue: UserDefaults.standard.string(forKey: "dmBgPadding") ?? "") ?? .medium {
-        didSet { UserDefaults.standard.set(framePadding.rawValue, forKey: "dmBgPadding") }
+    @Published var framePadding: FramePadding = .medium {
+        didSet { if !restoringFrame { defaults.set(framePadding.rawValue, forKey: "dmBgPadding") } }
     }
-    @Published var frameCorner: FrameCorner = FrameCorner(
-        rawValue: UserDefaults.standard.string(forKey: "dmBgCorner") ?? "") ?? .soft {
-        didSet { UserDefaults.standard.set(frameCorner.rawValue, forKey: "dmBgCorner") }
+    @Published var frameCorner: FrameCorner = .soft {
+        didSet { if !restoringFrame { defaults.set(frameCorner.rawValue, forKey: "dmBgCorner") } }
     }
-    @Published var frameBackground: FrameBackground = EditorModel.loadFrameBackground() {
-        didSet { EditorModel.saveFrameBackground(frameBackground) }
+    @Published var frameBackground: FrameBackground = .blur {
+        didSet { if !restoringFrame { saveFrameBackground(frameBackground) } }
     }
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+        strokeWidth = CGFloat(defaults.object(forKey: "dmStrokeWidth") as? Double ?? 4)
+        blurStrength = CGFloat(defaults.object(forKey: "dmBlurStrength") as? Double ?? 12)
+        backgroundEnabled = defaults.object(forKey: "dmBgEnabled") as? Bool ?? false
+        framePadding = FramePadding(rawValue: defaults.string(forKey: "dmBgPadding") ?? "") ?? .medium
+        frameCorner = FrameCorner(rawValue: defaults.string(forKey: "dmBgCorner") ?? "") ?? .soft
+        frameBackground = loadFrameBackground()
+    }
+
     @Published var annotations: [Annotation] = []
     @Published var selectedID: UUID?
     @Published var crop: CGRect? { didSet { resetZoom() } }
@@ -66,6 +78,23 @@ final class EditorModel: ObservableObject {
             corner: frameCorner, background: frameBackground)
     }
 
+    func applyBackgroundStyle(_ style: BackgroundStyle) {
+        restoringFrame = true
+        defer { restoringFrame = false }
+        backgroundEnabled = style.enabled
+        framePadding = style.padding
+        frameCorner = style.corner
+        frameBackground = style.background
+    }
+
+    func useFrameDefaults() {
+        applyBackgroundStyle(BackgroundStyle(
+            enabled: defaults.object(forKey: "dmBgEnabled") as? Bool ?? false,
+            padding: FramePadding(rawValue: defaults.string(forKey: "dmBgPadding") ?? "") ?? .medium,
+            corner: FrameCorner(rawValue: defaults.string(forKey: "dmBgCorner") ?? "") ?? .soft,
+            background: loadFrameBackground()))
+    }
+
     /// The content extent the canvas fits/zooms to: the framed outer rect when the
     /// frame is on, otherwise the plain view (crop or full image) rect.
     var framedContentRect: CGRect {
@@ -89,9 +118,9 @@ final class EditorModel: ObservableObject {
     }
 
     // FrameBackground ⇄ UserDefaults ("solid:#hex" | "gradient:warm" | "blur").
-    private static func loadFrameBackground() -> FrameBackground {
+    private func loadFrameBackground() -> FrameBackground {
         // Default fill when the frame is first enabled is Blur (per design).
-        let raw = UserDefaults.standard.string(forKey: "dmBgBackground") ?? "blur"
+        let raw = defaults.string(forKey: "dmBgBackground") ?? "blur"
         if raw == "blur" { return .blur }
         if raw.hasPrefix("gradient:"), let g = FrameGradient(rawValue: String(raw.dropFirst(9))) {
             return .gradient(g)
@@ -99,14 +128,14 @@ final class EditorModel: ObservableObject {
         if raw.hasPrefix("solid:") { return .solid(String(raw.dropFirst(6))) }
         return .solid("#ffffff")
     }
-    private static func saveFrameBackground(_ b: FrameBackground) {
+    private func saveFrameBackground(_ b: FrameBackground) {
         let raw: String
         switch b {
         case .solid(let hex):   raw = "solid:\(hex)"
         case .gradient(let g):  raw = "gradient:\(g.rawValue)"
         case .blur:             raw = "blur"
         }
-        UserDefaults.standard.set(raw, forKey: "dmBgBackground")
+        defaults.set(raw, forKey: "dmBgBackground")
     }
 
     private var documentState: DocumentState { DocumentState(annotations: annotations, crop: crop) }

@@ -4,7 +4,7 @@ import CoreGraphics
 
 final class EditorModelUndoTests: XCTestCase {
     func testSetCropIsUndoableAndRedoable() {
-        let model = EditorModel()
+        let model = makeEditorModel()
         model.load(image: makeImage(100, 80), entryID: "test")
         let crop = CGRect(x: 10, y: 12, width: 40, height: 30)
 
@@ -20,7 +20,7 @@ final class EditorModelUndoTests: XCTestCase {
     func testGestureSnapshotRestoresAnnotationAndCropTogether() {
         let annotation = makeAnnotation(kind: .rect, x: 10, y: 12, width: 30, height: 20)
         let originalCrop = CGRect(x: 0, y: 0, width: 80, height: 60)
-        let model = EditorModel()
+        let model = makeEditorModel()
         model.load(
             image: makeImage(100, 80),
             entryID: "test",
@@ -39,7 +39,7 @@ final class EditorModelUndoTests: XCTestCase {
 
     func testSingleGestureSnapshotRestoresFinalMoveOnRedo() {
         let annotation = makeAnnotation(kind: .rect, x: 10, y: 12, width: 30, height: 20)
-        let model = EditorModel()
+        let model = makeEditorModel()
         model.load(image: makeImage(100, 80), entryID: "test", annotations: [annotation])
 
         model.snapshot()
@@ -54,7 +54,7 @@ final class EditorModelUndoTests: XCTestCase {
     }
 
     func testRedoSynchronizesStepCounterFromRestoredAnnotations() {
-        let model = EditorModel()
+        let model = makeEditorModel()
         let firstStep = makeStep(label: 1)
         model.load(image: makeImage(100, 80), entryID: "test", annotations: [firstStep])
         let secondStep = makeStep(label: 2)
@@ -68,7 +68,7 @@ final class EditorModelUndoTests: XCTestCase {
 
     func testCoalescedUpdatesAreOneUndoStep() {
         let annotation = makeAnnotation(kind: .rect, x: 10, y: 12, width: 30, height: 20)
-        let model = EditorModel()
+        let model = makeEditorModel()
         model.load(image: makeImage(100, 80), entryID: "test", annotations: [annotation])
 
         // A slider/color-wheel gesture: many ticks, same key → one undo step.
@@ -87,7 +87,7 @@ final class EditorModelUndoTests: XCTestCase {
 
     func testCoalescingResetsAcrossOtherOperationsAndUndo() {
         let annotation = makeAnnotation(kind: .rect, x: 10, y: 12, width: 30, height: 20)
-        let model = EditorModel()
+        let model = makeEditorModel()
         model.load(image: makeImage(100, 80), entryID: "test", annotations: [annotation])
 
         model.updateCoalesced(annotation.id, key: "stroke") { $0.strokeWidth = 9 }
@@ -109,7 +109,7 @@ final class EditorModelUndoTests: XCTestCase {
     }
 
     func testDeleteRecomputesStepCounterLikeUndoDoes() {
-        let model = EditorModel()
+        let model = makeEditorModel()
         model.load(
             image: makeImage(100, 80), entryID: "test",
             annotations: [makeStep(label: 1), makeStep(label: 2), makeStep(label: 3)])

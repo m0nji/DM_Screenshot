@@ -8,11 +8,12 @@ enum ImageUtils {
     }
 
     /// Copy a PNG to the clipboard (broadly pasteable).
-    static func copyToClipboard(_ image: CGImage) {
-        guard let png = pngData(image) else { return }
-        let pb = NSPasteboard.general
-        pb.clearContents()
-        pb.setData(png, forType: .png)
+    @discardableResult static func copyToClipboard(_ image: CGImage, to pb: NSPasteboard = .general) -> Bool {
+        guard let png = pngData(image) else { return false }
+        return ClipboardWrite.perform {
+            pb.clearContents()
+            return pb.setData(png, forType: .png)
+        }
     }
 
     /// Crop in pixel coordinates (top-left origin).
@@ -42,12 +43,14 @@ enum ImageUtils {
 
     /// Put a GIF on the pasteboard as BOTH raw GIF data and a file URL, so different
     /// target apps (rich editors vs. Mail/Outlook) can each consume it.
-    static func copyGIF(data: Data, fileURL: URL, to pasteboard: NSPasteboard = .general) {
+    @discardableResult static func copyGIF(data: Data, fileURL: URL, to pasteboard: NSPasteboard = .general) -> Bool {
         let gifType = NSPasteboard.PasteboardType("com.compuserve.gif")
         let item = NSPasteboardItem()
         item.setData(data, forType: gifType)
         item.setString(fileURL.absoluteString, forType: .fileURL)
-        pasteboard.clearContents()
-        pasteboard.writeObjects([item])
+        return ClipboardWrite.perform {
+            pasteboard.clearContents()
+            return pasteboard.writeObjects([item])
+        }
     }
 }

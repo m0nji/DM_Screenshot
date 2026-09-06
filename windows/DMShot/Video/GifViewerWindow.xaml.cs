@@ -10,11 +10,11 @@ namespace DMShot.Video;
 public partial class GifViewerWindow : Window
 {
     private byte[] _gifBytes;
-    private readonly string _gifPath;
+    private string _gifPath;
     private readonly IClipboardService _clipboard;
     /// <summary>Post-hoc Standard→Small hook (wired by the app layer): receives the
     /// converted GIF + thumbnail on the UI thread to replace history + clipboard.</summary>
-    private readonly Action<byte[], System.Drawing.Bitmap>? _onConverted;
+    private readonly Func<byte[], System.Drawing.Bitmap, string?>? _onConverted;
 
     private readonly DispatcherTimer _timer = new();
     private IReadOnlyList<GifPreviewDecoder.Frame> _frames = Array.Empty<GifPreviewDecoder.Frame>();
@@ -22,7 +22,7 @@ public partial class GifViewerWindow : Window
     private bool _closed;
 
     public GifViewerWindow(byte[] gifBytes, string gifPath, IClipboardService clipboard,
-                           Action<byte[], System.Drawing.Bitmap>? onConverted = null)
+                           Func<byte[], System.Drawing.Bitmap, string?>? onConverted = null)
     {
         InitializeComponent();
         DMShot.Platform.DarkTitleBar.Apply(this);
@@ -92,8 +92,14 @@ public partial class GifViewerWindow : Window
             return;
         }
         var (smallGif, thumb) = result.Value;
-        _onConverted?.Invoke(smallGif, thumb);   // UI thread: history + clipboard
-        thumb.Dispose();
+        string? savedPath;
+        using (thumb) { savedPath = _onConverted?.Invoke(smallGif, thumb); }
+        if (savedPath is null)
+        {
+            ConvertButton.IsEnabled = true;
+            return; // keep the original viewer and allow retry after storage recovers
+        }
+        _gifPath = savedPath;
 
         // Swap the viewer to the small GIF; the button is gone (one-way).
         _gifBytes = smallGif;
@@ -130,6 +136,7 @@ public partial class GifViewerWindow : Window
     // ── Copy (V19) ────────────────────────────────────────────────────────────
     private void OnCopyClick(object sender, RoutedEventArgs e)
     {
-        _clipboard.SetGif(_gifBytes, _gifPath);
+        if (!Alerts.Guard(() => _clipboard.SetGif(_gifBytes, _gifPath), "clipboardFailedMessage")) return;
+        Close(); // Successful copy dismisses the preview, matching macOS.
     }
 }

@@ -4,6 +4,13 @@ All notable changes to DM_Screenshot. Newest version first. Always written in En
 
 ## [Unreleased]
 
+## 0.9.4 – 2026-09-06
+
+- fix: Preserve annotations, crop and background when switching history entries or restarting; retain failed saves for retry (macOS, Windows).
+- fix: Keep step-comment editing active while saving and preserve edits when opening Quick Edit captures in the main editor (macOS, Windows).
+- fix: Improve capture recovery and clipboard handling, including the lifetime of copied GIF files (macOS, Windows).
+- fix: Close the GIF preview after a successful Copy action (macOS, Windows).
+
 ## 0.9.3 – 2026-08-19
 - new: The Windows app is now released as a native ARM64 build alongside the existing x64 build; ARM installations use their own installer and update channel, so they stay on native ARM64 updates (Windows)
 

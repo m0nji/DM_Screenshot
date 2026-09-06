@@ -26,7 +26,8 @@ public static class Alerts
         System.Diagnostics.Debug.WriteLine($"{messageKey}: {ex}");
         MessageBox.Show(
             string.Format(Loc.Instance[messageKey], ex.Message),
-            Loc.Instance["saveFailedTitle"],
+            Loc.Instance[messageKey is "captureFailedMessage" or "clipboardFailedMessage"
+                ? "operationFailedTitle" : "saveFailedTitle"],
             MessageBoxButton.OK, MessageBoxImage.Warning);
     }
 }

@@ -21,6 +21,9 @@ public partial class App : Application
     private readonly IClipboardService _clipboard = new WpfClipboard();
     private EditorWindow? _editor;
     private QuickEditOverlayWindow? _quickEdit;
+    private Func<bool, bool>? _flushQuickEdit;
+    private bool _quitting;
+    internal bool IsQuitting => _quitting;
     private HistoryStore _history = null!;
     private ITrayIcon _tray = null!;
     private Settings.Settings _settings = null!;
@@ -59,6 +62,7 @@ public partial class App : Application
 
         _coordinator = new CaptureCoordinator(new GdiScreenCapturer(), () => _settings.ShowZoomLoupe);
         _coordinator.CaptureProduced += OnCaptureProduced;
+        _coordinator.CaptureFailed += ex => Alerts.Show("captureFailedMessage", ex);
         _coordinator.VideoRequested += OnVideoRequested;
 
         _settingsStore = SettingsStore.Default();
@@ -85,7 +89,7 @@ public partial class App : Application
         _tray.VideoAreaRequested += () => _coordinator.StartVideoArea();
         _tray.OpenRequested += ShowEditor;
         _tray.SettingsRequested += OpenSettings;
-        _tray.QuitRequested += () => Shutdown();
+        _tray.QuitRequested += () => { if (PrepareToQuit()) Shutdown(); };
         UpdateTrayHotkeyHints();
         _tray.Show();
 
@@ -100,7 +104,7 @@ public partial class App : Application
 
         // Velopack-backed auto-update. Created on the UI thread so the service captures
         // the dispatcher SynchronizationContext for state callbacks. Silent launch check.
-        _updater = new UpdaterService();
+        _updater = new UpdaterService { BeforeRestart = PrepareToQuit };
         // Tray badge + first menu item while an update is actionable, and the active
         // prompt once it is downloaded. StateChanged already fires on the dispatcher.
         _updater.StateChanged += OnUpdateState;
@@ -322,24 +326,39 @@ public partial class App : Application
     private void OnCaptureProduced(CaptureResult result)
     {
         var bmp = result.Image;
-        _clipboard.SetImage(bmp);                 // auto-copy the raw capture immediately
-
-        // Capturing stores the raw image immediately; satisfies the "last 10" sidebar for v1.
-        _history.Add(bmp, Array.Empty<Annotation>(), null, DateTime.UtcNow);
-
-        if (_settings.AfterCapture == AfterCaptureMode.QuickEdit)
-            ShowQuickEdit(result);          // the overlay takes ownership of result.Image
-        else
+        try
         {
-            ShowEditorWithImage(bmp);       // LoadImage clones — the capture itself is done with
+            DismissQuickEdit();
+            _editor?.FlushDocument();
+
+            // Capturing stores the raw image immediately; satisfies the "last 10" sidebar for v1.
+            var entry = _history.Add(bmp, Array.Empty<Annotation>(), null, DateTime.UtcNow);
+
+            if (_settings.AfterCapture == AfterCaptureMode.QuickEdit)
+                ShowQuickEdit(result, entry.Id);          // the overlay takes ownership of result.Image
+            else
+            {
+                ShowEditorWithImage(bmp, entry.Id);       // LoadImage clones — the capture itself is done with
+                // Clipboard errors do not affect editor/history delivery.
+                Alerts.Guard(() => _clipboard.SetImage(bmp), "clipboardFailedMessage");
+                bmp.Dispose();
+            }
+            if (!_history.Entries.Any(e => e.Id == entry.Id))
+                Alerts.Show("historyWriteFailedMessage", new IOException(Loc.Instance["historyWriteFailedDetail"]));
+        }
+        catch
+        {
+            DismissQuickEdit();
             bmp.Dispose();
+            throw;
         }
     }
 
-    private void ShowEditorWithImage(System.Drawing.Bitmap bmp)
+    private void ShowEditorWithImage(System.Drawing.Bitmap bmp, string entryId)
     {
         EnsureEditor();
-        _editor!.LoadImage(bmp);
+        _editor!.LoadImage(bmp, entryId, CurrentFrameStyle());
+        _editor.FlushDocument();
         if (!_editor.IsVisible) _editor.Show();
         _editor.Activate();
         _editor.WindowState = WindowState.Normal;
@@ -347,7 +366,7 @@ public partial class App : Application
         _editor.RefreshHistory();
     }
 
-    private void ShowQuickEdit(CaptureResult result)
+    private void ShowQuickEdit(CaptureResult result, string entryId)
     {
         if (_quickEdit is not null) { result.Image.Dispose(); return; }   // idempotent (Q1); nobody else owns the bitmap
         _editor?.Hide();                                    // single key window (Q6)
@@ -367,40 +386,77 @@ public partial class App : Application
         overlay.DefaultsChanged += OnAnnotationDefaultsChanged;
         overlay.FrameStyleChanged += OnFrameStyleChanged;   // persist frame-style changes from the overlay
 
+        bool initiallyPersisted = _history.Entries.Any(e => e.Id == entryId);
+        bool PersistOverlay(bool showError = true)
+        {
+            overlay.Canvas.CommitTextEdit();
+            bool exists = _history.Entries.Any(e => e.Id == entryId);
+            if (!exists && initiallyPersisted) return true;
+            try
+            {
+                using var flat = Renderer.Flatten(result.Image, om);
+                bool persisted = exists
+                    ? _history.UpdateImage(entryId, om.Annotations, om.Crop, om.Style, flat)
+                    : _history.RetryImage(entryId, result.Image, om.Annotations, om.Crop, om.Style, flat);
+                if (!persisted)
+                    throw new IOException(Loc.Instance["historyWriteFailedDetail"]);
+                initiallyPersisted = true;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _history.RememberPending(entryId, result.Image, om.Annotations, om.Crop, om.Style);
+                if (showError) Alerts.Show("historyWriteFailedMessage", ex);
+                return false;
+            }
+        }
+        _flushQuickEdit = PersistOverlay;
         overlay.CopyRequested += () =>
         {
+            PersistOverlay();
             using var flat = Renderer.Flatten(result.Image, overlay.Canvas.Model);
-            _clipboard.SetImage(flat);
+            if (!Alerts.Guard(() => _clipboard.SetImage(flat), "clipboardFailedMessage")) return;
             DismissQuickEdit();                             // return focus so Ctrl+V pastes (Q9)
         };
         overlay.SaveRequested += () =>
         {
+            PersistOverlay();
             using var flat = Renderer.Flatten(result.Image, overlay.Canvas.Model);
             SaveFlattened(flat);
         };
         overlay.EditInMainRequested += () =>
         {
+            overlay.Canvas.CommitTextEdit();
             var anns = overlay.Canvas.Model.Annotations.ToList();
             var crop = overlay.Canvas.Model.Crop;
             // Load (clones the bitmap) BEFORE dismissing: closing the overlay disposes
             // its capture, and result.Image is that same instance.
-            ShowEditorWithState(result.Image, anns, crop);  // carry annotations over (Q8)
+            ShowEditorWithState(result.Image, anns, crop, entryId, om.Style);  // carry annotations over (Q8)
             DismissQuickEdit();
             _editor?.Activate();                            // overlay close must not steal focus back
         };
-        overlay.Dismissed += () => { _quickEdit = null; };
+        overlay.Dismissed += () => { PersistOverlay(!_quitting); _quickEdit = null; _flushQuickEdit = null; };
 
         overlay.ShowOverlay();
+        PersistOverlay();
+        Alerts.Guard(() => _clipboard.SetImage(result.Image), "clipboardFailedMessage");
     }
 
     private void ShowEditorWithState(System.Drawing.Bitmap bmp,
-                                     IReadOnlyList<Annotation> anns, PixelRect? crop)
+                                     IReadOnlyList<Annotation> anns, PixelRect? crop, string entryId, BackgroundStyle style)
     {
         EnsureEditor();
-        _editor!.LoadWithState(bmp, anns, crop);
+        _editor!.LoadWithState(bmp, anns, crop, entryId, style);
         _editor.Show(); _editor.WindowState = WindowState.Normal; _editor.Activate();
         _editor.Store = _history; _editor.RefreshHistory();
     }
+
+    private BackgroundStyle CurrentFrameStyle() => new(_settings.BackgroundEnabled,
+        Enum.TryParse<FramePadding>(_settings.FramePadding, out var p) ? p : FramePadding.Medium,
+        Enum.TryParse<FrameCorner>(_settings.FrameCorner, out var c) ? c : FrameCorner.Soft,
+        Enum.TryParse<FrameBackgroundKind>(_settings.FrameBackgroundKind, out var k) ? k : FrameBackgroundKind.Blur,
+        _settings.FrameSolidHex,
+        Enum.TryParse<FrameGradient>(_settings.FrameGradient, out var g) ? g : FrameGradient.Warm);
 
     private void DismissQuickEdit()
     {
@@ -538,7 +594,7 @@ public partial class App : Application
             if (gif.Length == 0) { thumb.Dispose(); return GifOutcome.FailedRecordingGone; }  // I2: guard empty GIF
             HistoryEntry entry;
             using (thumb) { entry = _history.AddVideo(thumb, gif, DateTime.UtcNow); }
-            _clipboard.SetGif(gif, entry.GifPath);                 // auto-copy the GIF
+            Alerts.Guard(() => _clipboard.SetGif(gif, entry.GifPath), "clipboardFailedMessage");                 // auto-copy the GIF
             var viewer = new GifViewerWindow(gif, entry.GifPath, _clipboard, GifConvertedHandler(entry));
             viewer.Show(); viewer.Activate();                      // V20
             _editor?.RefreshHistory();
@@ -564,7 +620,7 @@ public partial class App : Application
         try
         {
             var bytes = File.ReadAllBytes(entry.GifPath);
-            _clipboard.SetGif(bytes, entry.GifPath);
+            Alerts.Guard(() => _clipboard.SetGif(bytes, entry.GifPath), "clipboardFailedMessage");
             var viewer = new GifViewerWindow(bytes, entry.GifPath, _clipboard, GifConvertedHandler(entry));
             viewer.Show(); viewer.Activate();
         }
@@ -574,12 +630,17 @@ public partial class App : Application
     /// <summary>Post-hoc Standard→Small (mac parity): called by the viewer on the UI
     /// thread with the converted GIF — replace the history entry in place, refresh
     /// the clipboard and the sidebar thumbnail.</summary>
-    private Action<byte[], System.Drawing.Bitmap> GifConvertedHandler(HistoryEntry entry)
+    private Func<byte[], System.Drawing.Bitmap, string?> GifConvertedHandler(HistoryEntry entry)
         => (smallGif, thumbnail) =>
         {
-            _history.UpdateVideo(entry, smallGif, thumbnail);
-            _clipboard.SetGif(smallGif, entry.GifPath);
+            if (!_history.UpdateVideo(entry, smallGif, thumbnail))
+            {
+                Alerts.Show("historyWriteFailedMessage", new IOException(Loc.Instance["historyWriteFailedDetail"]));
+                return null;
+            }
+            Alerts.Guard(() => _clipboard.SetGif(smallGif, entry.GifPath), "clipboardFailedMessage");
             _editor?.RefreshHistory();
+            return entry.GifPath;
         };
 
     [DllImport("user32.dll")] private static extern bool SetWindowPos(
@@ -604,8 +665,30 @@ public partial class App : Application
         SetWindowPos(h, IntPtr.Zero, x, y, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
     }
 
+    private bool PrepareToQuit()
+    {
+        _editor?.FlushDocument(false);
+        _flushQuickEdit?.Invoke(false);
+        bool pendingSaved = _history.FlushPending();
+        if (!pendingSaved && MessageBox.Show(
+            Loc.Instance["quitUnsavedMessage"], Loc.Instance["saveFailedTitle"],
+            MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) != MessageBoxResult.Yes)
+            return false;
+        _quitting = true;
+        return true;
+    }
+
+    protected override void OnSessionEnding(SessionEndingCancelEventArgs e)
+    {
+        if (!PrepareToQuit()) e.Cancel = true;
+        base.OnSessionEnding(e);
+    }
+
     protected override void OnExit(ExitEventArgs e)
     {
+        if (!_quitting) _editor?.FlushDocument();
+        DismissQuickEdit();
+        _coordinator?.Cancel();
         _settingsSaveTimer?.Stop();
         if (_settingsStore is not null && _settings is not null)
             try { _settingsStore.Save(_settings); } catch { /* best-effort flush */ }

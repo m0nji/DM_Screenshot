@@ -8,7 +8,7 @@ final class CanvasViewTests: XCTestCase {
     // and the rest of the window. NSView.clipsToBounds defaults to false on
     // macOS 10.14+, so this must be set explicitly.
     func testCanvasClipsToBounds() {
-        let view = CanvasNSView(model: EditorModel())
+        let view = CanvasNSView(model: makeEditorModel())
         XCTAssertTrue(
             view.clipsToBounds,
             "Canvas must clip to bounds; otherwise zoomed content escapes the editor canvas.")

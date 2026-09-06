@@ -1,6 +1,7 @@
 using System.Drawing;
 using System.Runtime.InteropServices;
 using DMShot.Platform;
+using DMShot.Localization;
 namespace DMShot.Capture;
 
 public readonly record struct CaptureResult(Bitmap Image, PixelRect ScreenRectPx, Rectangle DisplayBoundsPx);
@@ -9,94 +10,125 @@ public sealed class CaptureCoordinator
 {
     [DllImport("user32.dll")] private static extern bool GetCursorPos(out POINT p);
     private struct POINT { public int X, Y; }
-
     private readonly IScreenCapturer _capturer;
     private readonly Func<bool> _showLoupe;
+    private bool _busy;
+    private Action? _cancel;
     public event Action<CaptureResult>? CaptureProduced;
-    /// <summary>Raised when a video recording is requested for a display, with an optional crop
-    /// (the selection in that display's local source pixels; null = whole display).</summary>
+    public event Action<Exception>? CaptureFailed;
     public event Action<DisplayInfo, PixelRect?>? VideoRequested;
     public CaptureCoordinator(IScreenCapturer capturer, Func<bool>? showLoupe = null)
     { _capturer = capturer; _showLoupe = showLoupe ?? (() => true); }
 
-    public void CaptureFullScreen()
+    public void Cancel() => _cancel?.Invoke();
+    public void CaptureFullScreen() => CaptureFull(false);
+    public void StartVideoFull() => CaptureFull(true);
+    public void CaptureArea() => SelectArea(false);
+    public void StartVideoArea() => SelectArea(true);
+
+    private void CaptureFull(bool video)
     {
-        var displays = _capturer.GetDisplays();
-        var target = DisplayUnderCursor(displays);
-        var bmp = _capturer.CaptureDisplay(target);
-        CaptureProduced?.Invoke(new CaptureResult(bmp,
-            new PixelRect(target.Bounds.Left, target.Bounds.Top, target.Bounds.Width, target.Bounds.Height),
-            target.Bounds));
+        if (_busy) return;
+        _busy = true;
+        try
+        {
+            var target = DisplayUnderCursor(_capturer.GetDisplays());
+            if (video) VideoRequested?.Invoke(target, null);
+            else Deliver(new CaptureResult(_capturer.CaptureDisplay(target),
+                new PixelRect(target.Bounds.Left, target.Bounds.Top, target.Bounds.Width, target.Bounds.Height), target.Bounds));
+        }
+        catch (Exception ex) { CaptureFailed?.Invoke(ex); }
+        finally { _busy = false; }
     }
 
-    public void CaptureArea()
+    // Delivery transfers bitmap ownership to the subscriber, including its failure
+    // handling. With no consumer, dispose here rather than leaking a full display.
+    private void Deliver(CaptureResult result)
     {
-        var displays = _capturer.GetDisplays();
+        if (CaptureProduced is { } deliver) deliver(result);
+        else result.Image.Dispose();
+    }
+
+    private void SelectArea(bool video)
+    {
+        if (_busy) return;
+        _busy = true;
         var overlays = new List<OverlayWindow>();
         bool done = false;
-
-        foreach (var d in displays)
+        void Cleanup()
         {
-            var frozen = _capturer.CaptureDisplay(d);
-            var o = new OverlayWindow(d, frozen, _showLoupe());
-            o.Finished += (win, committed) =>
+            done = true;
+            _cancel = null;
+            foreach (var overlay in overlays)
             {
-                if (done) return;
-                done = true;
-                foreach (var ov in overlays) ov.Close();
-                CaptureResult? produced = null;
-                if (committed && win.Result is { } r && r.Width > 0 && r.Height > 0)
+                try { overlay.Close(); }
+                catch (Exception ex) { System.Diagnostics.Debug.WriteLine(ex); }
+                finally { overlay.Frozen.Dispose(); }
+            }
+            overlays.Clear();
+        }
+        void CancelSelection()
+        {
+            if (done) return;
+            try { Cleanup(); }
+            finally { _busy = false; }
+        }
+        _cancel = CancelSelection;
+        try
+        {
+            var displays = _capturer.GetDisplays();
+            if (displays.Count == 0) throw new InvalidOperationException(Loc.Instance["captureNoDisplaysMessage"]);
+            foreach (var display in displays)
+            {
+                var frozen = _capturer.CaptureDisplay(display);
+                OverlayWindow overlay;
+                try { overlay = new OverlayWindow(display, frozen, _showLoupe()); }
+                catch { frozen.Dispose(); throw; }
+                overlays.Add(overlay);
+                overlay.Finished += (window, committed) =>
                 {
-                    var cropped = ImageInterop.Crop(win.Frozen, r);
-                    var screenRect = CaptureGeometry.ScreenRect(r, d.Bounds);
-                    produced = new CaptureResult(cropped, screenRect, d.Bounds);
-                }
-                // The frozen per-display captures (~33 MB each at 4K) are only needed
-                // for the crop above — release them on commit AND cancel.
-                foreach (var ov in overlays) ov.Frozen.Dispose();
-                if (produced is { } p) CaptureProduced?.Invoke(p);
-            };
-            overlays.Add(o);
-        }
-        foreach (var o in overlays) o.Show();
-    }
-
-    public void StartVideoFull()
-    {
-        var displays = _capturer.GetDisplays();
-        var target = DisplayUnderCursor(displays);
-        VideoRequested?.Invoke(target, null);          // null crop = whole display
-    }
-
-    public void StartVideoArea()
-    {
-        var displays = _capturer.GetDisplays();
-        var overlays = new List<OverlayWindow>();
-        bool done = false;
-
-        foreach (var d in displays)
-        {
-            var frozen = _capturer.CaptureDisplay(d);
-            var o = new OverlayWindow(d, frozen, _showLoupe());
-            var display = d;
-            o.Finished += (win, committed) =>
+                    if (done) return;
+                    done = true;
+                    CaptureResult? produced = null;
+                    try
+                    {
+                        var region = committed ? window.Result : null;
+                        if (!video && region is { Width: > 0, Height: > 0 } r)
+                            produced = new CaptureResult(ImageInterop.Crop(window.Frozen, r),
+                                CaptureGeometry.ScreenRect(r, display.Bounds), display.Bounds);
+                        Cleanup();
+                        if (video && region is { Width: > 0, Height: > 0 } vr) VideoRequested?.Invoke(display, vr);
+                        else if (produced is { } result) { produced = null; Deliver(result); }
+                    }
+                    catch (Exception ex) { CaptureFailed?.Invoke(ex); }
+                    finally
+                    {
+                        produced?.Image.Dispose();
+                        Cleanup();
+                        _busy = false;
+                    }
+                };
+                // Alt+F4 / OS close can bypass Finished. Closing one cancels all.
+                overlay.Closed += (_, _) => { if (!done) CancelSelection(); };
+            }
+            foreach (var overlay in overlays.ToArray())
             {
-                if (done) return;
-                done = true;
-                foreach (var ov in overlays) ov.Close();
-                foreach (var ov in overlays) ov.Frozen.Dispose();   // only the rect survives
-                if (committed && win.Result is { } r && r.Width > 0 && r.Height > 0)
-                    VideoRequested?.Invoke(display, r);  // r = selection in display-local source px
-            };
-            overlays.Add(o);
+                if (done) break;
+                overlay.Show();
+            }
         }
-        foreach (var o in overlays) o.Show();
+        catch (Exception ex)
+        {
+            try { Cleanup(); CaptureFailed?.Invoke(ex); }
+            finally { _busy = false; }
+        }
     }
 
     private static DisplayInfo DisplayUnderCursor(IReadOnlyList<DisplayInfo> displays)
     {
+        if (displays.Count == 0) throw new InvalidOperationException(Loc.Instance["captureNoDisplaysMessage"]);
         GetCursorPos(out var p);
         return displays.FirstOrDefault(d => d.Bounds.Contains(p.X, p.Y))
-               ?? displays.First(d => d.IsPrimary);
+            ?? displays.FirstOrDefault(d => d.IsPrimary) ?? displays[0];
     }
 }

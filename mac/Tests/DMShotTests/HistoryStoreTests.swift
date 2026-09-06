@@ -18,7 +18,7 @@ final class HistoryItemMetaTests: XCTestCase {
 
 final class HistoryStoreVideoTests: XCTestCase {
     func testAddVideoStoresGifAndMarksKind() throws {
-        let store = HistoryStore()
+        let store = makeHistoryStore()
         let id = "vid-\(UUID().uuidString)"
         let img = GIFEncoderTests.solid(8, 8, r: 1, g: 2, b: 3)
         let gif = try XCTUnwrap(GIFEncoder.encode(frames: [img, img], frameDelay: 0.1))
@@ -33,7 +33,7 @@ final class HistoryStoreVideoTests: XCTestCase {
     }
 
     func testEvictionRemovesGifFile() throws {
-        let store = HistoryStore()
+        let store = makeHistoryStore()
         let img = GIFEncoderTests.solid(8, 8, r: 4, g: 5, b: 6)
         let gif = try XCTUnwrap(GIFEncoder.encode(frames: [img, img], frameDelay: 0.1))
         // Insert 11 video entries; the first (oldest) must be evicted (limit is 10).

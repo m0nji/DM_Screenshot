@@ -74,7 +74,7 @@ final class SelectionGeometryTests: XCTestCase {
     func testCanvasDraggingSelectedRectHandleResizesAndUndoRestoresOriginal() {
         let annotation = makeAnnotation(
             kind: .rect, x: 10, y: 20, width: 40, height: 30)
-        let model = EditorModel()
+        let model = makeEditorModel()
         model.load(image: makeImage(100, 80), entryID: "test", annotations: [annotation])
         model.backgroundEnabled = false   // ensure frame-off for deterministic coords
         model.selectedID = annotation.id
@@ -198,7 +198,7 @@ final class SelectionGeometryTests: XCTestCase {
         var t = makeAnnotation(kind: .text, x: 40, y: 40, width: 0, height: 0)
         t.text = "Ag"
         t.strokeWidth = 6
-        let model = EditorModel()
+        let model = makeEditorModel()
         model.load(image: makeImage(100, 80), entryID: "test", annotations: [t])
         model.backgroundEnabled = false   // ensure frame-off for deterministic coords
         model.tool = .select                                   // nothing selected yet

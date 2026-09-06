@@ -49,7 +49,7 @@ final class ZoomIndicatorPolicyTests: XCTestCase {
     /// A canvas that was never put in a window has no key window, so the guard
     /// must treat it as silent rather than defaulting to "publish".
     func testACanvasWithoutAWindowIsNotKey() {
-        let canvas = CanvasNSView(model: EditorModel())
+        let canvas = CanvasNSView(model: makeEditorModel())
         XCTAssertNil(canvas.window)
         XCTAssertFalse(ZoomIndicatorPolicy.shouldPublish(
             isKeyWindow: canvas.window?.isKeyWindow == true, current: 50, computed: 51))

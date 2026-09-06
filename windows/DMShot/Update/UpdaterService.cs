@@ -93,10 +93,13 @@ public sealed class UpdaterService
         catch (Exception ex) { Set(UpdateState.ForError(ex.Message)); }
     }
 
+    public Func<bool>? BeforeRestart { get; set; }
+
     /// <summary>Apply the downloaded update and relaunch into the new version.</summary>
     public void Relaunch()
     {
         if (_pending is null) return;
+        if (BeforeRestart?.Invoke() == false) return;
         _mgr.ApplyUpdatesAndRestart(_pending.TargetFullRelease);
     }
 

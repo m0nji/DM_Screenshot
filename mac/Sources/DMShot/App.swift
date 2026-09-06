@@ -5,6 +5,8 @@ import SwiftUI
 final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private let model = EditorModel()
     private let history = HistoryStore()
+    private lazy var persistence = DocumentPersistence(model: model, history: history)
+    private let captureGate = CaptureRequestGate()
     private let overlay = OverlayController()
     private let shortcutStore = ShortcutStore()
     private let appSettings = AppSettingsStore()
@@ -65,7 +67,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 self?.applyDesignToWindows(design)
             }
             .store(in: &cancellables)
-        overlay.onComplete = { [weak self] image, frame in self?.deliver(image, at: frame) }
+        overlay.onComplete = { [weak self] image, frame in
+            self?.captureGate.finish()
+            self?.deliver(image, at: frame)
+        }
+        overlay.onCancel = { [weak self] in self?.captureGate.finish() }
         showEditor()
         updater.start()
         // Active update hint (badge + menu item) and the update prompt, both driven
@@ -314,50 +320,46 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     private func setupPersistence() {
-        model.$annotations.combineLatest(model.$crop)
-            .debounce(for: .milliseconds(600), scheduler: RunLoop.main)
-            .sink { [weak self] _, _ in self?.persistCurrent() }
-            .store(in: &cancellables)
+        _ = persistence
+        history.onError = { [weak self] error in
+            self?.persistence.invalidate()
+            OperationAlert.show(title: .historyFailedTitle, body: .historyFailedBody, error: error)
+        }
     }
 
-    /// Last state written to history, so the debounced pipeline — which also fires
-    /// for plain `model.load(...)` (opening an entry) — doesn't re-flatten and
-    /// rewrite files when nothing changed.
-    private var lastPersisted: (id: String, annotations: [Annotation], crop: CGRect?)?
-
-    private func persistCurrent() {
-        guard let id = model.entryID else { return }
-        if let last = lastPersisted, last.id == id,
-           last.annotations == model.annotations, last.crop == model.crop { return }
-        guard let flat = model.flatten() else { return }
-        lastPersisted = (id, model.annotations, model.crop)
-        history.updateEntry(id: id, annotations: model.annotations, flattened: flat)
-    }
-
-    /// Call right after `model.load(...)`: the freshly loaded state is on disk already.
-    private func markPersisted() {
-        lastPersisted = model.entryID.map { ($0, model.annotations, model.crop) }
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        history.retryFailedWrites()
+        persistence.saveCurrent()
+        // The worker never waits for the UI thread; draining here cannot deadlock.
+        // Refuse an unnoticed failed save on quit and keep the editable image open.
+        guard history.flushIO() else {
+            persistence.invalidate()
+            return OperationAlert.confirmQuitWithoutSaving() ? .terminateNow : .terminateCancel
+        }
+        return .terminateNow
     }
 
     // MARK: - Capture
 
     @objc private func captureFull() {
-        guard ensurePermission() else { return }
         Task { @MainActor in
-            do {
+            await captureGate.perform({
+                guard self.ensurePermission() else { return false }
                 let cap = try await ScreenCapture.captureActive()
-                deliver(cap.image, at: ScreenCapture.nsScreen(for: cap.displayID)?.frame)
-            } catch { NSLog("capture full failed: \(error)") }
+                self.deliver(cap.image, at: ScreenCapture.nsScreen(for: cap.displayID)?.frame)
+                return false
+            }, report: { OperationAlert.show(title: .captureFailedTitle, body: .captureFailedBody, error: $0) })
         }
     }
 
     @objc private func captureArea() {
-        guard ensurePermission() else { return }
         Task { @MainActor in
-            do {
+            await captureGate.perform({
+                guard self.ensurePermission() else { return false }
                 let caps = try await ScreenCapture.captureAll()
-                overlay.begin(captures: caps, showLoupe: appSettings.showLoupe)
-            } catch { NSLog("capture area failed: \(error)") }
+                self.overlay.begin(captures: caps, showLoupe: self.appSettings.showLoupe)
+                return true
+            }, report: { OperationAlert.show(title: .captureFailedTitle, body: .captureFailedBody, error: $0) })
         }
     }
 
@@ -381,29 +383,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     @objc private func captureVideoFull() {
         Task { @MainActor in
             if self.handleRecordingToggle() { return }
-            guard self.ensurePermission() else { return }
-            do {
+            await captureGate.perform({
+                guard self.ensurePermission() else { return false }
                 let cap = try await ScreenCapture.captureActive()
                 self.startRecording(source: VideoSource(displayID: cap.displayID, cropPoints: nil),
                                     on: ScreenCapture.nsScreen(for: cap.displayID))
-            } catch { NSLog("video full failed: \(error)") }
+                return false
+            }, report: { OperationAlert.show(title: .captureFailedTitle, body: .captureFailedBody, error: $0) })
         }
     }
 
     @objc private func captureVideoArea() {
         Task { @MainActor in
             if self.handleRecordingToggle() { return }
-            guard self.ensurePermission() else { return }
-            do {
+            await captureGate.perform({
+                guard self.ensurePermission() else { return false }
                 let caps = try await ScreenCapture.captureAll()
                 self.overlay.onCompleteRect = { [weak self] cap, pixelRect in
+                    self?.captureGate.finish()
                     let pts = CGRect(x: pixelRect.minX / cap.scale, y: pixelRect.minY / cap.scale,
                                      width: pixelRect.width / cap.scale, height: pixelRect.height / cap.scale)
                     self?.startRecording(source: VideoSource(displayID: cap.displayID, cropPoints: pts),
                                          on: ScreenCapture.nsScreen(for: cap.displayID))
                 }
                 self.overlay.beginRectSelection(captures: caps, showLoupe: self.appSettings.showLoupe)
-            } catch { NSLog("video area failed: \(error)") }
+                return true
+            }, report: { OperationAlert.show(title: .captureFailedTitle, body: .captureFailedBody, error: $0) })
         }
     }
 
@@ -510,12 +515,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     @MainActor private func deliverGIF(data: Data, thumbnail: CGImage) {
-        let id = "\(Int(Date().timeIntervalSince1970 * 1000))"
+        let id = UUID().uuidString
         let fileURL = FileManager.default.temporaryDirectory.appendingPathComponent("\(id).gif")
         // The clipboard entry references this file; if it never lands, pasting
         // gives the user an empty result with no hint why.
         guard SaveGuard.performOrAlert({ try data.write(to: fileURL) }) else { return }
-        ImageUtils.copyGIF(data: data, fileURL: fileURL)
+        let copied = ImageUtils.copyGIF(data: data, fileURL: fileURL)
         history.addVideo(id: id, gifData: data, thumbnail: thumbnail)
         NSLog("DMShot: created GIF %.1f MB (%d bytes)", Double(data.count) / 1_048_576, data.count)
         // Play the freshly created GIF right away (Copy / Save in one window),
@@ -525,6 +530,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         viewer.show(gifData: data, title: tr(.gifViewerTitle),
                     onConvert: gifConvertHandler(id: id))
         gifViewer = viewer
+        if !copied { OperationAlert.show(title: .clipboardFailedTitle, body: .clipboardFailedBody) }
     }
 
     /// Post-hoc Standard→Small for the GIF viewer: re-encode off-main, replace
@@ -540,7 +546,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 self.history.updateVideo(id: id, gifData: result.data, thumbnail: result.thumbnail)
                 let fileURL = FileManager.default.temporaryDirectory.appendingPathComponent("\(id).gif")
                 if SaveGuard.performOrAlert({ try result.data.write(to: fileURL) }) {
-                    ImageUtils.copyGIF(data: result.data, fileURL: fileURL)
+                    if !ImageUtils.copyGIF(data: result.data, fileURL: fileURL) {
+                        OperationAlert.show(title: .clipboardFailedTitle, body: .clipboardFailedBody)
+                    }
                 }
                 NSLog("DMShot: converted GIF %@ to Small (%.1f MB)", id,
                       Double(result.data.count) / 1_048_576)
@@ -568,16 +576,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     // @MainActor: deliver() does UI work and calls main-actor-isolated showQuickEdit(); all callers already run on the main thread.
     @MainActor private func deliver(_ image: CGImage, at screenFrame: CGRect?) {
-        ImageUtils.copyToClipboard(image)
-        let id = "\(Int(Date().timeIntervalSince1970 * 1000))"
-        history.addCapture(id: id, original: image, annotations: [])
+        persistence.saveCurrent()
+        let id = UUID().uuidString
+        model.useFrameDefaults()
+        history.addCapture(id: id, original: image, annotations: [], background: model.backgroundStyle)
         model.load(image: image, entryID: id)
-        markPersisted()
+        if model.backgroundEnabled { persistence.saveCurrent() }
+        else { persistence.markCurrentSaved() }
+        let copied = ImageUtils.copyToClipboard(image)
         lastCaptureScreenFrame = screenFrame
         switch appSettings.afterCapture {
         case .mainWindow: showEditor()
         case .quickEdit: showQuickEdit()
         }
+        if !copied { OperationAlert.show(title: .clipboardFailedTitle, body: .clipboardFailedBody) }
     }
 
     @MainActor private func showQuickEdit() {
@@ -596,15 +608,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             captureFrameGlobal: captureFrame,
             screen: screen,
             appDesign: appSettings.appDesign,
-            onCopy: { [weak self] in self?.copyCurrent(); self?.dismissQuickEdit() },
+            onCopy: { [weak self] in self?.copyCurrent() },
             onSave: { [weak self] in self?.saveCurrent() },
             onEditInMain: { [weak self] in self?.dismissQuickEdit(); self?.showEditor() },
-            onClose: { [weak self] in self?.quickEditOverlay = nil })
+            onClose: { [weak self] in self?.persistence.saveCurrent(); self?.quickEditOverlay = nil })
         quickEditOverlay = overlay
         overlay.show()
     }
 
     @MainActor private func dismissQuickEdit() {
+        persistence.saveCurrent()
         quickEditOverlay?.close()
         quickEditOverlay = nil
     }
@@ -666,7 +679,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     @objc private func openSettings() {
         if settingsWindow == nil {
-            let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.9.3"
+            let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.9.4"
             let win = NSWindow(
                 contentRect: NSRect(x: 0, y: 0, width: 640, height: 420),
                 styleMask: [.titled, .closable], backing: .buffered, defer: false)
@@ -708,6 +721,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     func windowShouldClose(_ sender: NSWindow) -> Bool {
+        persistence.saveCurrent()
         sender.orderOut(nil)  // hide; keep the tray app alive
         return false
     }
@@ -751,11 +765,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     // MARK: - Actions
 
     private func copyCurrent() {
-        if let img = model.flatten() { ImageUtils.copyToClipboard(img) }
+        persistence.saveCurrent()
+        guard let img = model.flatten() else { return }
+        guard ImageUtils.copyToClipboard(img) else {
+            OperationAlert.show(title: .clipboardFailedTitle, body: .clipboardFailedBody)
+            return
+        }
+        quickEditOverlay?.close()
+        quickEditOverlay = nil
         NSApp.hide(nil)  // return focus to the previous app so ⌘V pastes immediately
     }
 
     private func saveCurrent() {
+        persistence.saveCurrent()
         guard let img = model.flatten(), let png = ImageUtils.pngData(img) else { return }
         let panel = NSSavePanel()
         panel.allowedContentTypes = [.png]
@@ -774,22 +796,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     private func loadHistory(_ id: String) {
+        persistence.saveCurrent()
         if history.items.first(where: { $0.id == id })?.kind == .video {
             if let data = history.loadGIF(id) {
                 let fileURL = FileManager.default.temporaryDirectory.appendingPathComponent("\(id).gif")
                 guard SaveGuard.performOrAlert({ try data.write(to: fileURL) }) else { return }
-                ImageUtils.copyGIF(data: data, fileURL: fileURL)
+                let copied = ImageUtils.copyGIF(data: data, fileURL: fileURL)
                 gifViewer?.close()  // as in deliverGIF: don't orphan a live viewer window
                 let viewer = GIFViewerWindow()
                 viewer.show(gifData: data, title: tr(.gifViewerTitle),
                             onConvert: gifConvertHandler(id: id))
                 gifViewer = viewer
+                if !copied { OperationAlert.show(title: .clipboardFailedTitle, body: .clipboardFailedBody) }
             }
             return
         }
-        guard let img = history.loadOriginal(id) else { return }
-        model.load(image: img, entryID: id, annotations: history.loadAnnotations(id))
-        markPersisted()
+        persistence.load(id)
     }
 
     private func deleteHistory(_ id: String) {
@@ -798,12 +820,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         guard wasCurrent else { return }
         // The open capture was just deleted: fall back to the newest remaining
         // entry, or detach so debounced persistence won't recreate the files.
-        if let next = history.items.first, let img = history.loadOriginal(next.id) {
-            model.load(image: img, entryID: next.id, annotations: history.loadAnnotations(next.id))
-            markPersisted()
+        if let next = history.items.first(where: { $0.kind == .image }) {
+            persistence.load(next.id)
         } else {
             model.entryID = nil
-            lastPersisted = nil
+            persistence.invalidate()
         }
     }
 

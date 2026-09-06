@@ -25,5 +25,6 @@ public sealed class HistoryEntry
     public HistoryKind Kind { get; set; } = HistoryKind.Image;
     public List<AnnotationDto> Annotations { get; set; } = new();
     public PixelRect? Crop { get; set; }
+    public BackgroundStyle? FrameStyle { get; set; }
     public DateTime CreatedUtc { get; set; }
 }

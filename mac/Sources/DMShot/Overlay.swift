@@ -299,6 +299,7 @@ final class OverlayController {
                 let cropped = ImageUtils.crop(cap.image, to: pixelRect)
                 self?.close()
                 if let cropped { self?.onComplete?(cropped, screenRect) }
+                else { self?.onCancel?() }
             }
             view.onCancel = { [weak self] in
                 self?.close()

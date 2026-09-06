@@ -36,6 +36,7 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
     private var editingStepFresh = false     // true while editing a JUST-placed step's comment
     private var editingStepComment = false   // true while editing a step's comment (white text in a bubble)
     private var toolObserver: AnyCancellable?
+    private var commitObserver: AnyCancellable?
     private let perf = CanvasPerf()
 
     init(model: EditorModel, pad: CGFloat = 24, appDesign: AppDesign = .black) {
@@ -48,6 +49,7 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
         // frame exceeds the view bounds) paints out over the sidebar and the
         // rest of the window instead of staying inside the editor canvas.
         clipsToBounds = true
+        commitObserver = model.commitEditing.sink { [weak self] in self?.endTextEditing(commit: true) }
         toolObserver = model.$tool
             .removeDuplicates()
             .dropFirst()

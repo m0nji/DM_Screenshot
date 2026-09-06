@@ -113,7 +113,12 @@ final class GIFViewerWindow: NSObject {
         guard let gifData else { return }
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("dmshot-copy.gif")
         guard SaveGuard.performOrAlert({ try gifData.write(to: url) }) else { return }
-        ImageUtils.copyGIF(data: gifData, fileURL: url)
+        guard ImageUtils.copyGIF(data: gifData, fileURL: url) else {
+            OperationAlert.show(title: .clipboardFailedTitle, body: .clipboardFailedBody)
+            return
+        }
+        close()
+        NSApp.hide(nil) // Return focus to the previous app for immediate paste.
     }
 
     @objc private func saveGIF() {

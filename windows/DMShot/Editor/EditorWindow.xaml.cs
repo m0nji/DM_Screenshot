@@ -24,6 +24,44 @@ public partial class EditorWindow : Window
     public HistoryStore? Store { get; set; }
 
     private bool _syncing;
+    private string? _entryId;
+    private bool _loadingDocument;
+    private bool _documentDirty;
+    private readonly System.Windows.Threading.DispatcherTimer _historyTimer = new()
+        { Interval = TimeSpan.FromMilliseconds(500) };
+
+    private void DocumentChanged()
+    {
+        if (_loadingDocument || _entryId is null) return;
+        _documentDirty = true;
+        _historyTimer.Stop(); _historyTimer.Start();
+    }
+
+    public bool FlushDocument(bool showError = true, bool commitEditing = true)
+    {
+        if (commitEditing) Canvas.CommitTextEdit();
+        _historyTimer.Stop();
+        if (!_documentDirty || _loadingDocument || _baseImage is null || _entryId is null || Store is null) return true;
+        bool exists = Store.Entries.Any(e => e.Id == _entryId);
+        if (!exists && !Store.CanRetryImage(_entryId)) return true;
+        try
+        {
+            using var flat = Renderer.Flatten(_baseImage, Canvas.Model);
+            bool persisted = exists
+                ? Store.UpdateImage(_entryId, Canvas.Model.Annotations, Canvas.Model.Crop, Canvas.Model.Style, flat)
+                : Store.RetryImage(_entryId, _baseImage, Canvas.Model.Annotations, Canvas.Model.Crop, Canvas.Model.Style, flat);
+            if (!persisted)
+                throw new System.IO.IOException(Loc.Instance["historyWriteFailedDetail"]);
+            _documentDirty = false;
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Store.RememberPending(_entryId, _baseImage, Canvas.Model.Annotations, Canvas.Model.Crop, Canvas.Model.Style);
+            if (showError) Alerts.Show("historyWriteFailedMessage", ex);
+            return false;
+        }
+    }
 
     /// <summary>Raised when the user changes the stroke/blur defaults via the toolbar sliders,
     /// so the app can persist them. Payload: (strokeWidth, blurStrength).</summary>
@@ -48,7 +86,7 @@ public partial class EditorWindow : Window
 
     /// <summary>Called by the frame-control UI (Task 12) after mutating the model, to notify
     /// App that frame settings changed and should be persisted.</summary>
-    internal void RaiseFrameStyleChanged() => FrameStyleChanged?.Invoke(Canvas.Model.Style);
+    internal void RaiseFrameStyleChanged() { DocumentChanged(); FrameStyleChanged?.Invoke(Canvas.Model.Style); }
 
     /// <summary>Seed the toolbar sliders and canvas defaults from persisted settings (no
     /// DefaultsChanged echo). Call once after construction.</summary>
@@ -89,6 +127,10 @@ public partial class EditorWindow : Window
             DefaultsChanged?.Invoke(Canvas.ActiveStroke, Canvas.ActiveBlurStrength);
         };
         Canvas.ContentChanged += UpdateStatus;
+        Canvas.ContentChanged += DocumentChanged;
+        // Autosave must not close an active inline text/step editor. Explicit
+        // document boundaries still commit it before collecting the snapshot.
+        _historyTimer.Tick += (_, _) => FlushDocument(commitEditing: false);
         Canvas.SelectionChanged += SyncFromSelection;
         Canvas.Model.ZoomChanged += () => ZoomBtn.Content = $"{Canvas.Model.ZoomPercent}%";
         KeyDown += OnKey;
@@ -116,21 +158,32 @@ public partial class EditorWindow : Window
             (byte)((argb >> 16) & 0xFF), (byte)((argb >> 8) & 0xFF), (byte)(argb & 0xFF)));
     }
 
-    public void LoadImage(System.Drawing.Bitmap bmp)
+    public void LoadImage(System.Drawing.Bitmap bmp, string? entryId = null, BackgroundStyle? style = null)
     {
-        _baseImage?.Dispose();
-        _baseImage = (System.Drawing.Bitmap)bmp.Clone();
-        Canvas.Load(_baseImage);
-        UpdateStatus();
+        LoadWithState(bmp, Array.Empty<Annotation>(), null, entryId, style);
+        DocumentChanged();
     }
 
-    public void LoadWithState(System.Drawing.Bitmap image,
-                              IReadOnlyList<Annotation> annotations,
-                              PixelRect? crop)
+    public void LoadWithState(System.Drawing.Bitmap image, IReadOnlyList<Annotation> annotations,
+                              PixelRect? crop, string? entryId = null, BackgroundStyle? style = null)
     {
-        LoadImage(image);
-        Canvas.Model.ReplaceDocument(annotations, crop);
-        UpdateStatus();
+        FlushDocument();
+        var copy = (System.Drawing.Bitmap)image.Clone();
+        _loadingDocument = true;
+        try
+        {
+            _entryId = null;
+            _baseImage?.Dispose();
+            _baseImage = copy;
+            Canvas.Load(_baseImage);
+            Canvas.Model.ReplaceDocument(annotations, crop);
+            if (style is not null) InitFrameStyle(style);
+            BgPanel.Children.Clear(); // controls must reflect this document's style
+            _entryId = entryId;
+            _documentDirty = false;
+            UpdateStatus();
+        }
+        finally { _loadingDocument = false; }
     }
 
     private void UpdateStatus()
@@ -234,18 +287,27 @@ public partial class EditorWindow : Window
         // otherwise it would select (and load) the entry we're about to delete.
         e.Handled = true;
         if (Store is null || (sender as FrameworkElement)?.Tag is not string id) return;
-        Store.Delete(id);
+        if (!Store.Delete(id))
+            Alerts.Show("historyWriteFailedMessage", new System.IO.IOException(Loc.Instance["historyWriteFailedDetail"]));
         RefreshHistory();
     }
 
     private void HistorySelected(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
         if (Store is null || HistoryList.SelectedItem is not HistoryVM vm) return;
+        FlushDocument();
         var entry = Store.Entries.FirstOrDefault(x => x.Id == vm.Id);
         if (entry is null) return;
         if (entry.Kind == HistoryKind.Video)   // V17: re-open GIF in viewer instead of loading as image
         {
             OnVideoEntryActivated?.Invoke(entry);
+            return;
+        }
+        if (Store.PendingFor(entry.Id) is { } pending)
+        {
+            using var pendingImage = (System.Drawing.Bitmap)pending.Original.Clone();
+            LoadWithState(pendingImage, pending.Annotations, pending.Crop, entry.Id, pending.Style);
+            DocumentChanged();
             return;
         }
         // Decouple from the PNG: LoadImage's Clone() would share the file mapping and
@@ -255,8 +317,8 @@ public partial class EditorWindow : Window
         {
             using var file = new System.Drawing.Bitmap(entry.OriginalPngPath);
             using var bmp = DMShot.Platform.ImageInterop.DecoupledCopy(file);
-            LoadImage(bmp);
-            Canvas.Model.ReplaceDocument(entry.Annotations.Select(d => d.To()), entry.Crop);
+            LoadWithState(bmp, entry.Annotations.Select(d => d.To()).ToList(), entry.Crop, entry.Id,
+                entry.FrameStyle ?? BackgroundStyle.Disabled);
             UpdateStatus();
         }
         catch (Exception ex)
@@ -280,14 +342,16 @@ public partial class EditorWindow : Window
     private void CopyClick(object s, RoutedEventArgs e)
     {
         if (_baseImage is null) return;
+        FlushDocument();
         using var flat = Renderer.Flatten(_baseImage, Canvas.Model);
-        _clipboard.SetImage(flat);
+        if (!Alerts.Guard(() => _clipboard.SetImage(flat), "clipboardFailedMessage")) return;
         WindowState = WindowState.Minimized; // get out of the way so the user can paste
     }
 
     private void SaveClick(object s, RoutedEventArgs e)
     {
         if (_baseImage is null) return;
+        FlushDocument();
         var dir = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
         var baseName = ScreenshotFilename.Base(DateTime.Now);
         var fileName = ScreenshotFilename.Unique(baseName,
@@ -304,7 +368,10 @@ public partial class EditorWindow : Window
     }
 
     protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
-    { e.Cancel = true; Hide(); }
+    {
+        if ((Application.Current as App)?.IsQuitting == true) return;
+        FlushDocument(); e.Cancel = true; Hide();
+    }
 
     private void ResetZoomClick(object s, RoutedEventArgs e) => Canvas.ResetFit();
 
