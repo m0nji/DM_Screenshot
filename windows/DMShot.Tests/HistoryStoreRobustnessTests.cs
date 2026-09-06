@@ -95,17 +95,32 @@ public class HistoryStoreRobustnessTests : IDisposable
     public void Add_UnwritableRoot_DoesNotThrowAndDoesNotIndexTheEntry()
     {
         var store = new HistoryStore(_root);
-        // Make writes fail the same way a full/read-only disk does: the file the store
-        // is about to create is already there as a directory.
+        // Block the storage root itself: asset names use unpredictable GUIDs.
+        Directory.Delete(_root);
+        File.WriteAllText(_root, "blocked");
         var clashTime = new DateTime(2026, 5, 5, 0, 0, 0, DateTimeKind.Utc);
-        Directory.CreateDirectory(Path.Combine(_root, clashTime.Ticks + "_0.png"));
 
         using var bmp = new Bitmap(8, 8);
         var entry = store.Add(bmp, Array.Empty<Annotation>(), null, clashTime);
 
         Assert.NotNull(entry);          // the caller still gets a handle back
         Assert.Empty(store.Entries);    // ...but a half-written capture never enters the sidebar
+        Assert.True(store.CanRetryImage(entry.Id));
+        Assert.False(File.Exists(entry.OriginalPngPath));
+
+        File.Delete(_root);
+        Directory.CreateDirectory(_root);
+        Assert.True(store.RetryImage(entry.Id, bmp, Array.Empty<Annotation>(), null,
+            new EditorModel().Style, bmp));
+        Assert.False(store.CanRetryImage(entry.Id));
+        var reloaded = new HistoryStore(_root);
+        reloaded.Load();
+        Assert.Equal(entry.Id, Assert.Single(reloaded.Entries).Id);
     }
 
-    public void Dispose() { if (Directory.Exists(_root)) Directory.Delete(_root, true); }
+    public void Dispose()
+    {
+        if (Directory.Exists(_root)) Directory.Delete(_root, true);
+        else if (File.Exists(_root)) File.Delete(_root);
+    }
 }
