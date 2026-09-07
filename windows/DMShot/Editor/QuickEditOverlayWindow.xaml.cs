@@ -187,7 +187,7 @@ public partial class QuickEditOverlayWindow : Window
 
     private Border BuildToolbar()
     {
-        var row = new WrapPanel { Margin = new Thickness(7, 5, 7, 5), VerticalAlignment = VerticalAlignment.Center };
+        var row = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(7, 5, 7, 5), VerticalAlignment = VerticalAlignment.Center };
         var tools = new StackPanel { Orientation = Orientation.Horizontal };
         var context = new StackPanel { Orientation = Orientation.Horizontal };
         var actions = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(7, 5, 7, 5) };
@@ -219,9 +219,15 @@ public partial class QuickEditOverlayWindow : Window
         actions.Children.Add(_redoButton);
         actions.Children.Add(IconAction(VectorIcon(CloseGeo, false), Loc.Instance["close"], CloseOverlay));
         RefreshUndoAvailability();
-        var rows = new StackPanel();
+        var rows = new DockPanel();
+        DockPanel.SetDock(actions, Dock.Left);
         rows.Children.Add(actions);
-        rows.Children.Add(row);
+        rows.Children.Add(new ScrollViewer
+        {
+            Content = row,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Disabled,
+        });
 
         var toolbar = new Border
         {
@@ -546,7 +552,7 @@ public partial class QuickEditOverlayWindow : Window
 
         double availableWidth = Math.Max(1, safeRight - safeLeft - 2 * margin);
         _availableToolbarHeight = Math.Max(1, safeBottom - safeTop - 2 * margin);
-        toolbar.Width = Math.Min(720, availableWidth);
+        toolbar.Width = Math.Min(1100, availableWidth);
         if (_flyout is Border { Child: ScrollViewer scroll })
             scroll.MaxHeight = Math.Max(1, _availableToolbarHeight - 160);
         toolbar.Measure(new WSize(toolbar.Width, _availableToolbarHeight));

@@ -31,30 +31,26 @@ struct QuickEditToolbar: View {
     var body: some View {
         let _ = localizer.language  // re-render on language change
         VStack(spacing: 8) {
-            VStack(spacing: 8) {
+            HStack(spacing: 6) {
                 HStack(spacing: 6) {
                     action("doc.on.doc", .copy, onCopy).disabled(model.image == nil)
                     action("square.and.arrow.down", .save, onSave).disabled(model.image == nil)
                     action("macwindow", .editInMainWindow, onEditInMain)
                     action("arrow.uturn.backward", .undo, model.undo).disabled(!model.canUndo)
                     action("arrow.uturn.forward", .redo, model.redo).disabled(!model.canRedo)
-                    Spacer(minLength: 8)
-                    action("xmark", .close, onClose)
-                }
+                }.fixedSize()
                 ViewThatFits(in: .horizontal) {
                     HStack(spacing: 6) { toolButtons; contextControls }
                     HStack(spacing: 6) {
-                        Menu {
-                            Picker(tr(.moreTools), selection: $model.tool) {
-                                ForEach(quickTools, id: \.tool) { spec in
-                                    Label(tr(spec.help), systemImage: spec.icon).tag(spec.tool)
-                                }
-                            }.pickerStyle(.inline)
-                        } label: { Label(tr(.moreTools), systemImage: "ellipsis") }
-                        .fixedSize()
+                        toolMenu
                         contextControls
                     }
+                    HStack(spacing: 6) {
+                        toolMenu
+                        ScrollView(.horizontal) { contextControls }.frame(height: 36)
+                    }
                 }.disabled(model.image == nil)
+                action("xmark", .close, onClose).fixedSize()
             }
             .padding(12)
             .background(panelBackground)
@@ -70,13 +66,25 @@ struct QuickEditToolbar: View {
                 .background(panelBackground)
             }
         }
-        .frame(width: min(720, availableSize.width))
+        .frame(width: min(1100, availableSize.width))
         .dmTooltipLayer()
     }
 
     private func action(_ icon: String, _ label: L, _ perform: @escaping () -> Void) -> some View {
         Button(action: perform) { Image(systemName: icon) }
             .buttonStyle(ToolButtonStyle(active: false, design: appDesign)).dmTooltip(tr(label))
+    }
+
+    private var toolMenu: some View {
+        Menu {
+            Picker(tr(.moreTools), selection: $model.tool) {
+                ForEach(quickTools, id: \.tool) { spec in
+                    Label(tr(spec.help), systemImage: spec.icon).tag(spec.tool)
+                }
+            }.pickerStyle(.inline)
+        } label: { Label(tr(.moreTools), systemImage: "ellipsis") }
+        .labelStyle(.iconOnly).dmTooltip(tr(.moreTools))
+        .fixedSize()
     }
 
     private var toolButtons: some View {

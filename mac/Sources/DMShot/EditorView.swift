@@ -73,7 +73,7 @@ struct EditorView: View {
     }
 
     private var toolbar: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        HStack(spacing: 8) {
             HStack(spacing: 8) {
                 Button(action: onCopy) { Label(tr(.copy), systemImage: "doc.on.doc") }
                     .buttonStyle(BlackUtilityButtonStyle(design: design)).disabled(model.image == nil)
@@ -83,32 +83,51 @@ struct EditorView: View {
                     .dmTooltip(tr(.undo)).buttonStyle(ToolButtonStyle(active: false, design: design)).disabled(!model.canUndo)
                 Button(action: model.redo) { Image(systemName: "arrow.uturn.forward") }
                     .dmTooltip(tr(.redo)).buttonStyle(ToolButtonStyle(active: false, design: design)).disabled(!model.canRedo)
-                Spacer()
-                if model.image != nil {
-                    Text("\(Int(model.viewRect.width)) × \(Int(model.viewRect.height)) \(tr(.pixelsSuffix))")
-                        .foregroundStyle(design.textMutedColor)
-                    Button("\(model.zoomPercent)%") { model.resetZoom() }
-                        .buttonStyle(BlackUtilityButtonStyle(design: design)).dmTooltip(tr(.resetZoomToFit))
-                }
-            }
+            }.fixedSize()
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: 8) { tools; contextControls }
                 HStack(spacing: 8) {
-                    Menu {
-                        Picker(tr(.moreTools), selection: $model.tool) {
-                            ForEach(toolSpecs, id: \.tool) { spec in
-                                Label(tr(spec.help), systemImage: spec.icon).tag(spec.tool)
-                            }
-                        }.pickerStyle(.inline)
-                    } label: { Label(tr(.moreTools), systemImage: "ellipsis") }
-                    .fixedSize()
+                    toolMenu
                     contextControls
+                }
+                HStack(spacing: 6) {
+                    toolMenu
+                    ScrollView(.horizontal) { contextControls }.frame(height: 36)
                 }
             }
             .disabled(model.image == nil)
+            Spacer(minLength: 0)
+            if model.image != nil {
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 8) {
+                        Text("\(Int(model.viewRect.width)) × \(Int(model.viewRect.height)) \(tr(.pixelsSuffix))")
+                            .foregroundStyle(design.textMutedColor)
+                        zoomButton
+                    }.fixedSize()
+                    zoomButton
+                }
+            }
         }
         .padding(.horizontal, 12).padding(.vertical, 8)
         .background(design.panelColor)
+    }
+
+    private var zoomButton: some View {
+        Button("\(model.zoomPercent)%") { model.resetZoom() }
+            .buttonStyle(BlackUtilityButtonStyle(design: design)).dmTooltip(tr(.resetZoomToFit))
+            .fixedSize()
+    }
+
+    private var toolMenu: some View {
+        Menu {
+            Picker(tr(.moreTools), selection: $model.tool) {
+                ForEach(toolSpecs, id: \.tool) { spec in
+                    Label(tr(spec.help), systemImage: spec.icon).tag(spec.tool)
+                }
+            }.pickerStyle(.inline)
+        } label: { Label(tr(.moreTools), systemImage: "ellipsis") }
+        .labelStyle(.iconOnly).dmTooltip(tr(.moreTools))
+        .fixedSize()
     }
 
     private var tools: some View {

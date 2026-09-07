@@ -4,6 +4,10 @@ All notable changes to DM_Screenshot. Newest version first. Always written in En
 
 ## [Unreleased]
 
+## 0.9.6 – 2026-09-07
+
+- fix: Restore a single visible row for editor and Quick Edit actions and tools, keeping Copy and Save available at narrow widths (macOS, Windows).
+
 ## 0.9.5 – 2026-09-07
 
 - new: Keep Copy and Save visible in adaptive editor toolbars, fit Quick Edit to smaller displays, and show capture actions and shortcuts in the empty editor (macOS, Windows).

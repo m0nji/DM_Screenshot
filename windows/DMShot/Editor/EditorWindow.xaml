@@ -48,8 +48,8 @@
     <!-- No bottom rule: the canvas card's own edge already separates the toolbar from
          the work area, and a second hard line beside it reads as a doubled border. -->
     <Border DockPanel.Dock="Top" Background="{DynamicResource DmSurface}">
-      <StackPanel Margin="12,8" KeyboardNavigation.TabNavigation="Continue">
-        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+      <DockPanel Margin="12,8" KeyboardNavigation.TabNavigation="Continue">
+        <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
 
           <!-- Copy / Save -->
           <Button Style="{StaticResource TbButton}" x:Name="CopyButton" Click="CopyClick" ToolTip="{loc:Tr copy}" AutomationProperties.Name="{loc:Tr copy}">
@@ -93,7 +93,8 @@
                   Foreground="{DynamicResource DmTextDim}" FontSize="12" ToolTip="{loc:Tr resetZoomToFit}" AutomationProperties.Name="{loc:Tr resetZoomToFit}"/>
 
         </StackPanel>
-        <WrapPanel x:Name="EditControls" VerticalAlignment="Center">
+        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+        <StackPanel Orientation="Horizontal" x:Name="EditControls" VerticalAlignment="Center">
           <!-- Tools: free-standing chips with uniform gaps (mac toolbar look, no pill) -->
           <StackPanel Orientation="Horizontal">
             <RadioButton x:Name="ToolSelect" Style="{StaticResource TbTool}" GroupName="tools" Tag="Select" Checked="ToolChecked" IsChecked="True" ToolTip="{loc:Tr toolSelect}" AutomationProperties.Name="{loc:Tr toolSelect}">
@@ -206,8 +207,9 @@
           <Rectangle Style="{StaticResource VDivider}"/>
 
           </StackPanel>
-        </WrapPanel>
-      </StackPanel>
+        </StackPanel>
+        </ScrollViewer>
+      </DockPanel>
     </Border>
 
     <!-- ===== Sidebar | splitter | canvas (resizable) ===== -->
