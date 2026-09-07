@@ -39,6 +39,7 @@ struct EditorView: View {
     var onSaveSelected: (Set<String>, @escaping (Set<String>) -> Void) -> Void = { _, done in done([]) }
     @State private var batchSelection: Set<String> = []
     @State private var batchSaving = false
+    @State var batchSelecting = false
 
     @State private var hoveredHistoryID: String?
     @ObservedObject private var localizer = Localizer.shared
@@ -206,54 +207,75 @@ struct EditorView: View {
     }
 
     private var sidebar: some View {
-        // One grouped surface holding plain rows — the groups inside are separated by
-        // space, not by rules, so no hard line competes with the surface's own edge.
-        ScrollView {
-            VStack(spacing: 2) {
-                CaptureButton(title: tr(.editorFullScreen), icon: "rectangle.dashed", design: design, action: onCaptureFull)
-                CaptureButton(title: tr(.editorSelection), icon: "selection.pin.in.out", design: design, action: onCaptureArea)
-                CaptureButton(title: tr(.editorVideoFullScreen), icon: "video", design: design, action: onVideoFull)
-                CaptureButton(title: tr(.editorVideoSection), icon: "video.badge.plus", design: design, action: onVideoArea)
-                CaptureButton(title: tr(.openImage), icon: "folder", design: design, action: onOpenImage)
-                Text(tr(.historyHeader)).font(.caption2).foregroundStyle(design.textMutedColor)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 10)
-                    .padding(.top, 14)
-                    .padding(.bottom, 4)
-                if !batchSelection.isEmpty {
-                    VStack(spacing: 6) {
-                        Button(String(format: tr(.saveSelected), batchSelection.count)) {
-                            batchSaving = true
-                            onSaveSelected(batchSelection) { saved in
-                                batchSelection.subtract(saved)
-                                batchSaving = false
-                            }
-                        }
-                        Button(tr(.clearSelection)) { batchSelection.removeAll() }
-                    }.disabled(batchSaving).padding(.vertical, 6)
+        VStack(spacing: 0) {
+            // Fixed header: settings and selection remain reachable at minimum height.
+            HStack(spacing: 4) {
+                Button {
+                    batchSelecting.toggle()
+                    if !batchSelecting { batchSelection.removeAll() }
+                } label: {
+                    ViewThatFits(in: .horizontal) {
+                        Label(tr(batchSelecting ? .done : .selectCaptures),
+                              systemImage: batchSelecting ? "checkmark" : "checklist")
+                        Text(tr(batchSelecting ? .done : .selectCaptures))
+                    }.font(.callout).frame(maxWidth: .infinity, alignment: .leading)
                 }
-                LazyVStack(spacing: 8) {
-                    ForEach(history.items) { item in
-                        if let thumb = history.thumbnail(item.id) {
-                            HStack(alignment: .top, spacing: 5) {
-                                Toggle(tr(.selectForSave), isOn: Binding(
-                                    get: { batchSelection.contains(item.id) },
-                                    set: { checked in
-                                        if checked { batchSelection.insert(item.id) }
-                                        else { batchSelection.remove(item.id) }
-                                    }))
-                                    .toggleStyle(.checkbox).labelsHidden().disabled(batchSaving)
-                                    .accessibilityLabel(Text("\(tr(.selectForSave)), \(Date(timeIntervalSince1970: item.createdAt).formatted())"))
-                                historyThumb(item: item, thumb: thumb)
-                            }
+                .buttonStyle(BlackUtilityButtonStyle(design: design))
+                .disabled(batchSaving)
+                Button(action: onOpenSettings) { Image(systemName: "gearshape").frame(width: 16, height: 16) }
+                    .buttonStyle(BlackUtilityButtonStyle(design: design))
+                    .fixedSize().accessibilityLabel(tr(.settings)).dmTooltip(tr(.settings))
+            }.padding(6)
+            if batchSelecting {
+                VStack(spacing: 4) {
+                    Button(String(format: tr(.saveSelectionCount), batchSelection.count)) {
+                        batchSaving = true
+                        onSaveSelected(batchSelection) { saved in
+                            batchSelection.subtract(saved)
+                            batchSaving = false
+                            if !saved.isEmpty && batchSelection.isEmpty { batchSelecting = false }
                         }
-                    }
-                }
-                .padding(.horizontal, 4)
-                CaptureButton(title: tr(.settings), icon: "gearshape", design: design, action: onOpenSettings)
-                    .padding(.top, 14)
+                    }.buttonStyle(AccentFilledButtonStyle())
+                        .disabled(batchSelection.isEmpty || batchSaving)
+                        .opacity(batchSelection.isEmpty || batchSaving ? 0.45 : 1)
+                    Button(tr(.clearSelection)) { batchSelection.removeAll() }
+                        .buttonStyle(.plain).font(.caption)
+                        .disabled(batchSelection.isEmpty || batchSaving)
+                }.padding(.horizontal, 6).padding(.bottom, 8)
             }
-            .padding(6)
+            ScrollView {
+                VStack(spacing: 2) {
+                    if !batchSelecting {
+                    CaptureButton(title: tr(.editorFullScreen), icon: "rectangle.dashed", design: design, action: onCaptureFull)
+                    CaptureButton(title: tr(.editorSelection), icon: "selection.pin.in.out", design: design, action: onCaptureArea)
+                    CaptureButton(title: tr(.editorVideoFullScreen), icon: "video", design: design, action: onVideoFull)
+                    CaptureButton(title: tr(.editorVideoSection), icon: "video.badge.plus", design: design, action: onVideoArea)
+                    CaptureButton(title: tr(.openImage), icon: "folder", design: design, action: onOpenImage)
+                    }
+                    Text(tr(.historyHeader)).font(.caption2).foregroundStyle(design.textMutedColor)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 10).padding(.top, 14).padding(.bottom, 4)
+                    LazyVStack(spacing: 8) {
+                        ForEach(history.items) { item in
+                            if let thumb = history.thumbnail(item.id) {
+                                HStack(alignment: .top, spacing: 5) {
+                                    if batchSelecting {
+                                        Toggle(tr(.selectForSave), isOn: Binding(
+                                            get: { batchSelection.contains(item.id) },
+                                            set: { checked in
+                                                if checked { batchSelection.insert(item.id) }
+                                                else { batchSelection.remove(item.id) }
+                                            }))
+                                            .toggleStyle(.checkbox).labelsHidden().disabled(batchSaving)
+                                            .accessibilityLabel(Text("\(tr(.selectForSave)), \(Date(timeIntervalSince1970: item.createdAt).formatted())"))
+                                    }
+                                    historyThumb(item: item, thumb: thumb)
+                                }
+                            }
+                        }
+                    }.padding(.horizontal, 4)
+                }.padding(6)
+            }
         }
         .onChange(of: history.items.map(\.id)) { _, ids in batchSelection.formIntersection(ids) }
         .dmGroupSurface(design)

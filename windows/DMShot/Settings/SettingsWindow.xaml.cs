@@ -150,6 +150,7 @@ public partial class SettingsWindow : Window
             _settings.HistoryLimit = value;
             Commit();
         }
+        _ = new SettingsInputCommit(box, CommitBox);
         box.LostFocus += (_, _) => CommitBox();
         box.KeyDown += (_, e) =>
         {

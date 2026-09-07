@@ -348,23 +348,14 @@ struct WhatsNewSheet: View {
     }
 }
 
-/// Apply a numeric limit only on commit, never after the first digit of a larger number.
 private struct HistoryLimitControl: View {
     @ObservedObject var settings: AppSettingsStore
-    @State private var text = ""
-    @FocusState private var editing: Bool
     var body: some View {
         VStack(alignment: .trailing) {
-            TextField(tr(.historyLimit), text: $text)
-                .frame(width: 80).focused($editing)
-                .disabled(settings.historyUnlimited)
-                .onSubmit { commit() }
-                .onChange(of: editing) { _, focused in if !focused { commit() } }
+            HistoryLimitField(value: settings.historyLimit, enabled: !settings.historyUnlimited) {
+                settings.historyLimit = $0
+            }.frame(width: 80, height: 24)
             Toggle(tr(.historyUnlimited), isOn: $settings.historyUnlimited)
-        }.onAppear { text = String(settings.historyLimit) }
-    }
-    private func commit() {
-        if let value = Int(text) { settings.historyLimit = HistoryLimit.clamp(value) }
-        text = String(settings.historyLimit)
+        }
     }
 }

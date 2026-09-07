@@ -4,6 +4,12 @@ All notable changes to DM_Screenshot. Newest version first. Always written in En
 
 ## [Unreleased]
 
+## 0.9.9 – 2026-09-07
+
+- fix: Save history-limit edits when pressing Tab, clicking outside the input, switching windows or closing Settings; Enter is no longer required (macOS, Windows).
+- change: Keep Settings pinned at the top of the editor sidebar, visible even in small windows or with a long history (macOS, Windows).
+- change: Enable history multi-selection explicitly with Select. Checkboxes only appear in this mode; Done restores full-width previews. Selection mode keeps export controls visible and focuses the sidebar on history (macOS, Windows).
+
 ## 0.9.8 – 2026-09-07
 
 - new: Choose how many captures history keeps in Settings, or explicitly enable Unlimited. The default remains 10 captures (macOS, Windows).

@@ -11,6 +11,7 @@ enum L: CaseIterable {
     case design, designHelp, designGraphiteSand, designStandard, designBlack
     case showLoupe, showLoupeHelp
     case languageLabel, languageHelp
+    case selectCaptures, saveSelectionCount
     case historyLimit, historyLimitHelp, historyUnlimited, defaultSaveFolder, defaultSaveFolderHelp, chooseFolder, folderNotSet, selectForSave, saveSelected, clearSelection, batchSaveFolderTitle, batchSaveDoneTitle, batchSaveDone, batchSavePartial
     // Settings — updates
     case version, versionHelp, checkForUpdates, updatesInstalledOnly
@@ -74,6 +75,8 @@ final class Localizer: ObservableObject {
 
     private static func value(_ key: L) -> (en: String, de: String) {
         switch key {
+        case .saveSelectionCount: return ("Save (%d)", "Speichern (%d)")
+        case .selectCaptures: return ("Select", "Auswählen")
         case .historyLimit: return ("History limit", "Verlaufsgrenze")
         case .historyLimitHelp: return ("How many captures the history keeps. Older ones are removed automatically.", "Wie viele Aufnahmen der Verlauf behält. Ältere werden automatisch entfernt.")
         case .historyUnlimited: return ("Unlimited", "Unbegrenzt")

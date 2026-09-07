@@ -193,6 +193,9 @@ public sealed class Loc : INotifyPropertyChanged
         ["bgBlur"] = "Blur",
         // History limit + batch save
         ["batchSaveHistoryFailed"] = "Save the latest changes to history successfully before exporting the selection.",
+        ["saveSelectionCount"] = "Save ({0})",
+        ["selectCaptures"] = "Select",
+        ["doneSelecting"] = "Done",
         ["historyLimit"] = "History limit",
         ["historyLimitHelp"] = "How many captures the history keeps. Older ones are removed automatically.",
         ["historyUnlimited"] = "Unlimited",
@@ -363,6 +366,9 @@ public sealed class Loc : INotifyPropertyChanged
         ["bgBlur"] = "Unschärfe",
         // Verlaufsgrenze + Sammelspeichern
         ["batchSaveHistoryFailed"] = "Speichere die letzten Änderungen erfolgreich im Verlauf, bevor du die Auswahl exportierst.",
+        ["saveSelectionCount"] = "Speichern ({0})",
+        ["selectCaptures"] = "Auswählen",
+        ["doneSelecting"] = "Fertig",
         ["historyLimit"] = "Verlaufsgrenze",
         ["historyLimitHelp"] = "Wie viele Aufnahmen der Verlauf behält. Ältere werden automatisch entfernt.",
         ["historyUnlimited"] = "Unbegrenzt",

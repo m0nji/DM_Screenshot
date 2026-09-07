@@ -329,6 +329,20 @@ public partial class EditorWindow : Window
     // Die Verlaufszeilen werden bei jedem Refresh neu gebaut; die Häkchen überleben das
     // über diese Menge. Maßgeblich ist immer der Zustand der aktuellen Zeilen.
     private readonly HashSet<string> _batchSelection = new();
+    public static readonly DependencyProperty IsBatchSelectingProperty = DependencyProperty.Register(
+        nameof(IsBatchSelecting), typeof(bool), typeof(EditorWindow), new PropertyMetadata(false));
+    public bool IsBatchSelecting
+    {
+        get => (bool)GetValue(IsBatchSelectingProperty);
+        private set => SetValue(IsBatchSelectingProperty, value);
+    }
+    private void SelectionModeClick(object sender, RoutedEventArgs e)
+    {
+        if (_batchSaving) return;
+        IsBatchSelecting = !IsBatchSelecting;
+        if (!IsBatchSelecting) ClearSelectionClick(sender, e);
+        UpdateBatchBar();
+    }
 
     /// <summary>Der in den Einstellungen hinterlegte Zielordner ("" = keiner gewählt).</summary>
     public Func<string>? DefaultSaveFolder { get; set; }
@@ -363,8 +377,13 @@ public partial class EditorWindow : Window
     private void UpdateBatchBar()
     {
         int count = _batchSelection.Count;
-        BatchBar.Visibility = count > 0 ? Visibility.Visible : Visibility.Collapsed;
-        SaveSelectedButton.Content = string.Format(Loc.Instance["saveSelected"], count);
+        BatchBar.Visibility = IsBatchSelecting ? Visibility.Visible : Visibility.Collapsed;
+        CaptureActions.Visibility = IsBatchSelecting ? Visibility.Collapsed : Visibility.Visible;
+        SelectionModeButton.Content = Loc.Instance[IsBatchSelecting ? "doneSelecting" : "selectCaptures"];
+        SelectionModeButton.IsEnabled = !_batchSaving;
+        SaveSelectedButton.IsEnabled = count > 0 && !_batchSaving;
+        ClearSelectionButton.IsEnabled = count > 0 && !_batchSaving;
+        SaveSelectedButton.Content = string.Format(Loc.Instance["saveSelectionCount"], count);
     }
 
     private void ClearSelectionClick(object sender, RoutedEventArgs e)
@@ -414,6 +433,7 @@ public partial class EditorWindow : Window
         var exportCompletion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         OnExportStarted?.Invoke(exportCompletion.Task);
         BatchBar.IsEnabled = false;
+        UpdateBatchBar();
         try
         {
             if (!await Store.FlushPendingAsync())
@@ -443,12 +463,13 @@ public partial class EditorWindow : Window
             _refreshingHistory = true;
             foreach (var row in Rows) row.IsChecked = _batchSelection.Contains(row.Id);
             _refreshingHistory = false;
+            if (_batchSelection.Count == 0) IsBatchSelecting = false;
             UpdateBatchBar();
             MessageBox.Show(
                 string.Format(Loc.Instance["batchSaveDone"], result.Saved.Count, folder),
                 Loc.Instance["batchSaveDoneTitle"], MessageBoxButton.OK, MessageBoxImage.Information);
         }
-        finally { _batchSaving = false; BatchBar.IsEnabled = true; exportCompletion.TrySetResult(); }
+        finally { _batchSaving = false; BatchBar.IsEnabled = true; UpdateBatchBar(); exportCompletion.TrySetResult(); }
     }
 
     /// <summary>Baut eine Verlaufszeile und stellt ihr Häkchen aus der laufenden Auswahl wieder her.</summary>
