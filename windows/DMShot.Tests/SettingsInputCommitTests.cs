@@ -28,9 +28,11 @@ public class SettingsInputCommitTests
                 box.Focus();
                 Keyboard.Focus(box);
                 Dispatcher.CurrentDispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
-                Assert.True(box.IsKeyboardFocusWithin);
                 box.Text = "25";
                 Assert.Equal(10, saved); // no retention change for each typed digit
+                box.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Left)
+                    { RoutedEvent = Mouse.PreviewMouseDownEvent });
+                Assert.Equal(10, saved); // clicking inside the editor must keep the draft
                 blank.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Left)
                     { RoutedEvent = Mouse.PreviewMouseDownEvent });
                 Assert.Equal(25, saved);

@@ -40,7 +40,7 @@ public sealed class SettingsInputCommit
     }
     private void MouseDown(object sender, MouseButtonEventArgs e)
     {
-        if (!_box.IsKeyboardFocusWithin) return;
+        // Commit drafts even if the desktop did not grant keyboard focus.
         if (e.OriginalSource is DependencyObject source &&
             (source == _box || ((source is Visual || source is Visual3D) && _box.IsAncestorOf(source)))) return;
         _commit(); // do not swallow the user's original click
