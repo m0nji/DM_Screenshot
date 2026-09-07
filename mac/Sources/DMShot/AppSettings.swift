@@ -56,12 +56,26 @@ final class AppSettingsStore: ObservableObject {
         didSet { defaults.set(language.rawValue, forKey: Self.languageKey) }
     }
 
+    @Published var historyLimit: Int {
+        didSet { defaults.set(HistoryLimit.clamp(historyLimit), forKey: "historyLimit") }
+    }
+    @Published var historyUnlimited: Bool {
+        didSet { defaults.set(historyUnlimited, forKey: "historyUnlimited") }
+    }
+    @Published var defaultSaveFolder: String {
+        didSet { defaults.set(defaultSaveFolder, forKey: "defaultSaveFolder") }
+    }
+    var effectiveHistoryLimit: Int { HistoryLimit.effective(unlimited: historyUnlimited, value: historyLimit) }
+
     @Published private(set) var launchAtLogin: Bool
 
     private let defaults: UserDefaults
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+        historyLimit = HistoryLimit.clamp(defaults.object(forKey: "historyLimit") as? Int ?? HistoryLimit.defaultValue)
+        historyUnlimited = defaults.bool(forKey: "historyUnlimited")
+        defaultSaveFolder = defaults.string(forKey: "defaultSaveFolder") ?? ""
         let raw = defaults.string(forKey: Self.afterCaptureKey)
         afterCapture = raw.flatMap(AfterCapture.init(rawValue:)) ?? .mainWindow
         showLoupe = defaults.object(forKey: Self.showLoupeKey) as? Bool ?? true

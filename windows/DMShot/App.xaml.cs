@@ -24,6 +24,7 @@ public partial class App : Application
     private Func<bool, bool>? _flushQuickEdit;
     private bool _quitting;
     private bool _preparingQuit;
+    private readonly HashSet<Task> _batchExports = new();
     private Task<bool>? _quitTask;
     internal bool IsQuitting => _quitting;
     private bool CanPresentWindows => !_preparingQuit && !_quitting;
@@ -63,9 +64,17 @@ public partial class App : Application
         base.OnStartup(e);
         ShutdownMode = ShutdownMode.OnExplicitShutdown; // tray app; no main window yet
 
+        // Die Einstellungen müssen vor dem Verlauf stehen: Load() kürzt bereits auf die
+        // eingestellte Grenze, sonst würde der erste Start nach "unbegrenzt" auf 10 kappen.
+        _settingsStore = SettingsStore.Default();
+        _settings = _settingsStore.Load();
+
         string historyRoot = Environment.GetEnvironmentVariable("DMSHOT_HISTORY_ROOT") ?? Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "DMShot", "history");
-        _history = new HistoryStore(historyRoot, action => Dispatcher.BeginInvoke(action));
+        _history = new HistoryStore(historyRoot, action => Dispatcher.BeginInvoke(action))
+        {
+            Limit = HistoryLimit.Effective(_settings),
+        };
         _history.Load();
         _history.Changed += () => _editor?.RefreshHistory();
         _history.WriteFailed += ex => { if (!_preparingQuit && !_quitting) Alerts.Show("historyWriteFailedMessage", ex); };
@@ -86,8 +95,6 @@ public partial class App : Application
         _coordinator.CaptureFailed += ex => Alerts.Show("captureFailedMessage", ex);
         _coordinator.VideoRequested += OnVideoRequested;
 
-        _settingsStore = SettingsStore.Default();
-        _settings = _settingsStore.Load();
         AppDesignTheme.Apply(_settings.AppDesign);
         // Seed the interface language from the persisted setting before any window
         // or the tray menu is built, so the first paint is already localized.
@@ -263,6 +270,9 @@ public partial class App : Application
             _settings = s;
 
             AppDesignTheme.Apply(_settings.AppDesign);
+            // Eine gesenkte Grenze räumt den Verlauf sofort auf; RefreshHistory läuft
+            // über das Changed-Ereignis des Stores.
+            _history.Limit = HistoryLimit.Effective(_settings);
             RegisterHotkeysFromSettings();
             UpdateTrayHotkeyHints();
         };
@@ -327,7 +337,20 @@ public partial class App : Application
             OnRequestPasteImage = PasteImage,
             OnImagesDropped = ImportDroppedImages,
             OnImageImportFailed = ShowImportError,
-            OnVideoEntryActivated = OpenGifViewerForEntry   // V17
+            OnVideoEntryActivated = OpenGifViewerForEntry,  // V17
+            OnExportStarted = task =>
+            {
+                _batchExports.RemoveWhere(export => export.IsCompleted);
+                _batchExports.Add(task);
+            },
+            DefaultSaveFolder = () => _settings.DefaultSaveFolder,
+            OnSaveFolderChosen = folder =>
+            {
+                // Im Speichern-Dialog gewählter Ordner wird zum Standard, damit die Frage
+                // nur einmal kommt (siehe SaveLocation / Einstellung "Standard-Speicherort").
+                _settings.DefaultSaveFolder = folder;
+                try { _settingsStore.Save(_settings); } catch (Exception ex) { System.Diagnostics.Debug.WriteLine(ex); }
+            },
         };
         UpdateTrayHotkeyHints();
         _editor.InitDefaults(_settings.StrokeWidth, _settings.BlurStrength);   // remembered stroke/blur
@@ -805,6 +828,7 @@ public partial class App : Application
             accepted &= _flushQuickEdit?.Invoke(false) ?? true;
             foreach (var window in windows.Keys) window.IsEnabled = false;
             // Await every producer before the final drain; Dispatcher remains available.
+            await Task.WhenAll(_batchExports.ToArray());
             var outcomes = await Task.WhenAll(_gifDeliveries.ToArray());
             accepted &= outcomes.All(outcome => outcome == GifOutcome.Success);
             await Task.WhenAll(_gifViewers.Select(viewer => viewer.PendingConversion).ToArray());

@@ -5,6 +5,7 @@ using DMShot.Capture;
 using DMShot.History;
 using DMShot.Localization;
 using DMShot.Platform;
+using DMShot.Settings;
 namespace DMShot.Editor;
 
 public partial class EditorWindow : Window
@@ -24,8 +25,33 @@ public partial class EditorWindow : Window
     /// <summary>V17: invoked when a video history entry is clicked, instead of loading it as an image.</summary>
     public Action<HistoryEntry>? OnVideoEntryActivated { get; set; }
 
-    public sealed record HistoryVM(string Id, System.Windows.Media.ImageSource? Thumb, bool IsVideo, DateTime CreatedUtc)
+    public sealed class HistoryVM : System.ComponentModel.INotifyPropertyChanged
     {
+        public HistoryVM(string id, System.Windows.Media.ImageSource? thumb, bool isVideo, DateTime createdUtc)
+        { Id = id; Thumb = thumb; IsVideo = isVideo; CreatedUtc = createdUtc; }
+
+        public string Id { get; }
+        public System.Windows.Media.ImageSource? Thumb { get; }
+        public bool IsVideo { get; }
+        public DateTime CreatedUtc { get; }
+
+        public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
+
+        // Häkchen fürs Sammelspeichern. Die Zeilen werden bei jedem Refresh neu gebaut,
+        // die Auswahl selbst lebt deshalb im Fenster (_batchSelection) und wird hier
+        // nur gespiegelt — INotifyPropertyChanged, damit "Auswahl aufheben" durchschlägt.
+        private bool _isChecked;
+        public bool IsChecked
+        {
+            get => _isChecked;
+            set
+            {
+                if (_isChecked == value) return;
+                _isChecked = value;
+                PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(nameof(IsChecked)));
+            }
+        }
+
         public string Identity => string.Format(Loc.Instance[IsVideo ? "historyVideoIdentity" : "historyImageIdentity"],
             CreatedUtc.ToLocalTime().ToString("G", System.Globalization.CultureInfo.GetCultureInfo(
                 Loc.Instance.Current == DMShot.Localization.Language.German ? "de-DE" : "en-US")));
@@ -278,21 +304,157 @@ public partial class EditorWindow : Window
         _thumbnails.Retain(entries.Select(e => e.ThumbnailPngPath));
         // Pending rows are selectable immediately, even before their first thumbnail.
         _refreshingHistory = true;
-        var pendingRows = entries.Select(e => new HistoryVM(e.Id, _thumbnails.GetReady(e.ThumbnailPngPath), e.Kind == HistoryKind.Video, e.CreatedUtc)).ToList();
+        // Gelöschte oder verdrängte Aufnahmen aus der Auswahl nehmen, sonst würde ein
+        // später wiederverwendeter Zustand Häkchen zeigen, die es nicht mehr gibt.
+        _batchSelection.IntersectWith(entries.Select(e => e.Id));
+        var pendingRows = entries.Select(e => NewRow(e, _thumbnails.GetReady(e.ThumbnailPngPath))).ToList();
         HistoryList.ItemsSource = pendingRows;
         HistoryList.SelectedItem = pendingRows.FirstOrDefault(row => row.Id == selectedId);
         _refreshingHistory = false;
+        UpdateBatchBar();
         var images = await Task.WhenAll(entries.Select(e => _thumbnails.GetAsync(e.ThumbnailPngPath)));
         if (generation != _historyRefresh) return; // deleted/revised while loading
         _refreshingHistory = true;
         selectedId = (HistoryList.SelectedItem as HistoryVM)?.Id;
-        var rows = entries.Select((e, i) => new HistoryVM(e.Id, images[i], e.Kind == HistoryKind.Video, e.CreatedUtc)).ToList();
+        var rows = entries.Select((e, i) => NewRow(e, images[i])).ToList();
         HistoryList.ItemsSource = rows;
         HistoryList.SelectedItem = rows.FirstOrDefault(row => row.Id == selectedId);
         _refreshingHistory = false;
+        UpdateBatchBar();
         for (int i = 0; i < entries.Length; i++)
             if (images[i] != null) HistoryPerf.Milestone("thumbnail-ready", entries[i].Id);
     }
+
+    // ===== Sammelspeichern =====
+    // Die Verlaufszeilen werden bei jedem Refresh neu gebaut; die Häkchen überleben das
+    // über diese Menge. Maßgeblich ist immer der Zustand der aktuellen Zeilen.
+    private readonly HashSet<string> _batchSelection = new();
+
+    /// <summary>Der in den Einstellungen hinterlegte Zielordner ("" = keiner gewählt).</summary>
+    public Func<string>? DefaultSaveFolder { get; set; }
+    /// <summary>Meldet einen im Dialog gewählten Ordner zurück, damit er als Standard bleibt.</summary>
+    public Action<string>? OnSaveFolderChosen { get; set; }
+
+    private IEnumerable<HistoryVM> Rows =>
+        HistoryList.ItemsSource as IEnumerable<HistoryVM> ?? Array.Empty<HistoryVM>();
+
+    private List<string> SelectedIds => _batchSelection.ToList();
+
+    /// <summary>Das Häkchen selbst umschalten und den Klick hier enden lassen — sonst
+    /// wählt die Liste die Zeile mit aus und lädt die Aufnahme in den Editor.</summary>
+    private void BatchCheckMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is not System.Windows.Controls.CheckBox box) return;
+        box.IsChecked = box.IsChecked != true;
+        e.Handled = true;
+    }
+
+    private void BatchSelectionChanged(object sender, RoutedEventArgs e)
+    {
+        if (_refreshingHistory) return;
+        if (sender is System.Windows.Controls.CheckBox box && box.DataContext is HistoryVM row)
+        {
+            if (box.IsChecked == true) _batchSelection.Add(row.Id);
+            else _batchSelection.Remove(row.Id);
+        }
+        UpdateBatchBar();
+    }
+
+    private void UpdateBatchBar()
+    {
+        int count = _batchSelection.Count;
+        BatchBar.Visibility = count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        SaveSelectedButton.Content = string.Format(Loc.Instance["saveSelected"], count);
+    }
+
+    private void ClearSelectionClick(object sender, RoutedEventArgs e)
+    {
+        _batchSelection.Clear();
+        foreach (var row in Rows) row.IsChecked = false;
+        UpdateBatchBar();
+    }
+
+    /// <summary>Zielordner fürs Speichern: der eingestellte, sonst einmalig per Dialog
+    /// erfragt und vorbelegt mit Bilder\Screenshots. <c>null</c> = abgebrochen.</summary>
+    private string? ResolveSaveFolder()
+    {
+        if (SaveLocation.Configured(DefaultSaveFolder?.Invoke()) is { } configured) return configured;
+
+        var suggestion = SaveLocation.Fallback();
+        // Anlegen, damit der Dialog wirklich in Bilder\Screenshots startet und nicht
+        // eine Ebene darüber. Schlägt das fehl, öffnet der Dialog eben woanders.
+        try { SaveLocation.EnsureExists(suggestion); } catch (Exception ex) { System.Diagnostics.Debug.WriteLine(ex); }
+
+        var dlg = new Microsoft.Win32.OpenFolderDialog
+        {
+            Title = Loc.Instance["batchSaveFolderTitle"],
+            InitialDirectory = suggestion,
+        };
+        if (dlg.ShowDialog(this) != true) return null;
+        OnSaveFolderChosen?.Invoke(dlg.FolderName);
+        return dlg.FolderName;
+    }
+
+    private bool _batchSaving;
+    public Action<Task>? OnExportStarted { get; set; }
+
+    private async void SaveSelectedClick(object sender, RoutedEventArgs e)
+    {
+        if (Store is null || _batchSaving) return;
+        var ids = SelectedIds;
+        if (ids.Count == 0) return;
+
+        var folder = ResolveSaveFolder();
+        if (folder is null) return;
+
+        // Der Export liest die Originale von der Platte — offene Änderungen müssen also
+        // erst durch die Schreibwarteschlange, sonst landet ein veralteter Stand im Ordner.
+        if (!FlushDocument()) return;
+        _batchSaving = true;
+        var exportCompletion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        OnExportStarted?.Invoke(exportCompletion.Task);
+        BatchBar.IsEnabled = false;
+        try
+        {
+            if (!await Store.FlushPendingAsync())
+            {
+                Alerts.Show("historyWriteFailedMessage", new System.IO.IOException(Loc.Instance["batchSaveHistoryFailed"]));
+                return;
+            }
+
+            var selected = Store.Entries.Where(x => ids.Contains(x.Id)).ToList();
+            if (selected.Count == 0) return;
+
+            HistoryExport.BatchSaveResult result;
+            try { result = await Task.Run(() => HistoryExport.SaveAll(selected, folder)); }
+            catch (Exception ex) { Alerts.Show("saveFailedMessage", ex); return; }
+
+            if (result.Failed.Count > 0)
+            {
+                MessageBox.Show(
+                    string.Format(Loc.Instance["batchSavePartial"], result.Failed.Count, selected.Count) + "\n" + result.Failed[0].Error.Message,
+                    Loc.Instance["saveFailedTitle"], MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+            if (result.Saved.Count == 0) return;
+
+            var failedIds = result.Failed.Select(f => f.Entry.Id).ToHashSet();
+            foreach (var id in selected.Select(x => x.Id).Where(id => !failedIds.Contains(id)))
+                _batchSelection.Remove(id);
+            _refreshingHistory = true;
+            foreach (var row in Rows) row.IsChecked = _batchSelection.Contains(row.Id);
+            _refreshingHistory = false;
+            UpdateBatchBar();
+            MessageBox.Show(
+                string.Format(Loc.Instance["batchSaveDone"], result.Saved.Count, folder),
+                Loc.Instance["batchSaveDoneTitle"], MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+        finally { _batchSaving = false; BatchBar.IsEnabled = true; exportCompletion.TrySetResult(); }
+    }
+
+    /// <summary>Baut eine Verlaufszeile und stellt ihr Häkchen aus der laufenden Auswahl wieder her.</summary>
+    private HistoryVM NewRow(HistoryEntry entry, System.Windows.Media.ImageSource? thumb) =>
+        new(entry.Id, thumb, entry.Kind == HistoryKind.Video, entry.CreatedUtc)
+        { IsChecked = _batchSelection.Contains(entry.Id) };
 
     private void DeleteHistoryClick(object sender, RoutedEventArgs e)
     {
@@ -406,7 +568,10 @@ public partial class EditorWindow : Window
     {
         if (_baseImage is null) return;
         FlushDocument();
-        var dir = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+        // Derselbe Zielordner wie beim Sammelspeichern: der eingestellte, sonst
+        // Bilder\Screenshots. Der Dialog bleibt — nur der Vorschlag ändert sich.
+        var dir = SaveLocation.Configured(DefaultSaveFolder?.Invoke()) ?? SaveLocation.Fallback();
+        try { SaveLocation.EnsureExists(dir); } catch (Exception ex) { System.Diagnostics.Debug.WriteLine(ex); }
         var baseName = ScreenshotFilename.Base(DateTime.Now);
         var fileName = ScreenshotFilename.Unique(baseName,
             name => System.IO.File.Exists(System.IO.Path.Combine(dir, name)));

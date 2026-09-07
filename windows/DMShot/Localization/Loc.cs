@@ -191,6 +191,22 @@ public sealed class Loc : INotifyPropertyChanged
         ["bgCornerSoft"] = "Soft",
         ["bgCornerRound"] = "Round",
         ["bgBlur"] = "Blur",
+        // History limit + batch save
+        ["batchSaveHistoryFailed"] = "Save the latest changes to history successfully before exporting the selection.",
+        ["historyLimit"] = "History limit",
+        ["historyLimitHelp"] = "How many captures the history keeps. Older ones are removed automatically.",
+        ["historyUnlimited"] = "Unlimited",
+        ["defaultSaveFolder"] = "Default save folder",
+        ["defaultSaveFolderHelp"] = "Where captures are saved. If none is set, DM Screenshot asks once and suggests Pictures\\Screenshots.",
+        ["chooseFolder"] = "Choose Folder…",
+        ["folderNotSet"] = "Not set",
+        ["selectForBatchSave"] = "Select for saving",
+        ["saveSelected"] = "Save selection ({0})",
+        ["clearSelection"] = "Clear selection",
+        ["batchSaveFolderTitle"] = "Choose a folder for the selected captures",
+        ["batchSaveDoneTitle"] = "Saved",
+        ["batchSaveDone"] = "{0} captures saved to:\n{1}",
+        ["batchSavePartial"] = "{0} of {1} captures could not be saved.",
     };
 
     public static readonly IReadOnlyDictionary<string, string> De = new Dictionary<string, string>
@@ -345,5 +361,21 @@ public sealed class Loc : INotifyPropertyChanged
         ["bgCornerSoft"] = "Sanft",
         ["bgCornerRound"] = "Rund",
         ["bgBlur"] = "Unschärfe",
+        // Verlaufsgrenze + Sammelspeichern
+        ["batchSaveHistoryFailed"] = "Speichere die letzten Änderungen erfolgreich im Verlauf, bevor du die Auswahl exportierst.",
+        ["historyLimit"] = "Verlaufsgrenze",
+        ["historyLimitHelp"] = "Wie viele Aufnahmen der Verlauf behält. Ältere werden automatisch entfernt.",
+        ["historyUnlimited"] = "Unbegrenzt",
+        ["defaultSaveFolder"] = "Standard-Speicherort",
+        ["defaultSaveFolderHelp"] = "Wohin Aufnahmen gespeichert werden. Ist keiner festgelegt, fragt DM Screenshot einmalig und schlägt Bilder\\Screenshots vor.",
+        ["chooseFolder"] = "Ordner wählen…",
+        ["folderNotSet"] = "Nicht festgelegt",
+        ["selectForBatchSave"] = "Zum Speichern auswählen",
+        ["saveSelected"] = "Auswahl speichern ({0})",
+        ["clearSelection"] = "Auswahl aufheben",
+        ["batchSaveFolderTitle"] = "Ordner für die ausgewählten Aufnahmen wählen",
+        ["batchSaveDoneTitle"] = "Gespeichert",
+        ["batchSaveDone"] = "{0} Aufnahmen gespeichert in:\n{1}",
+        ["batchSavePartial"] = "{0} von {1} Aufnahmen konnten nicht gespeichert werden.",
     };
 }

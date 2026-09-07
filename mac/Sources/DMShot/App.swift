@@ -5,7 +5,7 @@ import UniformTypeIdentifiers
 
 final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private let model = EditorModel()
-    private let history = HistoryStore()
+    private lazy var history = HistoryStore(limit: appSettings.effectiveHistoryLimit)
     private lazy var persistence = DocumentPersistence(model: model, history: history)
     private let imageImports = ImageImportSession()
     private var preparingQuit = false
@@ -324,6 +324,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     private func setupPersistence() {
         _ = persistence
+        appSettings.$historyLimit.combineLatest(appSettings.$historyUnlimited)
+            .sink { [weak self] value, unlimited in
+                self?.history.limit = HistoryLimit.effective(unlimited: unlimited, value: value)
+            }.store(in: &cancellables)
         history.onError = { [weak self] error in
             self?.persistence.invalidate()
             OperationAlert.show(title: .historyFailedTitle, body: .historyFailedBody, error: error)
@@ -668,7 +672,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 onDeleteHistory: { [weak self] id in self?.deleteHistory(id) },
                 onOpenSettings: { [weak self] in self?.openSettings() },
                 onOpenImage: { [weak self] in self?.openImage() },
-                onDropImages: { [weak self] urls in self?.importFiles(urls) })
+                onDropImages: { [weak self] urls in self?.importFiles(urls) },
+                onSaveSelected: { [weak self] ids, completion in self?.saveSelected(ids, completion: completion) })
             let win = NSWindow(
                 contentRect: NSRect(x: 0, y: 0, width: 1100, height: 720),
                 styleMask: [.titled, .closable, .miniaturizable, .resizable],
@@ -687,7 +692,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     @objc private func openSettings() {
         if settingsWindow == nil {
-            let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.9.7"
+            let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.9.8"
             let win = NSWindow(
                 contentRect: NSRect(x: 0, y: 0, width: 640, height: 420),
                 styleMask: [.titled, .closable], backing: .buffered, defer: false)
@@ -837,17 +842,41 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         guard let img = model.flatten(), let png = ImageUtils.pngData(img) else { return }
         let panel = NSSavePanel()
         panel.allowedContentTypes = [.png]
-        let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
-        if let dir { panel.directoryURL = dir }
+        let dir = SaveLocation.configured(appSettings.defaultSaveFolder) ?? SaveLocation.fallback
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        panel.directoryURL = dir
         let base = ScreenshotFilename.base(for: Date())
         panel.nameFieldStringValue = ScreenshotFilename.unique(base: base) { name in
-            guard let dir else { return false }
             return FileManager.default.fileExists(atPath: dir.appendingPathComponent(name).path)
         }
         if panel.runModal() == .OK, let url = panel.url {
             // The user picked a location and pressed Save; silence here means
             // they walk away believing the file exists.
             SaveGuard.performOrAlert { try png.write(to: url) }
+        }
+    }
+
+    private func saveSelected(_ ids: Set<String>, completion: @escaping (Set<String>) -> Void) {
+        let folder: URL
+        if let configured = SaveLocation.configured(appSettings.defaultSaveFolder) { folder = configured }
+        else {
+            guard let chosen = SaveLocation.choose(current: "") else { completion([]); return }
+            folder = chosen
+            appSettings.defaultSaveFolder = chosen.path
+        }
+        persistence.saveCurrent()
+        history.export(ids: ids, to: folder) { result in
+            completion(Set(result.saved))
+            let alert = NSAlert()
+            alert.messageText = tr(result.failed.isEmpty ? .batchSaveDoneTitle : .saveFailedTitle)
+            var message = String(format: tr(.batchSaveDone), result.saved.count, folder.path)
+            if let first = result.failed.first {
+                message += "\n\n" + String(format: tr(.batchSavePartial), result.failed.count, ids.count)
+                message += "\n" + first.error.localizedDescription
+            }
+            alert.informativeText = message
+            alert.addButton(withTitle: tr(.ok))
+            alert.runModal()
         }
     }
 

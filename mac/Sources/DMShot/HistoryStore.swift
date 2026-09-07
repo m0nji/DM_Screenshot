@@ -37,7 +37,18 @@ final class HistoryStore: ObservableObject {
     var onError: ((Error) -> Void)?
     private let renderSnapshot: (RenderSnapshot) -> CGImage?
     private let dir: URL
-    private let maxEntries = 10
+    private var maxEntries: Int
+    private var diskMaxEntries: Int // ioQueue only after init
+    var limit: Int {
+        get { maxEntries }
+        set {
+            let value = max(1, newValue)
+            guard value != maxEntries else { return }
+            maxEntries = value
+            ioQueue.async { [self] in diskMaxEntries = value }
+            for item in Array(items.dropFirst(value)) { delete(item.id) }
+        }
+    }
     private let ioQueue = DispatchQueue(label: "DMShot.HistoryStore.io", qos: .utility)
     private var diskItems: [HistoryItemMeta] = [] // ioQueue only after init
     private var errors: [String: Error] = [:]   // ioQueue only
@@ -51,8 +62,10 @@ final class HistoryStore: ObservableObject {
     private var pendingOriginals: [String: CGImage] = [:]
     private var pendingGIFs: [String: Data] = [:]
 
-    init(root: URL? = nil, renderSnapshot: @escaping (RenderSnapshot) -> CGImage? = { $0.render() }) {
+    init(root: URL? = nil, limit: Int = HistoryLimit.defaultValue, renderSnapshot: @escaping (RenderSnapshot) -> CGImage? = { $0.render() }) {
         self.renderSnapshot = renderSnapshot
+        maxEntries = max(1, limit)
+        diskMaxEntries = max(1, limit)
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         dir = root ?? base.appendingPathComponent("DMShot/history", isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
@@ -61,9 +74,10 @@ final class HistoryStore: ObservableObject {
             items = Array(metas.filter { meta in
                 Self.validComponent(meta.id) && (meta.revision.map(Self.validComponent) ?? true)
                     && FileManager.default.fileExists(atPath: (meta.kind == .image ? originalURL(meta.id) : assetURL(meta, "gif")).path)
-            }.sorted { $0.createdAt > $1.createdAt }.prefix(maxEntries))
+            }.sorted { $0.createdAt > $1.createdAt })
         }
         diskItems = items
+        for item in Array(items.dropFirst(maxEntries)) { delete(item.id) }
     }
 
     private static func validComponent(_ value: String) -> Bool {
@@ -250,8 +264,8 @@ final class HistoryStore: ObservableObject {
         var next = diskItems.filter { $0.id != meta.id }
         next.append(meta)
         next.sort { $0.createdAt > $1.createdAt }
-        let evicted = Array(next.dropFirst(maxEntries))
-        next = Array(next.prefix(maxEntries))
+        let evicted = Array(next.dropFirst(diskMaxEntries))
+        next = Array(next.prefix(diskMaxEntries))
         try publishIndex(next)
         if let previous { removeRevision(previous) }
         evicted.forEach { removeFiles($0.id); errors[$0.id] = nil; setFailed($0.id, false) }
@@ -346,5 +360,34 @@ final class HistoryStore: ObservableObject {
         documents[id] = document
         return document
     }
+    /// Runs after queued document writes; a failed revision cannot silently export stale edits.
+    func export(ids: Set<String>, to folder: URL, completion: @escaping (HistoryExport.Result) -> Void) {
+        let selected = items.filter { ids.contains($0.id) }
+        ioQueue.async { [self] in
+            let result = HistoryExport.save(selected, to: folder) { requested in
+                if let error = errors[requested.id] { throw error }
+                guard let meta = diskItems.first(where: { $0.id == requested.id }) else {
+                    throw CocoaError(.fileReadNoSuchFile)
+                }
+                if meta.kind == .video { return try Data(contentsOf: assetURL(meta, "gif")) }
+                let data = try Data(contentsOf: originalURL(meta.id))
+                guard let image = NSBitmapImageRep(data: data)?.cgImage else { throw CocoaError(.fileReadCorruptFile) }
+                let documentData = try Data(contentsOf: assetURL(meta, "json"))
+                let decoder = JSONDecoder()
+                let document: HistoryDocument
+                if let decoded = try? decoder.decode(HistoryDocument.self, from: documentData) { document = decoded }
+                else { document = HistoryDocument(annotations: try decoder.decode([Annotation].self, from: documentData), crop: nil, background: nil) }
+                let snapshot = RenderSnapshot(image: image, annotations: document.annotations, crop: document.crop,
+                                              style: document.background ?? .disabled,
+                                              blurSourceImage: document.crop.flatMap { ImageUtils.crop(image, to: $0) } ?? image)
+                guard let rendered = snapshot.render(), let png = ImageUtils.pngData(rendered) else {
+                    throw CocoaError(.fileWriteUnknown)
+                }
+                return png
+            }
+            DispatchQueue.main.async { completion(result) }
+        }
+    }
+
     func loadAnnotations(_ id: String) -> [Annotation] { loadDocument(id).annotations }
 }

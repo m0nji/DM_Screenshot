@@ -121,6 +121,21 @@ struct SettingsView: View {
             settingRow(tr(.showLoupe), tr(.showLoupeHelp)) {
                 themedToggle($settings.showLoupe)
             }
+            settingRow(tr(.historyLimit), tr(.historyLimitHelp)) {
+                HistoryLimitControl(settings: settings).frame(width: 180, alignment: .trailing)
+            }
+            settingRow(tr(.defaultSaveFolder), tr(.defaultSaveFolderHelp)) {
+                VStack(alignment: .trailing) {
+                    Text(SaveLocation.configured(settings.defaultSaveFolder)?.path ?? tr(.folderNotSet))
+                        .font(.caption).lineLimit(2).truncationMode(.middle)
+                        .help(settings.defaultSaveFolder)
+                    Button(tr(.chooseFolder)) {
+                        if let url = SaveLocation.choose(current: settings.defaultSaveFolder) {
+                            settings.defaultSaveFolder = url.path
+                        }
+                    }
+                }.frame(width: 180, alignment: .trailing)
+            }
         case .shortcuts:
             shortcutsDetail
         case .language:
@@ -330,5 +345,26 @@ struct WhatsNewSheet: View {
         }
         .frame(width: 460, height: 420)
         .background(DMWindowBackground(design: appDesign))
+    }
+}
+
+/// Apply a numeric limit only on commit, never after the first digit of a larger number.
+private struct HistoryLimitControl: View {
+    @ObservedObject var settings: AppSettingsStore
+    @State private var text = ""
+    @FocusState private var editing: Bool
+    var body: some View {
+        VStack(alignment: .trailing) {
+            TextField(tr(.historyLimit), text: $text)
+                .frame(width: 80).focused($editing)
+                .disabled(settings.historyUnlimited)
+                .onSubmit { commit() }
+                .onChange(of: editing) { _, focused in if !focused { commit() } }
+            Toggle(tr(.historyUnlimited), isOn: $settings.historyUnlimited)
+        }.onAppear { text = String(settings.historyLimit) }
+    }
+    private func commit() {
+        if let value = Int(text) { settings.historyLimit = HistoryLimit.clamp(value) }
+        text = String(settings.historyLimit)
     }
 }

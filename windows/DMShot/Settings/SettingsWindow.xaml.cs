@@ -107,6 +107,120 @@ public partial class SettingsWindow : Window
                 _settings.ShowZoomLoupe = enabled;
                 Commit();
             })));
+
+        Pane.Children.Add(SettingRow(
+            Loc.Instance["historyLimit"],
+            Loc.Instance["historyLimitHelp"],
+            HistoryLimitEditor()));
+
+        Pane.Children.Add(SettingRow(
+            Loc.Instance["defaultSaveFolder"],
+            Loc.Instance["defaultSaveFolderHelp"],
+            SaveFolderEditor()));
+    }
+
+    /// <summary>Zahlenfeld plus Häkchen "unbegrenzt". Die Zahl bleibt beim Umschalten stehen,
+    /// damit sie beim Zurückschalten wieder da ist.</summary>
+    private FrameworkElement HistoryLimitEditor()
+    {
+        var box = new TextBox
+        {
+            Width = 80,
+            MaxLength = 3,
+            TextAlignment = TextAlignment.Right,
+            Text = _settings.HistoryLimit.ToString(System.Globalization.CultureInfo.CurrentCulture),
+            IsEnabled = !_settings.HistoryUnlimited,
+            HorizontalAlignment = HorizontalAlignment.Right,
+        };
+        System.Windows.Automation.AutomationProperties.SetName(box, Loc.Instance["historyLimit"]);
+
+        // Nur Ziffern annehmen — sonst müsste jede Eingabe hinterher repariert werden.
+        box.PreviewTextInput += (_, e) => e.Handled = !e.Text.All(char.IsAsciiDigit);
+        DataObject.AddPastingHandler(box, (_, e) =>
+        {
+            var text = e.DataObject.GetData(typeof(string)) as string;
+            if (text is null || !text.All(char.IsAsciiDigit)) e.CancelCommand();
+        });
+
+        void CommitBox()
+        {
+            int value = int.TryParse(box.Text, out var parsed) ? HistoryLimit.Clamp(parsed) : _settings.HistoryLimit;
+            box.Text = value.ToString(System.Globalization.CultureInfo.CurrentCulture);
+            if (_settings.HistoryLimit == value) return;
+            _settings.HistoryLimit = value;
+            Commit();
+        }
+        box.LostFocus += (_, _) => CommitBox();
+        box.KeyDown += (_, e) =>
+        {
+            if (e.Key != Key.Enter) return;
+            CommitBox();
+            e.Handled = true;
+        };
+
+        var unlimited = new CheckBox
+        {
+            Content = Loc.Instance["historyUnlimited"],
+            IsChecked = _settings.HistoryUnlimited,
+            Foreground = Text,
+            Margin = new Thickness(0, 8, 0, 0),
+            HorizontalAlignment = HorizontalAlignment.Right,
+        };
+        void SetUnlimited(bool on)
+        {
+            box.IsEnabled = !on;
+            if (_settings.HistoryUnlimited == on) return;
+            _settings.HistoryUnlimited = on;
+            Commit();
+        }
+        unlimited.Checked += (_, _) => SetUnlimited(true);
+        unlimited.Unchecked += (_, _) => SetUnlimited(false);
+
+        var stack = new StackPanel { HorizontalAlignment = HorizontalAlignment.Right };
+        stack.Children.Add(box);
+        stack.Children.Add(unlimited);
+        return stack;
+    }
+
+    /// <summary>Zeigt den eingestellten Zielordner und lässt einen anderen wählen.
+    /// Ohne Einstellung bleibt es beim Vorschlag Bilder\Screenshots (siehe SaveLocation).</summary>
+    private FrameworkElement SaveFolderEditor()
+    {
+        var path = new TextBlock
+        {
+            Text = SaveLocation.Configured(_settings.DefaultSaveFolder) ?? Loc.Instance["folderNotSet"],
+            Foreground = TextDim,
+            FontSize = 12,
+            MaxWidth = 220,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            TextAlignment = TextAlignment.Right,
+            HorizontalAlignment = HorizontalAlignment.Right,
+        };
+        var pick = new Button
+        {
+            Content = Loc.Instance["chooseFolder"],
+            HorizontalAlignment = HorizontalAlignment.Right,
+            Margin = new Thickness(0, 8, 0, 0),
+        };
+        pick.Click += (_, _) =>
+        {
+            var dlg = new Microsoft.Win32.OpenFolderDialog
+            {
+                Title = Loc.Instance["batchSaveFolderTitle"],
+                InitialDirectory = SaveLocation.Configured(_settings.DefaultSaveFolder) ?? SaveLocation.Fallback(),
+            };
+            if (dlg.ShowDialog(this) != true) return;
+            _settings.DefaultSaveFolder = dlg.FolderName;
+            path.Text = dlg.FolderName;
+            path.ToolTip = dlg.FolderName;
+            Commit();
+        };
+        if (SaveLocation.Configured(_settings.DefaultSaveFolder) is { } configured) path.ToolTip = configured;
+
+        var stack = new StackPanel { HorizontalAlignment = HorizontalAlignment.Right };
+        stack.Children.Add(path);
+        stack.Children.Add(pick);
+        return stack;
     }
 
     // Per-row validation errors (needs-modifier / duplicate), keyed by hotkey id —

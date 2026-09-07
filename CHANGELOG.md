@@ -4,6 +4,13 @@ All notable changes to DM_Screenshot. Newest version first. Always written in En
 
 ## [Unreleased]
 
+## 0.9.8 – 2026-09-07
+
+- new: Choose how many captures history keeps in Settings, or explicitly enable Unlimited. The default remains 10 captures (macOS, Windows).
+- new: Select multiple history captures and save them to a folder. PNG exports include annotations, crop and background; GIFs retain their original animation (macOS, Windows).
+- new: Set a default save folder, also used by the single-image Save dialog. Batch saving asks for a folder once when none is configured (macOS, Windows).
+- fix: Preserve existing destination files and current edits when batch exports encounter collisions or write failures; keep failed captures selected for retry (macOS, Windows).
+
 ## 0.9.7 – 2026-09-07
 
 - new: Open PNG/JPEG images, drop a file onto the editor, or paste an image from the clipboard. Imported images support the same annotations, crop, backgrounds and persistent history as captures (macOS, Windows).

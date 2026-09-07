@@ -23,6 +23,7 @@ public class QuitIngressTests
             {
                 string root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
                 var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                var export = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
                 var app = new TestApp(); // real entry points with external startup services disabled
                 var store = new HistoryStore(root, beforeWrite: () => release.Task);
                 bool importAccepted = false;
@@ -33,6 +34,7 @@ public class QuitIngressTests
                 });
                 try
                 {
+                    ((HashSet<Task>)Get(app, "_batchExports")!).Add(export.Task);
                     Set(app, "_history", store);
                     Set(app, "_imageImports", imports);
                     Set(app, "_coordinator", new CaptureCoordinator(new GdiScreenCapturer()));
@@ -49,6 +51,9 @@ public class QuitIngressTests
                     Assert.Null(Get(app, "_editor"));
                     Assert.Empty(app.Windows.Cast<object>());
                     release.SetResult();
+                    await store.FlushPendingAsync();
+                    Assert.False(quitting.IsCompleted); // do not terminate a running batch export
+                    export.SetResult();
                     Assert.True(await quitting);
                     Invoke(app, "ResumeAfterQuitPreparation"); // cancelled quit / failed installer
                     Assert.False((bool)Get(app, "_preparingQuit")!);
@@ -62,6 +67,7 @@ public class QuitIngressTests
                 catch (Exception ex) { finished.SetException(ex); }
                 finally
                 {
+                    export.TrySetResult();
                     release.TrySetResult();
                     await store.FlushPendingAsync();
                     app.Shutdown();

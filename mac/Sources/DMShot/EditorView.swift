@@ -36,6 +36,9 @@ struct EditorView: View {
     var onOpenSettings: () -> Void
     var onOpenImage: () -> Void
     var onDropImages: ([URL]) -> Void
+    var onSaveSelected: (Set<String>, @escaping (Set<String>) -> Void) -> Void = { _, done in done([]) }
+    @State private var batchSelection: Set<String> = []
+    @State private var batchSaving = false
 
     @State private var hoveredHistoryID: String?
     @ObservedObject private var localizer = Localizer.shared
@@ -217,10 +220,32 @@ struct EditorView: View {
                     .padding(.horizontal, 10)
                     .padding(.top, 14)
                     .padding(.bottom, 4)
-                VStack(spacing: 8) {
+                if !batchSelection.isEmpty {
+                    VStack(spacing: 6) {
+                        Button(String(format: tr(.saveSelected), batchSelection.count)) {
+                            batchSaving = true
+                            onSaveSelected(batchSelection) { saved in
+                                batchSelection.subtract(saved)
+                                batchSaving = false
+                            }
+                        }
+                        Button(tr(.clearSelection)) { batchSelection.removeAll() }
+                    }.disabled(batchSaving).padding(.vertical, 6)
+                }
+                LazyVStack(spacing: 8) {
                     ForEach(history.items) { item in
                         if let thumb = history.thumbnail(item.id) {
-                            historyThumb(item: item, thumb: thumb)
+                            HStack(alignment: .top, spacing: 5) {
+                                Toggle(tr(.selectForSave), isOn: Binding(
+                                    get: { batchSelection.contains(item.id) },
+                                    set: { checked in
+                                        if checked { batchSelection.insert(item.id) }
+                                        else { batchSelection.remove(item.id) }
+                                    }))
+                                    .toggleStyle(.checkbox).labelsHidden().disabled(batchSaving)
+                                    .accessibilityLabel(Text("\(tr(.selectForSave)), \(Date(timeIntervalSince1970: item.createdAt).formatted())"))
+                                historyThumb(item: item, thumb: thumb)
+                            }
                         }
                     }
                 }
@@ -230,6 +255,7 @@ struct EditorView: View {
             }
             .padding(6)
         }
+        .onChange(of: history.items.map(\.id)) { _, ids in batchSelection.formIntersection(ids) }
         .dmGroupSurface(design)
         .padding(.leading, Self.cardGap)
         .padding(.vertical, Self.cardGap)

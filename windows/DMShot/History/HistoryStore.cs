@@ -12,7 +12,23 @@ namespace DMShot.History;
 /// not durable: WriteFailed and FlushPendingAsync report persistence failures.</summary>
 public sealed class HistoryStore
 {
-    private const int Max = 10;
+    private int _limit = Settings.HistoryLimit.Default;
+
+    /// <summary>Wie viele Einträge der Verlauf behält (<see cref="Settings.HistoryLimit.Unlimited"/>
+    /// = alle). Wird die Grenze gesenkt, räumt der Setter sofort auf, damit die Einstellung
+    /// sichtbar wirkt und nicht erst bei der nächsten Aufnahme.</summary>
+    public int Limit
+    {
+        get { lock (_state) return _limit; }
+        set
+        {
+            value = Math.Max(1, value);
+            bool changed;
+            lock (_state) { changed = _limit != value; _limit = value; if (changed) Evict(); }
+            if (changed) Changed?.Invoke();
+        }
+    }
+
     public sealed record PendingDocument(ImageSnapshot Original, IReadOnlyList<AnnotationDto> Annotations,
         PixelRect? Crop, BackgroundStyle Style);
     private sealed record Revision(HistoryEntry Entry, PendingDocument? Document, ImageSnapshot? VideoThumb,
@@ -53,7 +69,7 @@ public sealed class HistoryStore
             try
             {
                 var list = JsonSerializer.Deserialize<List<HistoryEntry>>(File.ReadAllText(IndexPath)) ?? new();
-                _entries.AddRange(list.Where(IsRestorable).OrderBy(e => e.CreatedUtc).TakeLast(Max));
+                _entries.AddRange(list.Where(IsRestorable).OrderBy(e => e.CreatedUtc).TakeLast(_limit));
                 _diskEntries.AddRange(list.Select(Copy));
                 foreach (var removed in list.Where(e => !_entries.Any(kept => kept.Id == e.Id)))
                     Enqueue(new(removed, null, null, null, Deleted: true));
@@ -82,7 +98,7 @@ public sealed class HistoryStore
     }
     private void Evict()
     {
-        while (_entries.Count > Max) Delete(_entries.OrderBy(e => e.CreatedUtc).First().Id);
+        while (_entries.Count > _limit) Delete(_entries.OrderBy(e => e.CreatedUtc).First().Id);
     }
     private void Enqueue(Revision revision)
     {

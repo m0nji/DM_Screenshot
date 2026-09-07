@@ -1,3 +1,7 @@
+// Die Eigenschaft Settings.HistoryLimit verdeckt den gleichnamigen Typ innerhalb dieser
+// Klasse — der Alias hält den Zugriff auf dessen Konstanten lesbar.
+using HistoryLimits = DMShot.Settings.HistoryLimit;
+
 namespace DMShot.Settings;
 
 public enum AfterCaptureMode { MainWindow, QuickEdit }
@@ -20,6 +24,15 @@ public sealed class Settings
     public bool DesignMigratedToGraphiteSand { get; set; } = false;
     public bool ShowZoomLoupe { get; set; } = true;
     public string Language { get; set; } = "en";
+
+    // Verlaufsgrenze: bis 0.9.7 fest 10. HistoryUnlimited hat Vorrang vor HistoryLimit;
+    // die Zahl bleibt dabei erhalten, damit das Feld beim Abschalten wieder dasteht.
+    public int HistoryLimit { get; set; } = HistoryLimits.Default;
+    public bool HistoryUnlimited { get; set; } = false;
+
+    // Zielordner fürs Speichern. Leer = noch keiner gewählt; dann fragt der erste
+    // Speichervorgang danach, vorbelegt mit Bilder\Screenshots (siehe SaveLocation).
+    public string DefaultSaveFolder { get; set; } = "";
 
     // Annotation defaults remembered across restarts and shared by the main editor and the
     // Quick-Edit overlay. Match the CanvasControl/editor-slider defaults (4 px / blur 12 = mac).

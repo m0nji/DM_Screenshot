@@ -74,5 +74,60 @@ public class SettingsTests : IDisposable
         Assert.Equal(2, (int)AppDesign.GraphiteSand);
     }
 
+    [Fact]
+    public void HistoryLimit_DefaultsToTenAndBounded()
+    {
+        var s = new SettingsStore(_path).Load();
+        Assert.Equal(HistoryLimit.Default, s.HistoryLimit);
+        Assert.False(s.HistoryUnlimited);
+    }
+
+    [Fact]
+    public void HistoryLimit_RoundTrips()
+    {
+        var store = new SettingsStore(_path);
+        store.Save(new Settings { HistoryLimit = 42, HistoryUnlimited = true });
+        var loaded = store.Load();
+        Assert.Equal(42, loaded.HistoryLimit);
+        Assert.True(loaded.HistoryUnlimited);
+    }
+
+    /// <summary>Eine settings.json aus 0.9.7 kennt die neuen Felder nicht — beim Upgrade
+    /// müssen sie auf ihren Vorgaben landen und nicht auf 0 bzw. null.</summary>
+    [Fact]
+    public void Load_SettingsFileWithoutNewFields_UsesDefaults()
+    {
+        File.WriteAllText(_path, """
+        {
+          "FullScreenHotkey": "Ctrl+Shift+1",
+          "AppDesign": 2,
+          "DesignMigratedToGraphiteSand": true,
+          "Language": "de"
+        }
+        """);
+        var s = new SettingsStore(_path).Load();
+
+        Assert.Equal(HistoryLimit.Default, s.HistoryLimit);
+        Assert.False(s.HistoryUnlimited);
+        Assert.Equal("", s.DefaultSaveFolder);
+        Assert.Equal(HistoryLimit.Default, HistoryLimit.Effective(s));
+        Assert.Null(SaveLocation.Configured(s.DefaultSaveFolder));
+        Assert.Equal("de", s.Language);   // vorhandene Werte bleiben unangetastet
+    }
+
+    [Fact]
+    public void DefaultSaveFolder_DefaultsToEmpty()
+    {
+        Assert.Equal("", new SettingsStore(_path).Load().DefaultSaveFolder);
+    }
+
+    [Fact]
+    public void DefaultSaveFolder_RoundTrips()
+    {
+        var store = new SettingsStore(_path);
+        store.Save(new Settings { DefaultSaveFolder = @"D:\Bilder\Aufnahmen" });
+        Assert.Equal(@"D:\Bilder\Aufnahmen", store.Load().DefaultSaveFolder);
+    }
+
     public void Dispose() { if (File.Exists(_path)) File.Delete(_path); }
 }

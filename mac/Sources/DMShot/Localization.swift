@@ -11,6 +11,7 @@ enum L: CaseIterable {
     case design, designHelp, designGraphiteSand, designStandard, designBlack
     case showLoupe, showLoupeHelp
     case languageLabel, languageHelp
+    case historyLimit, historyLimitHelp, historyUnlimited, defaultSaveFolder, defaultSaveFolderHelp, chooseFolder, folderNotSet, selectForSave, saveSelected, clearSelection, batchSaveFolderTitle, batchSaveDoneTitle, batchSaveDone, batchSavePartial
     // Settings — updates
     case version, versionHelp, checkForUpdates, updatesInstalledOnly
     case checkingForUpdates, upToDate, updateAvailable, whatsNew, updateNow
@@ -73,6 +74,20 @@ final class Localizer: ObservableObject {
 
     private static func value(_ key: L) -> (en: String, de: String) {
         switch key {
+        case .historyLimit: return ("History limit", "Verlaufsgrenze")
+        case .historyLimitHelp: return ("How many captures the history keeps. Older ones are removed automatically.", "Wie viele Aufnahmen der Verlauf behält. Ältere werden automatisch entfernt.")
+        case .historyUnlimited: return ("Unlimited", "Unbegrenzt")
+        case .defaultSaveFolder: return ("Default save folder", "Standard-Speicherort")
+        case .defaultSaveFolderHelp: return ("Where captures are saved. If none is set, DM Screenshot asks once and suggests Pictures/Screenshots.", "Wohin Aufnahmen gespeichert werden. Ist keiner festgelegt, fragt DM Screenshot einmalig und schlägt Bilder/Screenshots vor.")
+        case .chooseFolder: return ("Choose Folder…", "Ordner wählen…")
+        case .folderNotSet: return ("Not set", "Nicht festgelegt")
+        case .selectForSave: return ("Select for saving", "Zum Speichern auswählen")
+        case .saveSelected: return ("Save selection (%d)", "Auswahl speichern (%d)")
+        case .clearSelection: return ("Clear selection", "Auswahl aufheben")
+        case .batchSaveFolderTitle: return ("Choose a folder for the selected captures", "Ordner für die ausgewählten Aufnahmen wählen")
+        case .batchSaveDoneTitle: return ("Saved", "Gespeichert")
+        case .batchSaveDone: return ("%d captures saved to:\n%@", "%d Aufnahmen gespeichert in:\n%@")
+        case .batchSavePartial: return ("%d of %d captures could not be saved.", "%d von %d Aufnahmen konnten nicht gespeichert werden.")
         case .openImage: return ("Open image…", "Bild öffnen…")
         case .pasteImage: return ("Paste", "Einfügen")
         case .importFailedTitle: return ("Could not import image", "Bildimport fehlgeschlagen")
