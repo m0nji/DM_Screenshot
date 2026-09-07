@@ -31,27 +31,16 @@ struct QuickEditToolbar: View {
     var body: some View {
         let _ = localizer.language  // re-render on language change
         VStack(spacing: 8) {
-            HStack(spacing: 6) {
-                ViewThatFits(in: .horizontal) {
-                    HStack(spacing: 6) { toolButtons; contextControls }
-                    HStack(spacing: 6) {
-                        toolMenu
-                        contextControls
-                    }
+            ViewThatFits(in: .horizontal) {
+                toolbarRow(compact: false).fixedSize()
+                toolbarRow(compact: true).fixedSize()
+                HStack(spacing: 10) {
                     HStack(spacing: 6) {
                         toolMenu
                         ScrollView(.horizontal) { contextControls }.frame(height: 36)
-                    }
-                }.disabled(model.image == nil)
-                Spacer(minLength: 4)
-                HStack(spacing: 6) {
-                    action("doc.on.doc", .copy, onCopy).disabled(model.image == nil)
-                    action("square.and.arrow.down", .save, onSave).disabled(model.image == nil)
-                    action("macwindow", .editInMainWindow, onEditInMain)
-                    action("arrow.uturn.backward", .undo, model.undo).disabled(!model.canUndo)
-                    action("arrow.uturn.forward", .redo, model.redo).disabled(!model.canRedo)
-                    action("xmark", .close, onClose)
-                }.fixedSize()
+                    }.disabled(model.image == nil)
+                    actionButtons
+                }
             }
             .padding(12)
             .background(panelBackground)
@@ -67,8 +56,30 @@ struct QuickEditToolbar: View {
                 .background(panelBackground)
             }
         }
-        .frame(width: min(1100, availableSize.width))
+        .frame(maxWidth: min(1100, availableSize.width))
+        .fixedSize(horizontal: true, vertical: false)
         .dmTooltipLayer()
+    }
+
+    private func toolbarRow(compact: Bool) -> some View {
+        HStack(spacing: 10) {
+            HStack(spacing: 6) {
+                if compact { toolMenu } else { toolButtons }
+                contextControls
+            }.disabled(model.image == nil)
+            actionButtons
+        }
+    }
+
+    private var actionButtons: some View {
+        HStack(spacing: 6) {
+            action("doc.on.doc", .copy, onCopy).disabled(model.image == nil)
+            action("square.and.arrow.down", .save, onSave).disabled(model.image == nil)
+            action("macwindow", .editInMainWindow, onEditInMain)
+            action("arrow.uturn.backward", .undo, model.undo).disabled(!model.canUndo)
+            action("arrow.uturn.forward", .redo, model.redo).disabled(!model.canRedo)
+            action("xmark", .close, onClose)
+        }.fixedSize()
     }
 
     private func action(_ icon: String, _ label: L, _ perform: @escaping () -> Void) -> some View {

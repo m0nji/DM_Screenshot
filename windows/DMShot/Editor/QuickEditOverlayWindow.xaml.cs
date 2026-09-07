@@ -552,10 +552,13 @@ public partial class QuickEditOverlayWindow : Window
 
         double availableWidth = Math.Max(1, safeRight - safeLeft - 2 * margin);
         _availableToolbarHeight = Math.Max(1, safeBottom - safeTop - 2 * margin);
-        toolbar.Width = Math.Min(1100, availableWidth);
+        // Measure the content, capped by the work area, instead of stretching
+        // the tool/action groups apart across a fixed 1100-DIP surface.
+        toolbar.Width = double.NaN;
+        toolbar.MaxWidth = Math.Min(1100, availableWidth);
         if (_flyout is Border { Child: ScrollViewer scroll })
             scroll.MaxHeight = Math.Max(1, _availableToolbarHeight - 160);
-        toolbar.Measure(new WSize(toolbar.Width, _availableToolbarHeight));
+        toolbar.Measure(new WSize(toolbar.MaxWidth, _availableToolbarHeight));
         double tbW = toolbar.DesiredSize.Width, tbH = toolbar.DesiredSize.Height;
 
         // X: center on capture, clamped so the whole toolbar stays in the safe area.

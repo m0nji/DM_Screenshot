@@ -4,6 +4,12 @@ All notable changes to DM_Screenshot. Newest version first. Always written in En
 
 ## [Unreleased]
 
+## 0.9.12 – 2026-09-07
+
+## 0.9.12 – 2026-09-07
+
+- fix: Size the Quick Edit toolbar to its controls instead of stretching it across unused space; keep actions on the right and adapt to narrow screens (macOS, Windows).
+
 ## 0.9.11 – 2026-09-07
 
 ## 0.9.11 – 2026-09-07
