@@ -592,5 +592,16 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.9.4/DM_Screenshot-v0.9.4.dmg" type="application/octet-stream" sparkle:edSignature="+cGkiv80BSMOMFTB7712jCKe4HfJkvwgjpRN4ztkbBfVUcfvLWaKKRDz2RM9rgGYOCD6+8i6sbkozszgsyIYCg==" length="2410873" />
 </item>
 
+<item>
+  <title>Version 0.9.5</title>
+  <description><![CDATA[<ul><li>new: Keep Copy and Save visible in adaptive editor toolbars, fit Quick Edit to smaller displays, and show capture actions and shortcuts in the empty editor (macOS, Windows).</li>
+<li>fix: Improve keyboard navigation, screen-reader labels, selected tool states, live translations and history deletion (macOS, Windows).</li>
+<li>perf: Save Windows history through a background revision queue with immutable snapshots and cached thumbnails; render macOS history snapshots off the main thread.</li>
+<li>fix: Preserve pending changes during history switches, failed writes, quit and update restart; prevent new editor windows during shutdown and recover missing history originals (Windows).</li></ul>]]></description>
+  <sparkle:version>0.9.5</sparkle:version>
+  <sparkle:shortVersionString>0.9.5</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.9.5/DM_Screenshot-v0.9.5.dmg" type="application/octet-stream" sparkle:edSignature="C7/cjigfy4mq7qpff+/4B5Rn85fvvm8TS4sGT31MmJtKmfx32QmGdSORZuH/y+E4d1exklH+33aCLurZIpmkAg==" length="2468999" />
+</item>
+
 </channel>
 </rss>
