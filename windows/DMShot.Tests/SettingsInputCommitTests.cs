@@ -1,7 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using System.Windows.Threading;
 using DMShot.Settings;
 using Xunit;
 
@@ -23,11 +22,9 @@ public class SettingsInputCommitTests
                 window = new Window { Content = panel, Width = 300, Height = 200, ShowInTaskbar = false };
                 int saved = 10;
                 _ = new SettingsInputCommit(box, () => saved = int.Parse(box.Text));
-                window.Show();
-                window.Activate();
-                box.Focus();
-                Keyboard.Focus(box);
-                Dispatcher.CurrentDispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
+                // Exercise the Loaded attachment and routed clicks explicitly. A CI
+                // desktop need not activate/render a window before its input policy runs.
+                box.RaiseEvent(new RoutedEventArgs(FrameworkElement.LoadedEvent));
                 box.Text = "25";
                 Assert.Equal(10, saved); // no retention change for each typed digit
                 box.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Left)
