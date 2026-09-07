@@ -1,3 +1,4 @@
+import AppKit
 import Combine
 import Foundation
 
@@ -34,6 +35,17 @@ final class DocumentPersistence {
         guard let snapshot = model.renderSnapshot() else { return }
         history.updateEntry(id: id, document: document, snapshot: snapshot)
         lastSaved = (id, document)
+    }
+
+    /// Same persistence boundary as a capture, without capture presentation or clipboard side effects.
+    func importImage(_ image: CGImage) {
+        saveCurrent()
+        let id = UUID().uuidString
+        model.useFrameDefaults()
+        history.addCapture(id: id, original: image, annotations: [], background: model.backgroundStyle)
+        model.load(image: image, entryID: id)
+        if model.backgroundEnabled { saveCurrent() }
+        else { markCurrentSaved() }
     }
 
     func load(_ id: String) {

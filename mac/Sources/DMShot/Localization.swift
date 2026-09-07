@@ -34,6 +34,7 @@ enum L: CaseIterable {
     case saveFailedTitle, saveFailedBody
     case captureFailedTitle, captureFailedBody, clipboardFailedTitle, clipboardFailedBody
     case historyFailedTitle, historyFailedBody, quitUnsavedBody, quitWithoutSaving
+    case openImage, pasteImage, importFailedTitle, importFailedBody, importTooLarge, importInvalid, importOneImage
     // Editor
     case sidebarWidth, gradientWarm, gradientCool, gradientNeutral
     case moreTools, emptyCanvasTitle, emptyCanvasHint
@@ -72,13 +73,20 @@ final class Localizer: ObservableObject {
 
     private static func value(_ key: L) -> (en: String, de: String) {
         switch key {
+        case .openImage: return ("Open image…", "Bild öffnen…")
+        case .pasteImage: return ("Paste", "Einfügen")
+        case .importFailedTitle: return ("Could not import image", "Bildimport fehlgeschlagen")
+        case .importFailedBody: return ("The image could not be opened. %@", "Das Bild konnte nicht geöffnet werden. %@")
+        case .importTooLarge: return ("Images must be at most 40 megapixels, 32,768 pixels per side and 100 MiB.", "Bilder dürfen höchstens 40 Megapixel, 32.768 Pixel pro Seite und 100 MiB groß sein.")
+        case .importInvalid: return ("Choose a valid PNG or JPEG image, or copy an image to the clipboard.", "Wähle ein gültiges PNG- oder JPEG-Bild oder kopiere ein Bild in die Zwischenablage.")
+        case .importOneImage: return ("Please import one image at a time.", "Bitte importiere jeweils ein einzelnes Bild.")
         case .sidebarWidth: return ("Sidebar width", "Seitenleistenbreite")
         case .gradientWarm: return ("Warm gradient", "Warmer Verlauf")
         case .gradientCool: return ("Cool gradient", "Kühler Verlauf")
         case .gradientNeutral: return ("Neutral gradient", "Neutraler Verlauf")
         case .moreTools: return ("More tools", "Mehr Werkzeuge")
-        case .emptyCanvasTitle: return ("Create a capture", "Aufnahme erstellen")
-        case .emptyCanvasHint: return ("Choose a capture action or use its shortcut.", "Wähle eine Aufnahme oder nutze den Kurzbefehl.")
+        case .emptyCanvasTitle: return ("Capture or open an image", "Bild aufnehmen oder öffnen")
+        case .emptyCanvasHint: return ("Choose a capture action, open a PNG/JPEG, or drop or paste an image here.", "Wähle eine Aufnahme, öffne ein PNG/JPEG oder ziehe ein Bild hierher bzw. füge es ein.")
         case .captureFailedTitle: return ("Capture failed", "Aufnahme fehlgeschlagen")
         case .captureFailedBody: return ("Please try the capture again. %@", "Bitte starte die Aufnahme erneut. %@")
         case .clipboardFailedTitle: return ("Could not copy", "Kopieren fehlgeschlagen")

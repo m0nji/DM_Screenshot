@@ -17,6 +17,9 @@ public partial class EditorWindow : Window
     public Action? OnRequestVideoFull { get; set; }
     public Action? OnRequestVideoArea { get; set; }
     public Action? OnRequestSettings { get; set; }
+    public Action? OnRequestOpenImage { get; set; }
+    public Action? OnRequestPasteImage { get; set; }
+    public Action<IReadOnlyList<string>>? OnImagesDropped { get; set; }
     /// <summary>V17: invoked when a video history entry is clicked, instead of loading it as an image.</summary>
     public Action<HistoryEntry>? OnVideoEntryActivated { get; set; }
 
@@ -372,6 +375,19 @@ public partial class EditorWindow : Window
     private void VideoFullClick(object s, RoutedEventArgs e) => OnRequestVideoFull?.Invoke();
     private void VideoAreaClick(object s, RoutedEventArgs e) => OnRequestVideoArea?.Invoke();
     private void SettingsClick(object s, RoutedEventArgs e) => OnRequestSettings?.Invoke();
+    private void OpenImageClick(object s, RoutedEventArgs e) => OnRequestOpenImage?.Invoke();
+
+    private void CanvasDragOver(object sender, DragEventArgs e)
+    {
+        e.Effects = e.Data.GetDataPresent(DataFormats.FileDrop) ? DragDropEffects.Copy : DragDropEffects.None;
+        e.Handled = true;
+    }
+
+    private void CanvasDrop(object sender, DragEventArgs e)
+    {
+        e.Handled = true;
+        if (e.Data.GetData(DataFormats.FileDrop) is string[] paths) OnImagesDropped?.Invoke(paths);
+    }
 
     private void UndoClick(object s, RoutedEventArgs e) => Canvas.Model.Undo();
     private void RedoClick(object s, RoutedEventArgs e) => Canvas.Model.Redo();
@@ -414,6 +430,13 @@ public partial class EditorWindow : Window
 
     private void OnKey(object sender, KeyEventArgs e)
     {
+        // Keep Ctrl+V inside inline annotation editors (and other text inputs) as text paste.
+        bool textInputFocused = Keyboard.FocusedElement is System.Windows.Controls.Primitives.TextBoxBase;
+        if (e.Key == Key.V && ImageImport.ShouldHandlePaste(
+                Keyboard.Modifiers == ModifierKeys.Control, textInputFocused, _clipboard.ContainsImage()))
+        {
+            OnRequestPasteImage?.Invoke(); e.Handled = true; return;
+        }
         if (e.Key is Key.Delete or Key.Back) { Canvas.DeleteSelected(); return; }
         if (e.Key == Key.Z && Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift))
         {
@@ -430,6 +453,7 @@ public partial class EditorWindow : Window
             case Key.Z: Canvas.Model.Undo(); break;
             case Key.Y: Canvas.Model.Redo(); break;
             case Key.S: SaveClick(sender, e); break;
+            case Key.O: OnRequestOpenImage?.Invoke(); e.Handled = true; break;
         }
     }
 }

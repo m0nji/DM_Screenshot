@@ -7,6 +7,24 @@ namespace DMShot.Platform;
 
 public sealed class WpfClipboard : IClipboardService
 {
+    public bool ContainsImage()
+    {
+        bool result = false;
+        ClipboardRetry.Run(() => result = System.Windows.Clipboard.ContainsImage());
+        return result;
+    }
+
+    public Bitmap? GetImage()
+    {
+        Bitmap? result = null;
+        ClipboardRetry.Run(() =>
+        {
+            var source = System.Windows.Clipboard.GetImage();
+            result = source is null ? null : ImageInterop.FromBitmapSource(source);
+        });
+        return result;
+    }
+
     public void SetImage(Bitmap bmp)
     {
         var src = ImageInterop.ToBitmapSource(bmp);

@@ -33,6 +33,8 @@ enum MainMenuBuilder {
         static let undo = Selector(("menuUndo"))
         static let redo = Selector(("menuRedo"))
         static let copy = Selector(("copy:"))
+        static let openImage = Selector(("openImage"))
+        static let paste = Selector(("paste:"))
         static let save = Selector(("menuSave"))
         static let delete = Selector(("delete:"))
         static let settings = Selector(("openSettings"))
@@ -83,6 +85,7 @@ enum MainMenuBuilder {
             item(tr(.menuNewVideoFull), Action.captureVideoFull),
             item(tr(.menuNewVideoSelection), Action.captureVideoArea),
             .separator(),
+            item(tr(.openImage), Action.openImage, "o"),
             item(tr(.saveEllipsis), Action.save, "s"),
             .separator(),
             item(tr(.menuCloseWindow), #selector(NSWindow.performClose(_:)), "w"),
@@ -95,6 +98,7 @@ enum MainMenuBuilder {
             item(tr(.redo), Action.redo, "Z", [.command, .shift]),
             .separator(),
             item(tr(.copy), Action.copy, "c"),
+            item(tr(.pasteImage), Action.paste, "v"),
             item(tr(.menuDeleteAnnotation), Action.delete, "\u{8}", []),  // ⌫, no modifier
         ]
     }

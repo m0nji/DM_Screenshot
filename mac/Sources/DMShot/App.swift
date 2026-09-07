@@ -1,11 +1,13 @@
 import AppKit
 import Combine
 import SwiftUI
+import UniformTypeIdentifiers
 
 final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private let model = EditorModel()
     private let history = HistoryStore()
     private lazy var persistence = DocumentPersistence(model: model, history: history)
+    private var importInProgress = false
     private let captureGate = CaptureRequestGate()
     private let overlay = OverlayController()
     private let shortcutStore = ShortcutStore()
@@ -660,7 +662,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 onVideoArea: { [weak self] in self?.captureVideoArea() },
                 onSelectHistory: { [weak self] id in self?.loadHistory(id) },
                 onDeleteHistory: { [weak self] id in self?.deleteHistory(id) },
-                onOpenSettings: { [weak self] in self?.openSettings() })
+                onOpenSettings: { [weak self] in self?.openSettings() },
+                onOpenImage: { [weak self] in self?.openImage() },
+                onDropImages: { [weak self] urls in self?.importFiles(urls) })
             let win = NSWindow(
                 contentRect: NSRect(x: 0, y: 0, width: 1100, height: 720),
                 styleMask: [.titled, .closable, .miniaturizable, .resizable],
@@ -679,7 +683,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     @objc private func openSettings() {
         if settingsWindow == nil {
-            let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.9.6"
+            let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.9.7"
             let win = NSWindow(
                 contentRect: NSRect(x: 0, y: 0, width: 640, height: 420),
                 styleMask: [.titled, .closable], backing: .buffered, defer: false)
@@ -732,6 +736,57 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         if ReopenPolicy.shouldShowEditor(hasVisibleWindows: flag) { showEditor() }
         return true
+    }
+
+    // MARK: - Image import
+
+    @objc private func openImage() {
+        guard !importInProgress else { return }
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.png, .jpeg]
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        if panel.runModal() == .OK { importFiles(panel.urls) }
+    }
+
+    private func importFiles(_ urls: [URL]) {
+        guard !importInProgress else { return }
+        guard urls.count == 1 else { showImportError(ImageImport.Failure.oneImage); return }
+        startImport(.file(urls[0]))
+    }
+
+    /// Standard selector lets NSTextView consume text paste first. The fallback
+    /// only imports while the main editor is key, never from Settings or Quick Edit.
+    @objc func paste(_ sender: Any?) {
+        guard NSApp.keyWindow === editorWindow, focusedTextEditor() == nil, !importInProgress else { return }
+        do { startImport(try ImageImport.clipboardInput(.general)) }
+        catch { showImportError(error) }
+    }
+
+    private func startImport(_ input: ImageImport.Input) {
+        guard !importInProgress else { return }
+        importInProgress = true
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            defer { self.importInProgress = false }
+            do {
+                let image = try await Task.detached(priority: .userInitiated) { try input.decode() }.value
+                self.persistence.importImage(image)
+                self.lastCaptureScreenFrame = nil
+                self.showEditor()
+            } catch { self.showImportError(error) }
+        }
+    }
+
+    private func showImportError(_ error: Error) {
+        let body: L
+        switch error as? ImageImport.Failure {
+        case .tooLarge: body = .importTooLarge
+        case .oneImage: body = .importOneImage
+        case .invalid: body = .importInvalid
+        case nil: body = .importFailedBody
+        }
+        OperationAlert.show(title: .importFailedTitle, body: body, error: error)
     }
 
     // MARK: - Main-menu actions

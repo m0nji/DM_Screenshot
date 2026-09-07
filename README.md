@@ -17,6 +17,10 @@ AppKit / ScreenCaptureKit); **Windows** follows as a separate native project.
   steps, text, blur/pixelate (adjustable strength), crop. Color picker, stroke width,
   undo/redo. Non-destructive until copy/export.
 - **Auto-copy to clipboard** on every capture; `Copy` / `Save` (PNG) in the editor.
+- **Image import**: open PNG/JPEG with `⌘/Ctrl+O` or the sidebar, drop a file onto the
+  canvas, or paste a clipboard image with `⌘/Ctrl+V`. Imported images become new
+  editable history documents; source files stay unchanged. Text paste still works
+  while editing an annotation. Limit: 40 megapixels, 32,768 pixels per side, 100 MiB.
 - **Persistent history**: last 10 edited images in the left sidebar, survive restart.
 - **Menu-bar item**: capture or reopen the editor; closing the window hides it.
 

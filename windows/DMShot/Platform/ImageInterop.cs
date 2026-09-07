@@ -36,6 +36,30 @@ public static class ImageInterop
         finally { bmp.UnlockBits(data); }
     }
 
+    /// <summary>Copies a WPF clipboard bitmap into an independently owned 32-bit GDI bitmap.</summary>
+    public static Bitmap FromBitmapSource(BitmapSource source)
+    {
+        ImageImport.ValidateDimensions(source.PixelWidth, source.PixelHeight);
+        var converted = new FormatConvertedBitmap(source, System.Windows.Media.PixelFormats.Bgra32, null, 0);
+        int stride = checked(converted.PixelWidth * 4);
+        var pixels = new byte[checked(stride * converted.PixelHeight)];
+        converted.CopyPixels(pixels, stride, 0);
+        var bitmap = new Bitmap(converted.PixelWidth, converted.PixelHeight, PixelFormat.Format32bppArgb);
+        try
+        {
+            var data = bitmap.LockBits(new Rectangle(0, 0, bitmap.Width, bitmap.Height),
+                ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb);
+            try
+            {
+                for (int y = 0; y < bitmap.Height; y++)
+                    System.Runtime.InteropServices.Marshal.Copy(pixels, y * stride, data.Scan0 + y * data.Stride, stride);
+            }
+            finally { bitmap.UnlockBits(data); }
+            return bitmap;
+        }
+        catch { bitmap.Dispose(); throw; }
+    }
+
     /// <summary>Fully decoupled pixel copy. A Bitmap loaded from a path keeps the file
     /// locked, and Clone() shares that mapping — this copy holds no file handle.</summary>
     public static Bitmap DecoupledCopy(Bitmap src)

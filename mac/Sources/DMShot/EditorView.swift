@@ -34,6 +34,8 @@ struct EditorView: View {
     var onSelectHistory: (String) -> Void
     var onDeleteHistory: (String) -> Void
     var onOpenSettings: () -> Void
+    var onOpenImage: () -> Void
+    var onDropImages: ([URL]) -> Void
 
     @State private var hoveredHistoryID: String?
     @ObservedObject private var localizer = Localizer.shared
@@ -61,6 +63,10 @@ struct EditorView: View {
                     // the work area steps back.
                     CanvasView(model: model, appDesign: design, cornerRadius: Theme.canvasCornerRadius)
                         .overlay { if model.image == nil { ScrollView { emptyCanvas.frame(maxWidth: .infinity) } } }
+                        .dropDestination(for: URL.self) { urls, _ in
+                            onDropImages(urls)
+                            return true
+                        }
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .padding(.trailing, Self.cardGap)
                         .padding(.vertical, Self.cardGap)
@@ -205,6 +211,7 @@ struct EditorView: View {
                 CaptureButton(title: tr(.editorSelection), icon: "selection.pin.in.out", design: design, action: onCaptureArea)
                 CaptureButton(title: tr(.editorVideoFullScreen), icon: "video", design: design, action: onVideoFull)
                 CaptureButton(title: tr(.editorVideoSection), icon: "video.badge.plus", design: design, action: onVideoArea)
+                CaptureButton(title: tr(.openImage), icon: "folder", design: design, action: onOpenImage)
                 Text(tr(.historyHeader)).font(.caption2).foregroundStyle(design.textMutedColor)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 10)

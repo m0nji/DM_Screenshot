@@ -4,6 +4,11 @@ All notable changes to DM_Screenshot. Newest version first. Always written in En
 
 ## [Unreleased]
 
+## 0.9.7 – 2026-09-07
+
+- new: Open PNG/JPEG images, drop a file onto the editor, or paste an image from the clipboard. Imported images support the same annotations, crop, backgrounds and persistent history as captures (macOS, Windows).
+- fix: Preserve inline text paste during image editing; validate image dimensions and file size before decoding, normalize photo orientation and retain transparency without changing the original file (macOS, Windows).
+
 ## 0.9.6 – 2026-09-07
 
 - fix: Restore a single visible row for editor and Quick Edit actions and tools, keeping Copy and Save available at narrow widths (macOS, Windows).

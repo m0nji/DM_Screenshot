@@ -233,6 +233,13 @@
             <TextBlock Text="{loc:Tr editorFullScreen}" Margin="10,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap"/>
           </DockPanel>
         </Button>
+        <Button DockPanel.Dock="Top" Style="{StaticResource SidebarButton}" Click="OpenImageClick" Margin="0,0,0,2"
+                ToolTip="{loc:Tr openImage}" AutomationProperties.Name="{loc:Tr openImage}">
+          <DockPanel>
+            <Viewbox DockPanel.Dock="Left" Width="16" Height="16"><Canvas Width="24" Height="24"><Path Data="M4,6 L10,6 L12,8 L20,8 L18,19 L4,19 Z" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="2" StrokeLineJoin="Round"/></Canvas></Viewbox>
+            <TextBlock Text="{loc:Tr openImage}" Margin="10,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap"/>
+          </DockPanel>
+        </Button>
         <Button DockPanel.Dock="Top" Style="{StaticResource SidebarButton}" Click="AreaClick" Margin="0,0,0,2">
           <DockPanel>
             <Viewbox DockPanel.Dock="Left" Width="16" Height="16"><Canvas Width="24" Height="24"><Path Data="M3.5,7 L3.5,3.5 L7,3.5 M17,3.5 L20.5,3.5 L20.5,7 M20.5,17 L20.5,20.5 L17,20.5 M7,20.5 L3.5,20.5 L3.5,17 M11,3.5 L13,3.5 M11,20.5 L13,20.5 M3.5,11 L3.5,13 M20.5,11 L20.5,13" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/></Canvas></Viewbox>
@@ -374,7 +381,8 @@
          toolbar and sidebar read as one surface and only the work area steps back.
          The Border supplies the hairline; the control rounds its own content (a Border
          CornerRadius does not clip its child), hence radius 11 inside the 1px edge. -->
-    <Border Grid.Column="2" Margin="0,8,8,8" CornerRadius="12" ClipToBounds="True"
+    <Border Grid.Column="2" Margin="0,8,8,8" CornerRadius="12" ClipToBounds="True" AllowDrop="True"
+            DragOver="CanvasDragOver" Drop="CanvasDrop"
             Background="{DynamicResource DmCanvas}"
             BorderBrush="{DynamicResource DmBorder}" BorderThickness="1">
       <Grid>

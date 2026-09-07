@@ -28,6 +28,7 @@ public partial class App : Application
     internal bool IsQuitting => _quitting;
     private bool CanPresentWindows => !_preparingQuit && !_quitting;
     private HistoryStore _history = null!;
+    private ImageImportSession _imageImports = null!;
     private ITrayIcon _tray = null!;
     private Settings.Settings _settings = null!;
     private SettingsStore _settingsStore = null!;
@@ -68,6 +69,15 @@ public partial class App : Application
         _history.Load();
         _history.Changed += () => _editor?.RefreshHistory();
         _history.WriteFailed += ex => { if (!_preparingQuit && !_quitting) Alerts.Show("historyWriteFailedMessage", ex); };
+        _imageImports = new ImageImportSession(
+            persistCurrent: () => _editor?.FlushDocument() ?? true,
+            accept: bitmap =>
+            {
+                DismissQuickEdit();
+                var entry = _history.Add(bitmap, Array.Empty<Annotation>(), null, DateTime.UtcNow);
+                ShowEditorWithImage(bitmap, entry.Id);
+                return Task.CompletedTask;
+            });
         HistoryPerf.StartDispatcherProbe();
 
         _coordinator = new CaptureCoordinator(new GdiScreenCapturer(), () => _settings.ShowZoomLoupe);
@@ -312,6 +322,9 @@ public partial class App : Application
             OnRequestVideoFull = () => _coordinator.StartVideoFull(),
             OnRequestVideoArea = () => _coordinator.StartVideoArea(),
             OnRequestSettings = OpenSettings,
+            OnRequestOpenImage = OpenImage,
+            OnRequestPasteImage = PasteImage,
+            OnImagesDropped = ImportDroppedImages,
             OnVideoEntryActivated = OpenGifViewerForEntry   // V17
         };
         UpdateTrayHotkeyHints();
@@ -334,6 +347,55 @@ public partial class App : Application
         _editor!.Store = _history;
         _editor.RefreshHistory();
         _editor.Show(); _editor.WindowState = WindowState.Normal; _editor.Activate();
+    }
+
+    private async void OpenImage()
+    {
+        var dialog = new Microsoft.Win32.OpenFileDialog
+        {
+            Filter = Loc.Instance["openImageFilter"],
+            Multiselect = false,
+            CheckFileExists = true,
+        };
+        if (dialog.ShowDialog(_editor) == true) await ImportFileAsync(dialog.FileName);
+    }
+
+    private async void PasteImage()
+    {
+        try
+        {
+            using var clipboardImage = _clipboard.GetImage();
+            if (clipboardImage is null) return;
+            await _imageImports.ImportAsync(() => ImageImport.FromClipboardBitmap(clipboardImage));
+        }
+        catch (Exception ex) { ShowImportError(ex); }
+    }
+
+    private async void ImportDroppedImages(IReadOnlyList<string> paths)
+    {
+        if (paths.Count != 1)
+        {
+            MessageBox.Show(Loc.Instance["importOneImage"], Loc.Instance["importFailedTitle"],
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+        await ImportFileAsync(paths[0]);
+    }
+
+    private async Task ImportFileAsync(string path)
+    {
+        try { await _imageImports.ImportAsync(() => ImageImport.LoadFile(path)); }
+        catch (Exception ex) { ShowImportError(ex); }
+    }
+
+    private static void ShowImportError(Exception exception)
+    {
+        string detail = exception is ImageImportException import
+            ? Loc.Instance[import.Failure == ImageImportFailure.TooLarge ? "importTooLarge"
+                : import.Failure == ImageImportFailure.Invalid ? "importInvalid" : "historyWriteFailedDetail"]
+            : exception.Message;
+        MessageBox.Show(string.Format(Loc.Instance["importFailedBody"], detail),
+            Loc.Instance["importFailedTitle"], MessageBoxButton.OK, MessageBoxImage.Warning);
     }
 
     /// <summary>Relaunch (second process signaled us): reopen the editor. The signaling
