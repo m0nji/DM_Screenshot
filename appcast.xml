@@ -603,5 +603,13 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.9.5/DM_Screenshot-v0.9.5.dmg" type="application/octet-stream" sparkle:edSignature="C7/cjigfy4mq7qpff+/4B5Rn85fvvm8TS4sGT31MmJtKmfx32QmGdSORZuH/y+E4d1exklH+33aCLurZIpmkAg==" length="2468999" />
 </item>
 
+<item>
+  <title>Version 0.9.6</title>
+  <description><![CDATA[<ul><li>fix: Restore a single visible row for editor and Quick Edit actions and tools, keeping Copy and Save available at narrow widths (macOS, Windows).</li></ul>]]></description>
+  <sparkle:version>0.9.6</sparkle:version>
+  <sparkle:shortVersionString>0.9.6</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.9.6/DM_Screenshot-v0.9.6.dmg" type="application/octet-stream" sparkle:edSignature="6sPDsqif2laXFvAMuJ9iX4zsIbKMUBxL2Uh/ptajF5yPk9pToDvPlMbtjt+VCgpf3GdyCfl/idQmJ3NAdC+MCA==" length="2475059" />
+</item>
+
 </channel>
 </rss>
