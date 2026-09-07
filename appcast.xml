@@ -631,5 +631,15 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.9.8/DM_Screenshot-v0.9.8.dmg" type="application/octet-stream" sparkle:edSignature="6HUltO7AqphH8NTVzkD8Gy0PLXMt0yme/0qKqQmbiCx1dclkLmrDx91vxG8jFO+zr8zt+GVvCDwpRMbVNZPeAQ==" length="2552091" />
 </item>
 
+<item>
+  <title>Version 0.9.9</title>
+  <description><![CDATA[<ul><li>fix: Save history-limit edits when pressing Tab, clicking outside the input, switching windows or closing Settings; Enter is no longer required (macOS, Windows).</li>
+<li>change: Keep Settings pinned at the top of the editor sidebar, visible even in small windows or with a long history (macOS, Windows).</li>
+<li>change: Enable history multi-selection explicitly with Select. Checkboxes only appear in this mode; Done restores full-width previews. Selection mode keeps export controls visible and focuses the sidebar on history (macOS, Windows).</li></ul>]]></description>
+  <sparkle:version>0.9.9</sparkle:version>
+  <sparkle:shortVersionString>0.9.9</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.9.9/DM_Screenshot-v0.9.9.dmg" type="application/octet-stream" sparkle:edSignature="ozlbccfA/xPaV7IEf7QNZbK8n8mTyjXR7gLVG1juV8kPj1Aa7scI0xro2OrprBCSPJSbU0MiyQ5wbT4lqhHMDw==" length="2444150" />
+</item>
+
 </channel>
 </rss>
