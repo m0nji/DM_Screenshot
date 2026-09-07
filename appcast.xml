@@ -620,5 +620,16 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.9.7/DM_Screenshot-v0.9.7.dmg" type="application/octet-stream" sparkle:edSignature="RCB+oOldoLDDxjjjPMWDbZTCFL3I74YYBlSxvm3aigJ8hbLGxgVArWgZ/LX+BmIkQbTvpUF424rw+G0Idq6PCw==" length="2499641" />
 </item>
 
+<item>
+  <title>Version 0.9.8</title>
+  <description><![CDATA[<ul><li>new: Choose how many captures history keeps in Settings, or explicitly enable Unlimited. The default remains 10 captures (macOS, Windows).</li>
+<li>new: Select multiple history captures and save them to a folder. PNG exports include annotations, crop and background; GIFs retain their original animation (macOS, Windows).</li>
+<li>new: Set a default save folder, also used by the single-image Save dialog. Batch saving asks for a folder once when none is configured (macOS, Windows).</li>
+<li>fix: Preserve existing destination files and current edits when batch exports encounter collisions or write failures; keep failed captures selected for retry (macOS, Windows).</li></ul>]]></description>
+  <sparkle:version>0.9.8</sparkle:version>
+  <sparkle:shortVersionString>0.9.8</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.9.8/DM_Screenshot-v0.9.8.dmg" type="application/octet-stream" sparkle:edSignature="6HUltO7AqphH8NTVzkD8Gy0PLXMt0yme/0qKqQmbiCx1dclkLmrDx91vxG8jFO+zr8zt+GVvCDwpRMbVNZPeAQ==" length="2552091" />
+</item>
+
 </channel>
 </rss>
