@@ -4,6 +4,10 @@ All notable changes to DM_Screenshot. Newest version first. Always written in En
 
 ## [Unreleased]
 
+## 0.9.10 – 2026-09-07
+
+- fix: Restore Quick Edit actions to the right: Copy, Save, Open in Editor, Undo and Redo sit beside Close; drawing tools stay on the left in a single row (macOS, Windows).
+
 ## 0.9.9 – 2026-09-07
 
 - fix: Save history-limit edits when pressing Tab, clicking outside the input, switching windows or closing Settings; Enter is no longer required (macOS, Windows).

@@ -32,13 +32,6 @@ struct QuickEditToolbar: View {
         let _ = localizer.language  // re-render on language change
         VStack(spacing: 8) {
             HStack(spacing: 6) {
-                HStack(spacing: 6) {
-                    action("doc.on.doc", .copy, onCopy).disabled(model.image == nil)
-                    action("square.and.arrow.down", .save, onSave).disabled(model.image == nil)
-                    action("macwindow", .editInMainWindow, onEditInMain)
-                    action("arrow.uturn.backward", .undo, model.undo).disabled(!model.canUndo)
-                    action("arrow.uturn.forward", .redo, model.redo).disabled(!model.canRedo)
-                }.fixedSize()
                 ViewThatFits(in: .horizontal) {
                     HStack(spacing: 6) { toolButtons; contextControls }
                     HStack(spacing: 6) {
@@ -50,7 +43,15 @@ struct QuickEditToolbar: View {
                         ScrollView(.horizontal) { contextControls }.frame(height: 36)
                     }
                 }.disabled(model.image == nil)
-                action("xmark", .close, onClose).fixedSize()
+                Spacer(minLength: 4)
+                HStack(spacing: 6) {
+                    action("doc.on.doc", .copy, onCopy).disabled(model.image == nil)
+                    action("square.and.arrow.down", .save, onSave).disabled(model.image == nil)
+                    action("macwindow", .editInMainWindow, onEditInMain)
+                    action("arrow.uturn.backward", .undo, model.undo).disabled(!model.canUndo)
+                    action("arrow.uturn.forward", .redo, model.redo).disabled(!model.canRedo)
+                    action("xmark", .close, onClose)
+                }.fixedSize()
             }
             .padding(12)
             .background(panelBackground)

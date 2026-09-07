@@ -220,7 +220,7 @@ public partial class QuickEditOverlayWindow : Window
         actions.Children.Add(IconAction(VectorIcon(CloseGeo, false), Loc.Instance["close"], CloseOverlay));
         RefreshUndoAvailability();
         var rows = new DockPanel();
-        DockPanel.SetDock(actions, Dock.Left);
+        DockPanel.SetDock(actions, Dock.Right);
         rows.Children.Add(actions);
         rows.Children.Add(new ScrollViewer
         {
