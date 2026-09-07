@@ -641,5 +641,13 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.9.9/DM_Screenshot-v0.9.9.dmg" type="application/octet-stream" sparkle:edSignature="ozlbccfA/xPaV7IEf7QNZbK8n8mTyjXR7gLVG1juV8kPj1Aa7scI0xro2OrprBCSPJSbU0MiyQ5wbT4lqhHMDw==" length="2444150" />
 </item>
 
+<item>
+  <title>Version 0.9.10</title>
+  <description><![CDATA[<ul><li>fix: Restore Quick Edit actions to the right: Copy, Save, Open in Editor, Undo and Redo sit beside Close; drawing tools stay on the left in a single row (macOS, Windows).</li></ul>]]></description>
+  <sparkle:version>0.9.10</sparkle:version>
+  <sparkle:shortVersionString>0.9.10</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.9.10/DM_Screenshot-v0.9.10.dmg" type="application/octet-stream" sparkle:edSignature="N2tzfHkdRrL1ZatYrX3Q8OUIbQijJ/PjdYBegRpRn4q0gk9MwhEQN+Z8E3u+CmztfSBxKx4tNtxHtXW0gLzgDQ==" length="2447719" />
+</item>
+
 </channel>
 </rss>
