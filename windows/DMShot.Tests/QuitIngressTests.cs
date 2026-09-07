@@ -25,9 +25,16 @@ public class QuitIngressTests
                 var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
                 var app = new TestApp(); // real entry points with external startup services disabled
                 var store = new HistoryStore(root, beforeWrite: () => release.Task);
+                bool importAccepted = false;
+                var imports = new ImageImportSession(() => true, _ =>
+                {
+                    importAccepted = true;
+                    return Task.CompletedTask;
+                });
                 try
                 {
                     Set(app, "_history", store);
+                    Set(app, "_imageImports", imports);
                     Set(app, "_coordinator", new CaptureCoordinator(new GdiScreenCapturer()));
                     using var bitmap = new Bitmap(8, 8);
                     store.Add(bitmap, Array.Empty<Annotation>(), null, DateTime.UtcNow);
@@ -47,6 +54,9 @@ public class QuitIngressTests
                     Assert.False((bool)Get(app, "_preparingQuit")!);
                     Assert.False((bool)Get(app, "_quitting")!);
                     Assert.False(((CaptureCoordinator)Get(app, "_coordinator")!).Suspended);
+                    using var imported = new Bitmap(1, 1);
+                    await imports.ImportAsync(() => (Bitmap)imported.Clone());
+                    Assert.True(importAccepted);
                     finished.SetResult();
                 }
                 catch (Exception ex) { finished.SetException(ex); }

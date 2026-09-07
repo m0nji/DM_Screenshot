@@ -822,16 +822,14 @@ public partial class App : Application
             // handoff must leave a usable app. No UI event runs before caller's shutdown.
             foreach (var (window, enabled) in windows) window.IsEnabled = enabled;
             if (!_quitting)
-            {
-                _imageImports.Resume();
                 ResumeAfterQuitPreparation();
-            }
         }
     }
 
     private void ResumeAfterQuitPreparation()
     {
         _quitting = false; _preparingQuit = false;
+        _imageImports.Resume();
         if (_coordinator != null) _coordinator.Suspended = false;
         var frames = _deferredPreview; _deferredPreview = null;
         if (frames != null) ShowPreview(frames);
