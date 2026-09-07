@@ -44,8 +44,21 @@ final class HistoryScrollTests: XCTestCase {
             (view as? NSScrollView).map { [$0] } ?? view.subviews.flatMap(scrollViews)
         }
         let scroll = try XCTUnwrap(scrollViews(host).first { $0.frame.width < 250 && $0.frame.height > 200 })
+        // Allow initial font, scroller and hosting layout to settle before measuring
+        // scrolling. A cold CI desktop can need more than one AppKit layout pass.
+        let deadline = Date().addingTimeInterval(5)
+        var lastSize = CGSize.zero
+        var stableSince = Date()
+        while Date() < deadline {
+            host.layoutSubtreeIfNeeded()
+            RunLoop.main.run(until: Date().addingTimeInterval(0.02))
+            let size = scroll.documentView!.frame.size
+            if size != lastSize { lastSize = size; stableSince = Date() }
+            if Date().timeIntervalSince(stableSince) > 0.25 { break }
+        }
         var heightsSeen: [CGFloat] = []
         var corrections: [CGFloat] = []
+        var widthsSeen: [CGFloat] = []
         for step in 0..<50 {
             let oldY = scroll.contentView.bounds.origin.y
             let maxY = max(0, scroll.documentView!.frame.height - scroll.contentView.bounds.height)
@@ -54,12 +67,13 @@ final class HistoryScrollTests: XCTestCase {
             scroll.reflectScrolledClipView(scroll.contentView)
             host.layoutSubtreeIfNeeded()
             RunLoop.main.run(until: Date().addingTimeInterval(0.005))
+            widthsSeen.append(scroll.contentView.bounds.width)
             heightsSeen.append(scroll.documentView!.frame.height)
             corrections.append(abs(scroll.contentView.bounds.origin.y - max(0, target)))
         }
         XCTAssertGreaterThan(heightsSeen[0], scroll.contentView.bounds.height)
         XCTAssertEqual(heightsSeen.max()!, heightsSeen.min()!, accuracy: 0.5,
-                       "Scrolling must not revise estimated thumbnail heights")
+                       "Scrolling must not revise estimated thumbnail heights; clip widths: \(widthsSeen.min()!)...\(widthsSeen.max()!)")
         XCTAssertLessThanOrEqual(corrections.max()!, 0.5,
                                  "Scrolling must not jump to compensate for revised heights")
     }
