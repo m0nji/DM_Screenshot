@@ -657,5 +657,13 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.9.11/DM_Screenshot-v0.9.11.dmg" type="application/octet-stream" sparkle:edSignature="iIBdDGw2xwZqSEWvnjCwX1Jpo0xJl65FUNPGmtES/nUw8Dl1Rhu7Aug15MMrFrDwG4fM3o0jkvh2T/+dDOq8Dw==" length="2414339" />
 </item>
 
+<item>
+  <title>Version 0.9.12</title>
+  <description><![CDATA[<ul></ul>]]></description>
+  <sparkle:version>0.9.12</sparkle:version>
+  <sparkle:shortVersionString>0.9.12</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.9.12/DM_Screenshot-v0.9.12.dmg" type="application/octet-stream" sparkle:edSignature="GEXk+0+8L53DzNvfNwBQL0NnxuTZPrzY4Br57pC5lEgXQJaw93a/7My8scsH0nKpS8jVkJZ8sFsF0hXhBiWIDg==" length="2422742" />
+</item>
+
 </channel>
 </rss>
