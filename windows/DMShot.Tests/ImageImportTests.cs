@@ -47,6 +47,22 @@ public sealed class ImageImportTests : IDisposable
     }
 
     [Fact]
+    public void AnimatedPngImportsOnlyItsFirstCanvas()
+    {
+        string path = Path.Combine(_dir, "animated.png");
+        using (var image = new Image<Rgba32>(2, 2, new Rgba32(220, 10, 20, 255)))
+        {
+            using var later = new Image<Rgba32>(2, 2, new Rgba32(10, 20, 220, 255));
+            for (int i = 0; i < 24; i++) image.Frames.AddFrame(later.Frames.RootFrame);
+            image.SaveAsPng(path);
+        }
+
+        using var result = ImageImport.LoadFile(path);
+        var pixel = result.GetPixel(0, 0);
+        Assert.True(pixel.R > 200 && pixel.B < 40);
+    }
+
+    [Fact]
     public void RejectsUnsupportedAndCorruptFiles()
     {
         string gif = Path.Combine(_dir, "image.gif");
@@ -123,5 +139,34 @@ public sealed class ImageImportSessionTests
         await Assert.ThrowsAsync<ImageImportException>(() => session.ImportAsync(() => { decoded = true; return new Bitmap(1, 1); }));
         Assert.False(decoded);
         Assert.False(accepted);
+    }
+
+    [Fact]
+    public async Task CancelPendingRejectsLateResultAndDoesNotStartQueuedDecoder()
+    {
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        bool secondDecoded = false, accepted = false;
+        var session = new ImageImportSession(() => true, _ => { accepted = true; return Task.CompletedTask; });
+        var first = session.ImportAsync(() =>
+        {
+            started.SetResult();
+            release.Task.GetAwaiter().GetResult();
+            return new Bitmap(1, 1);
+        });
+        await started.Task;
+        var second = session.ImportAsync(() => { secondDecoded = true; return new Bitmap(1, 1); });
+
+        session.CancelPending();
+        release.SetResult();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => first);
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => second);
+        Assert.False(secondDecoded);
+        Assert.False(accepted);
+
+        session.Resume();
+        await session.ImportAsync(() => new Bitmap(1, 1));
+        Assert.True(accepted);
     }
 }

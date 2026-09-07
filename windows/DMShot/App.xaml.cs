@@ -73,6 +73,7 @@ public partial class App : Application
             persistCurrent: () => _editor?.FlushDocument() ?? true,
             accept: bitmap =>
             {
+                if (!CanPresentWindows) throw new OperationCanceledException();
                 DismissQuickEdit();
                 var entry = _history.Add(bitmap, Array.Empty<Annotation>(), null, DateTime.UtcNow);
                 ShowEditorWithImage(bitmap, entry.Id);
@@ -325,6 +326,7 @@ public partial class App : Application
             OnRequestOpenImage = OpenImage,
             OnRequestPasteImage = PasteImage,
             OnImagesDropped = ImportDroppedImages,
+            OnImageImportFailed = ShowImportError,
             OnVideoEntryActivated = OpenGifViewerForEntry   // V17
         };
         UpdateTrayHotkeyHints();
@@ -351,6 +353,7 @@ public partial class App : Application
 
     private async void OpenImage()
     {
+        if (!CanPresentWindows) return;
         var dialog = new Microsoft.Win32.OpenFileDialog
         {
             Filter = Loc.Instance["openImageFilter"],
@@ -362,17 +365,20 @@ public partial class App : Application
 
     private async void PasteImage()
     {
+        if (!CanPresentWindows) return;
         try
         {
             using var clipboardImage = _clipboard.GetImage();
             if (clipboardImage is null) return;
             await _imageImports.ImportAsync(() => ImageImport.FromClipboardBitmap(clipboardImage));
         }
+        catch (OperationCanceledException) { }
         catch (Exception ex) { ShowImportError(ex); }
     }
 
     private async void ImportDroppedImages(IReadOnlyList<string> paths)
     {
+        if (!CanPresentWindows) return;
         if (paths.Count != 1)
         {
             MessageBox.Show(Loc.Instance["importOneImage"], Loc.Instance["importFailedTitle"],
@@ -385,6 +391,7 @@ public partial class App : Application
     private async Task ImportFileAsync(string path)
     {
         try { await _imageImports.ImportAsync(() => ImageImport.LoadFile(path)); }
+        catch (OperationCanceledException) { }
         catch (Exception ex) { ShowImportError(ex); }
     }
 
@@ -789,6 +796,7 @@ public partial class App : Application
     {
         var windows = Windows.Cast<Window>().ToDictionary(window => window, window => window.IsEnabled);
         _preparingQuit = true;
+        _imageImports.CancelPending();
         try
         {
             _coordinator.Suspended = true;
@@ -813,7 +821,11 @@ public partial class App : Application
             // Restore window state even on a successful drain: a failed installer
             // handoff must leave a usable app. No UI event runs before caller's shutdown.
             foreach (var (window, enabled) in windows) window.IsEnabled = enabled;
-            if (!_quitting) ResumeAfterQuitPreparation();
+            if (!_quitting)
+            {
+                _imageImports.Resume();
+                ResumeAfterQuitPreparation();
+            }
         }
     }
 

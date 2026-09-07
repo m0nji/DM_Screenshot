@@ -20,6 +20,7 @@ public partial class EditorWindow : Window
     public Action? OnRequestOpenImage { get; set; }
     public Action? OnRequestPasteImage { get; set; }
     public Action<IReadOnlyList<string>>? OnImagesDropped { get; set; }
+    public Action<Exception>? OnImageImportFailed { get; set; }
     /// <summary>V17: invoked when a video history entry is clicked, instead of loading it as an image.</summary>
     public Action<HistoryEntry>? OnVideoEntryActivated { get; set; }
 
@@ -432,10 +433,23 @@ public partial class EditorWindow : Window
     {
         // Keep Ctrl+V inside inline annotation editors (and other text inputs) as text paste.
         bool textInputFocused = Keyboard.FocusedElement is System.Windows.Controls.Primitives.TextBoxBase;
-        if (e.Key == Key.V && ImageImport.ShouldHandlePaste(
-                Keyboard.Modifiers == ModifierKeys.Control, textInputFocused, _clipboard.ContainsImage()))
+        if (e.Key == Key.V && Keyboard.Modifiers == ModifierKeys.Control && !textInputFocused)
         {
-            OnRequestPasteImage?.Invoke(); e.Handled = true; return;
+            try
+            {
+                if (ImageImport.ShouldHandlePaste(controlOnly: true, textInputFocused: false,
+                        clipboardHasImage: _clipboard.ContainsImage()))
+                {
+                    OnRequestPasteImage?.Invoke();
+                    e.Handled = true;
+                }
+            }
+            catch (Exception ex)
+            {
+                OnImageImportFailed?.Invoke(ex);
+                e.Handled = true;
+            }
+            return;
         }
         if (e.Key is Key.Delete or Key.Back) { Canvas.DeleteSelected(); return; }
         if (e.Key == Key.Z && Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift))

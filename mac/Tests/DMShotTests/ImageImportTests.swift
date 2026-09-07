@@ -132,3 +132,32 @@ final class ImageImportTests: XCTestCase {
         XCTAssertTrue(NSTextView.instancesRespond(to: #selector(NSText.paste(_:))))
     }
 }
+
+@MainActor
+final class ImageImportSessionTests: XCTestCase {
+    func testQuitCancellationPreventsLateDocumentReplacement() async throws {
+        let session = ImageImportSession()
+        let started = expectation(description: "decoder started")
+        var resume: CheckedContinuation<CGImage, Never>?
+        var accepted = false
+        var reported = false
+        let job = try XCTUnwrap(session.start(decode: {
+            await withCheckedContinuation { continuation in
+                resume = continuation
+                started.fulfill()
+            }
+        }, accept: { _ in accepted = true }, report: { _ in reported = true }))
+        await fulfillment(of: [started], timeout: 2)
+        session.cancel()
+        resume?.resume(returning: GIFEncoderTests.solid(2, 2, r: 1, g: 2, b: 3))
+        await job.value
+        XCTAssertFalse(accepted)
+        XCTAssertFalse(reported)
+        XCTAssertFalse(session.isBusy)
+        let retry = try XCTUnwrap(session.start(decode: {
+            GIFEncoderTests.solid(2, 2, r: 1, g: 2, b: 3)
+        }, accept: { _ in accepted = true }, report: { _ in reported = true }))
+        await retry.value
+        XCTAssertTrue(accepted, "A cancelled quit must not permanently disable importing")
+    }
+}

@@ -7,7 +7,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private let model = EditorModel()
     private let history = HistoryStore()
     private lazy var persistence = DocumentPersistence(model: model, history: history)
-    private var importInProgress = false
+    private let imageImports = ImageImportSession()
+    private var preparingQuit = false
     private let captureGate = CaptureRequestGate()
     private let overlay = OverlayController()
     private let shortcutStore = ShortcutStore()
@@ -330,6 +331,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        preparingQuit = true
+        imageImports.cancel()
+        defer { preparingQuit = false }
         history.retryFailedWrites()
         persistence.saveCurrent()
         // The worker never waits for the UI thread; draining here cannot deadlock.
@@ -740,8 +744,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     // MARK: - Image import
 
-    @objc private func openImage() {
-        guard !importInProgress else { return }
+    @MainActor @objc private func openImage() {
+        guard !imageImports.isBusy && !preparingQuit else { return }
         let panel = NSOpenPanel()
         panel.allowedContentTypes = [.png, .jpeg]
         panel.allowsMultipleSelection = false
@@ -749,33 +753,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         if panel.runModal() == .OK { importFiles(panel.urls) }
     }
 
-    private func importFiles(_ urls: [URL]) {
-        guard !importInProgress else { return }
+    @MainActor private func importFiles(_ urls: [URL]) {
+        guard !imageImports.isBusy && !preparingQuit else { return }
         guard urls.count == 1 else { showImportError(ImageImport.Failure.oneImage); return }
         startImport(.file(urls[0]))
     }
 
     /// Standard selector lets NSTextView consume text paste first. The fallback
     /// only imports while the main editor is key, never from Settings or Quick Edit.
-    @objc func paste(_ sender: Any?) {
-        guard NSApp.keyWindow === editorWindow, focusedTextEditor() == nil, !importInProgress else { return }
+    @MainActor @objc func paste(_ sender: Any?) {
+        guard NSApp.keyWindow === editorWindow, focusedTextEditor() == nil, !imageImports.isBusy && !preparingQuit else { return }
         do { startImport(try ImageImport.clipboardInput(.general)) }
         catch { showImportError(error) }
     }
 
-    private func startImport(_ input: ImageImport.Input) {
-        guard !importInProgress else { return }
-        importInProgress = true
-        Task { @MainActor [weak self] in
+    @MainActor private func startImport(_ input: ImageImport.Input) {
+        guard !preparingQuit else { return }
+        imageImports.start(decode: {
+            try await Task.detached(priority: .userInitiated) { try input.decode() }.value
+        }, accept: { [weak self] image in
             guard let self else { return }
-            defer { self.importInProgress = false }
-            do {
-                let image = try await Task.detached(priority: .userInitiated) { try input.decode() }.value
-                self.persistence.importImage(image)
-                self.lastCaptureScreenFrame = nil
-                self.showEditor()
-            } catch { self.showImportError(error) }
-        }
+            self.persistence.importImage(image)
+            self.lastCaptureScreenFrame = nil
+            self.showEditor()
+        }, report: { [weak self] error in self?.showImportError(error) })
     }
 
     private func showImportError(_ error: Error) {

@@ -87,3 +87,34 @@ enum ImageImport {
         }
     }
 }
+
+/// Owns the UI-side completion of a decode. Quitting cancels acceptance even when
+/// a native decoder cannot stop immediately; a cancelled quit may import again.
+@MainActor
+final class ImageImportSession {
+    nonisolated init() {}
+    private var task: Task<Void, Never>?
+    var isBusy: Bool { task != nil }
+
+    @discardableResult
+    func start(decode: @escaping () async throws -> CGImage,
+               accept: @escaping (CGImage) -> Void,
+               report: @escaping (Error) -> Void) -> Task<Void, Never>? {
+        guard task == nil else { return nil }
+        let job = Task {
+            defer { self.task = nil }
+            do {
+                let image = try await decode()
+                guard !Task.isCancelled else { return }
+                accept(image)
+            } catch {
+                guard !Task.isCancelled else { return }
+                report(error)
+            }
+        }
+        task = job
+        return job
+    }
+
+    func cancel() { task?.cancel() }
+}

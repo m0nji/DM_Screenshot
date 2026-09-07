@@ -3,6 +3,7 @@ using System.Drawing.Imaging;
 using System.IO;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using IsImage = SixLabors.ImageSharp.Image;
@@ -37,7 +38,8 @@ public static class ImageImport
             if (stream.Length > MaxEncodedBytes)
                 throw new ImageImportException(ImageImportFailure.TooLarge, "The encoded image exceeds 100 MiB.");
 
-            var info = IsImage.Identify(stream) ?? throw Invalid();
+            var options = new DecoderOptions { MaxFrames = 1 };
+            var info = IsImage.Identify(options, stream) ?? throw Invalid();
             string? format = info.Metadata.DecodedImageFormat?.Name;
             if (!string.Equals(format, "PNG", StringComparison.OrdinalIgnoreCase)
                 && !string.Equals(format, "JPEG", StringComparison.OrdinalIgnoreCase))
@@ -45,7 +47,7 @@ public static class ImageImport
             ValidateDimensions(info.Width, info.Height);
 
             stream.Position = 0;
-            using var decoded = IsImage.Load<Rgba32>(stream);
+            using var decoded = IsImage.Load<Rgba32>(options, stream);
             decoded.Mutate(operation => operation.AutoOrient());
             ValidateDimensions(decoded.Width, decoded.Height);
             return ToBitmap(decoded);
@@ -113,23 +115,50 @@ public static class ImageImport
 public sealed class ImageImportSession
 {
     private readonly SemaphoreSlim _gate = new(1, 1);
+    private readonly object _state = new();
     private readonly Func<bool> _persistCurrent;
     private readonly Func<Bitmap, Task> _accept;
+    private long _generation;
+    private bool _accepting = true;
 
     public ImageImportSession(Func<bool> persistCurrent, Func<Bitmap, Task> accept)
         { _persistCurrent = persistCurrent; _accept = accept; }
 
+    public void CancelPending()
+    {
+        lock (_state) { _accepting = false; _generation++; }
+    }
+
+    public void Resume()
+    {
+        lock (_state) _accepting = true;
+    }
+
     public async Task ImportAsync(Func<Bitmap> decode)
     {
+        long generation;
+        lock (_state)
+        {
+            if (!_accepting) throw new OperationCanceledException();
+            generation = _generation;
+        }
         await _gate.WaitAsync();
         try
         {
+            ThrowIfInvalidated(generation);
             if (!_persistCurrent())
                 throw new ImageImportException(ImageImportFailure.Persistence,
                     "The current document could not be saved to history.");
             using var bitmap = await Task.Run(decode);
+            ThrowIfInvalidated(generation);
             await _accept(bitmap);
         }
         finally { _gate.Release(); }
+    }
+
+    private void ThrowIfInvalidated(long generation)
+    {
+        lock (_state)
+            if (!_accepting || generation != _generation) throw new OperationCanceledException();
     }
 }
