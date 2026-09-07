@@ -31,8 +31,8 @@ final class DocumentPersistence {
         guard let id = model.entryID, history.items.contains(where: { $0.id == id }) else { return }
         let document = HistoryDocument(annotations: model.annotations, crop: model.crop, background: model.backgroundStyle)
         if let lastSaved, lastSaved.id == id, lastSaved.document == document, !history.needsRetry(id) { return }
-        guard let flat = model.flatten() else { return }
-        history.updateEntry(id: id, document: document, flattened: flat)
+        guard let snapshot = model.renderSnapshot() else { return }
+        history.updateEntry(id: id, document: document, snapshot: snapshot)
         lastSaved = (id, document)
     }
 

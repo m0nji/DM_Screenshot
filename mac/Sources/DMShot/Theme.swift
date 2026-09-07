@@ -366,6 +366,8 @@ extension View {
 /// surrounding surface is the container. Neutral wash on hover, soft accent pill when
 /// selected — hover and selection are the only states that draw anything at all.
 struct SidebarRowStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.isFocused) private var isFocused
     let design: AppDesign
     var active = false
     var hovered = false
@@ -384,6 +386,8 @@ struct SidebarRowStyle: ButtonStyle {
             .foregroundStyle(active ? design.controlActiveTextColor : design.textColor)
             .contentShape(Rectangle())
             .opacity(configuration.isPressed ? 0.75 : 1)
+            .opacity(isEnabled ? 1 : 0.4)
+            .overlay(RoundedRectangle(cornerRadius: 7).stroke(isFocused ? design.accentColor : .clear, lineWidth: 2))
     }
 }
 
@@ -402,6 +406,8 @@ struct AccentFilledButtonStyle: ButtonStyle {
 
 /// Bordered black utility button for secondary commands.
 struct BlackUtilityButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.isFocused) private var isFocused
     var active = false
     var design: AppDesign = .black
 
@@ -413,6 +419,8 @@ struct BlackUtilityButtonStyle: ButtonStyle {
             .modifier(BlackUtilityControlChrome(active: active, cornerRadius: 7, design: design))
             .foregroundStyle(active ? design.controlActiveTextColor : design.textColor)
             .opacity(configuration.isPressed ? 0.78 : 1)
+            .opacity(isEnabled ? 1 : 0.4)
+            .overlay(RoundedRectangle(cornerRadius: 7).stroke(isFocused ? design.accentColor : .clear, lineWidth: 2))
     }
 }
 
@@ -465,6 +473,8 @@ struct BlackUtilityControlChrome: ViewModifier {
 
 /// Square toolbar/tool button: black, visibly bordered, and softly accented when active.
 struct ToolButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.isFocused) private var isFocused
     let active: Bool
     var design: AppDesign = .black
 
@@ -476,6 +486,8 @@ struct ToolButtonStyle: ButtonStyle {
             .shadow(color: active ? design.accentColor.opacity(0.16) : Color.clear, radius: 8, y: 1)
             .contentShape(Rectangle())  // whole 30×24 area is clickable, not just the glyph
             .opacity(configuration.isPressed ? 0.8 : 1)
+            .opacity(isEnabled ? 1 : 0.4)
+            .overlay(RoundedRectangle(cornerRadius: 7).stroke(isFocused ? design.accentColor : .clear, lineWidth: 2))
     }
 }
 

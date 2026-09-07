@@ -27,7 +27,7 @@ enum SceneRenderer {
         let imgRect = CGRect(x: 0, y: 0, width: image.width, height: image.height)
         drawImage(image, in: imgRect)
         for a in annotations { drawAnnotation(a, base: image, interactive: a.id == interactiveID) }
-        pruneBlurCache(keeping: annotations, base: image)
+        if Thread.isMainThread { pruneBlurCache(keeping: annotations, base: image) }
     }
 
     /// Draw a CGImage upright in a flipped (top-left origin) context. CGContextDrawImage
@@ -201,7 +201,7 @@ enum SceneRenderer {
     /// annotation per frame stalls drags. Entries are validated against
     /// (base identity, rect, radius) and pruned after each draw pass so deleted
     /// annotations and replaced base images don't pin their bitmaps.
-    /// Main-thread only, like all callers.
+    /// Main-thread only. Background snapshot renders bypass this cache.
     private static var blurCache: [UUID: (base: CGImage, rect: CGRect, radius: CGFloat, blurred: CGImage)] = [:]
 
     private static func pruneBlurCache(keeping annotations: [Annotation], base: CGImage) {
@@ -217,7 +217,7 @@ enum SceneRenderer {
         let imageBounds = CGRect(x: 0, y: 0, width: base.width, height: base.height)
         let r = a.normalizedRect.integral.intersection(imageBounds).integral
         guard !r.isEmpty else { return }
-        if let c = blurCache[a.id], c.base === base, c.rect == r, c.radius == a.blurRadius {
+        if Thread.isMainThread, let c = blurCache[a.id], c.base === base, c.rect == r, c.radius == a.blurRadius {
             drawImage(c.blurred, in: r)
             return
         }
@@ -236,7 +236,7 @@ enum SceneRenderer {
         guard let output = filter.outputImage,
               let blurred = ciContext.createCGImage(output, from: ci.extent)
         else { return }
-        if !interactive { blurCache[a.id] = (base, r, a.blurRadius, blurred) }
+        if Thread.isMainThread && !interactive { blurCache[a.id] = (base, r, a.blurRadius, blurred) }
         drawImage(blurred, in: r)
     }
 }

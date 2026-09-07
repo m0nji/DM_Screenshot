@@ -2,6 +2,7 @@ using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Automation;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -63,36 +64,47 @@ public partial class QuickEditOverlayWindow : Window
 
     public QuickEditOverlayWindow(Bitmap capture, PixelRect screenRectPx, Rectangle displayBoundsPx)
     {
-        InitializeComponent();
-        _capture = capture; _screenRectPx = screenRectPx; _displayPx = displayBoundsPx;
-        Canvas.ActiveTool = ToolKind.Arrow;
-        Canvas.SetResourceReference(CanvasControl.CanvasBackgroundProperty, "DmCanvas");
-        Canvas.FitPadding = 0;   // capture fills the frame edge-to-edge at true size (no breathing room)
-        Canvas.Load(capture);
-        Canvas.SelectionChanged += RefreshSizeControl;   // keep the size control in sync with selection
-        CaptureBox.Child = Canvas;
-        // Backdrop click = deselect only, never close (fix Q7).
-        Backdrop.MouseLeftButtonDown += (_, _) => Canvas.SelectAt(new System.Windows.Point(-1, -1));
-        SourceInitialized += OnSourceInit;
-        Loaded += OnLoaded;
-        KeyDown += (_, e) =>
+        try
         {
-            if (e.Key == Key.Escape) CloseOverlay();
-            else if (e.Key == Key.Delete) Canvas.DeleteSelected();
-            else if (e.Key == Key.Z && Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift)) Canvas.Model.Redo();
-            else if (e.Key == Key.Z && (Keyboard.Modifiers & ModifierKeys.Control) != 0) Canvas.Model.Undo();
-            else if (e.Key == Key.Y && (Keyboard.Modifiers & ModifierKeys.Control) != 0) Canvas.Model.Redo();
-        };
-        // Hook base Window.Closed so every close path (Alt+F4, shutdown, CloseOverlay) fires Dismissed.
-        // The overlay owns its capture (~33 MB at 4K): release it and the canvas's clone on close.
-        // Handlers that need the bitmap (Copy/Save/Edit-in-main) all run before the close.
-        ((System.Windows.Window)this).Closed += (_, _) =>
+            InitializeComponent();
+            _capture = capture; _screenRectPx = screenRectPx; _displayPx = displayBoundsPx;
+            Canvas.ActiveTool = ToolKind.Arrow;
+            Canvas.SetResourceReference(CanvasControl.CanvasBackgroundProperty, "DmCanvas");
+            Canvas.FitPadding = 0;   // capture fills the frame edge-to-edge at true size (no breathing room)
+            Canvas.Load(capture);
+            Canvas.Model.Changed += RefreshUndoAvailability;
+            Canvas.SelectionChanged += RefreshSizeControl;   // keep the size control in sync with selection
+            CaptureBox.Child = Canvas;
+            // Backdrop click = deselect only, never close (fix Q7).
+            Backdrop.MouseLeftButtonDown += (_, _) => Canvas.SelectAt(new System.Windows.Point(-1, -1));
+            SourceInitialized += OnSourceInit;
+            Loaded += OnLoaded;
+            Loc.Instance.LanguageChanged += RefreshToolbarLanguage;
+            KeyDown += (_, e) =>
+            {
+                if (e.Key == Key.Escape) CloseOverlay();
+                else if (e.Key == Key.Delete) Canvas.DeleteSelected();
+                else if (e.Key == Key.Z && Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift)) Canvas.Model.Redo();
+                else if (e.Key == Key.Z && (Keyboard.Modifiers & ModifierKeys.Control) != 0) Canvas.Model.Undo();
+                else if (e.Key == Key.Y && (Keyboard.Modifiers & ModifierKeys.Control) != 0) Canvas.Model.Redo();
+            };
+            // Hook base Window.Closed so every close path (Alt+F4, shutdown, CloseOverlay) fires Dismissed.
+            // The overlay owns its capture (~33 MB at 4K): release it and the canvas's clone on close.
+            // Handlers that need the bitmap (Copy/Save/Edit-in-main) all run before the close.
+            ((System.Windows.Window)this).Closed += (_, _) =>
+            {
+                _shown = false;
+                Loc.Instance.LanguageChanged -= RefreshToolbarLanguage;
+                try { Dismissed?.Invoke(); }
+                finally { Canvas.DisposeImage(); _capture.Dispose(); }
+            };
+        }
+        catch
         {
-            _shown = false;
-            Dismissed?.Invoke();
-            Canvas.DisposeImage();
-            _capture.Dispose();
-        };
+            Loc.Instance.LanguageChanged -= RefreshToolbarLanguage;
+            Canvas?.DisposeImage();
+            throw; // construction did not transfer capture ownership to the overlay
+        }
     }
 
     /// <summary>Idempotent (fix Q1): a second call while already shown is a no-op.</summary>
@@ -170,9 +182,15 @@ public partial class QuickEditOverlayWindow : Window
         "M6,5 L18,5 A2.5,2.5 0 0 1 20.5,7.5 L20.5,16.5 A2.5,2.5 0 0 1 18,19 L6,19 A2.5,2.5 0 0 1 3.5,16.5 L3.5,7.5 A2.5,2.5 0 0 1 6,5 Z " +
         "M3.5,9 L20.5,9 M5.95,7 L6.05,7 M8.25,7 L8.35,7 M10.55,7 L10.65,7";
 
+    private Button? _undoButton, _redoButton;
+    private double _availableToolbarHeight = 600;
+
     private Border BuildToolbar()
     {
-        var row = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(7, 5, 7, 5), VerticalAlignment = VerticalAlignment.Center };
+        var row = new WrapPanel { Margin = new Thickness(7, 5, 7, 5), VerticalAlignment = VerticalAlignment.Center };
+        var tools = new StackPanel { Orientation = Orientation.Horizontal };
+        var context = new StackPanel { Orientation = Orientation.Horizontal };
+        var actions = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(7, 5, 7, 5) };
 
         foreach (var (kind, geo, fill) in QuickTools)
         {
@@ -184,28 +202,32 @@ public partial class QuickEditOverlayWindow : Window
             };
             var k = kind;
             tb.Checked += (_, _) => { Canvas.ActiveTool = k; RefreshSizeControl(); };
-            row.Children.Add(tb);
+            AutomationProperties.SetName(tb, Loc.Instance[ToolTipKey(kind)]);
+            tools.Children.Add(tb);
         }
-        row.Children.Add(Divider());
-        row.Children.Add(IconAction(VectorIcon(ColorGeo, true), Loc.Instance["color"], ToggleColorFlyout));
-        row.Children.Add(Divider());   // mac parity: color | divider | background | divider | slider
-        row.Children.Add(IconAction(VectorIcon(BgGeo, false), Loc.Instance["background"], ToggleFrameFlyout));
-        row.Children.Add(Divider());
-        row.Children.Add(BuildSizeControl());   // always-visible size / blur-strength slider
-        row.Children.Add(IconAction(VectorIcon(UndoGeo, false), Loc.Instance["undo"], () => Canvas.Model.Undo()));
-        row.Children.Add(IconAction(VectorIcon(RedoGeo, false), Loc.Instance["redo"], () => Canvas.Model.Redo()));
-        row.Children.Add(Divider());
-        // Icon-only actions (no text labels), matching the macOS Quick-Edit toolbar.
-        row.Children.Add(IconAction(VectorIcon(CloseGeo, false), Loc.Instance["close"], CloseOverlay));
-        row.Children.Add(IconAction(VectorIcon(MainGeo, false), Loc.Instance["quickEditEditInMain"], () => EditInMainRequested?.Invoke()));
-        row.Children.Add(IconAction(VectorIcon(SaveGeo, false), Loc.Instance["save"], () => SaveRequested?.Invoke()));
-        row.Children.Add(IconAction(VectorIcon(CopyGeo, false), Loc.Instance["copy"], () => CopyRequested?.Invoke()));
+        row.Children.Add(tools);
+        context.Children.Add(IconAction(VectorIcon(ColorGeo, true), Loc.Instance["color"], ToggleColorFlyout));
+        context.Children.Add(IconAction(VectorIcon(BgGeo, false), Loc.Instance["background"], ToggleFrameFlyout));
+        context.Children.Add(BuildSizeControl());
+        row.Children.Add(context);
+        actions.Children.Add(IconAction(VectorIcon(CopyGeo, false), Loc.Instance["copy"], () => CopyRequested?.Invoke()));
+        actions.Children.Add(IconAction(VectorIcon(SaveGeo, false), Loc.Instance["save"], () => SaveRequested?.Invoke()));
+        actions.Children.Add(IconAction(VectorIcon(MainGeo, false), Loc.Instance["quickEditEditInMain"], () => EditInMainRequested?.Invoke()));
+        _undoButton = IconAction(VectorIcon(UndoGeo, false), Loc.Instance["undo"], () => Canvas.Model.Undo());
+        _redoButton = IconAction(VectorIcon(RedoGeo, false), Loc.Instance["redo"], () => Canvas.Model.Redo());
+        actions.Children.Add(_undoButton);
+        actions.Children.Add(_redoButton);
+        actions.Children.Add(IconAction(VectorIcon(CloseGeo, false), Loc.Instance["close"], CloseOverlay));
+        RefreshUndoAvailability();
+        var rows = new StackPanel();
+        rows.Children.Add(actions);
+        rows.Children.Add(row);
 
         var toolbar = new Border
         {
             CornerRadius = new CornerRadius(14),
             BorderThickness = new Thickness(1),
-            Child = row,
+            Child = rows,
         };
         toolbar.SetResourceReference(Border.BackgroundProperty, "DmSurface");
         toolbar.SetResourceReference(Border.BorderBrushProperty, "DmControlChromeStroke");
@@ -213,9 +235,23 @@ public partial class QuickEditOverlayWindow : Window
         return toolbar;
     }
 
+    private void RefreshToolbarLanguage()
+    {
+        RemoveFlyout();
+        ToolbarHost.Content = BuildToolbar();
+        LayoutToolbar();
+    }
+
+    private void RefreshUndoAvailability()
+    {
+        if (_undoButton is not null) _undoButton.IsEnabled = Canvas.Model.CanUndo;
+        if (_redoButton is not null) _redoButton.IsEnabled = Canvas.Model.CanRedo;
+    }
+
     private Button IconAction(UIElement icon, string tip, Action onClick)
     {
         var b = new Button { Style = IconButtonStyle, Content = icon, ToolTip = tip };
+        AutomationProperties.SetName(b, tip);
         b.Click += (_, _) => onClick();
         return b;
     }
@@ -280,6 +316,8 @@ public partial class QuickEditOverlayWindow : Window
         <Border CornerRadius='7' BorderBrush='{DynamicResource DmControlChromeStroke}' BorderThickness='1' IsHitTestVisible='False'/>
       </Grid>
       <ControlTemplate.Triggers>
+        <Trigger Property='IsKeyboardFocused' Value='True'><Setter TargetName='b' Property='BorderBrush' Value='{DynamicResource DmAccent}'/><Setter TargetName='b' Property='BorderThickness' Value='2'/></Trigger>
+        <Trigger Property='IsEnabled' Value='False'><Setter Property='Opacity' Value='0.4'/></Trigger>
         <Trigger Property='IsMouseOver' Value='True'><Setter TargetName='b' Property='Background' Value='{DynamicResource DmSurfaceLight}'/><Setter TargetName='b' Property='BorderBrush' Value='{DynamicResource DmBorderHover}'/><Setter TargetName='s' Property='Background' Value='{DynamicResource DmSurfaceLight}'/><Setter TargetName='s' Property='BorderBrush' Value='{DynamicResource DmBorderHover}'/></Trigger>
         <Trigger Property='IsChecked' Value='True'><Setter TargetName='b' Property='Background' Value='{DynamicResource DmAccentTint}'/><Setter TargetName='b' Property='BorderBrush' Value='{DynamicResource DmAccent}'/><Setter TargetName='s' Property='Background' Value='{DynamicResource DmAccentTint}'/><Setter TargetName='s' Property='BorderBrush' Value='{DynamicResource DmAccent}'/><Setter Property='Foreground' Value='{DynamicResource DmControlActiveText}'/></Trigger>
       </ControlTemplate.Triggers>
@@ -302,6 +340,8 @@ public partial class QuickEditOverlayWindow : Window
         <Border CornerRadius='7' BorderBrush='{DynamicResource DmControlChromeStroke}' BorderThickness='1' IsHitTestVisible='False'/>
       </Grid>
       <ControlTemplate.Triggers>
+        <Trigger Property='IsKeyboardFocused' Value='True'><Setter TargetName='b' Property='BorderBrush' Value='{DynamicResource DmAccent}'/><Setter TargetName='b' Property='BorderThickness' Value='2'/></Trigger>
+        <Trigger Property='IsEnabled' Value='False'><Setter Property='Opacity' Value='0.4'/></Trigger>
         <Trigger Property='IsMouseOver' Value='True'><Setter TargetName='b' Property='Background' Value='{DynamicResource DmSurfaceLight}'/><Setter TargetName='b' Property='BorderBrush' Value='{DynamicResource DmBorderHover}'/><Setter TargetName='s' Property='Background' Value='{DynamicResource DmSurfaceLight}'/><Setter TargetName='s' Property='BorderBrush' Value='{DynamicResource DmBorderHover}'/></Trigger>
         <Trigger Property='IsPressed' Value='True'><Setter TargetName='root' Property='Opacity' Value='0.78'/></Trigger>
       </ControlTemplate.Triggers>
@@ -330,6 +370,7 @@ public partial class QuickEditOverlayWindow : Window
                 Width = 22, Height = 22, Margin = new Thickness(3),
                 Background = new SolidColorBrush(c), BorderBrush = WBrush.White, BorderThickness = new Thickness(1)
             };
+            AutomationProperties.SetName(sw, $"{Loc.Instance["color"]} #{argb & 0xFFFFFF:X6}");
             sw.Click += (_, _) => { Canvas.ActiveColor = argb; Canvas.ApplyColorToSelected(argb); RemoveFlyout(); };
             row.Children.Add(sw);
         }
@@ -385,6 +426,7 @@ public partial class QuickEditOverlayWindow : Window
         _sizeSyncing = true;
         _sizeIsBlur = blur;
         _sizeLabel.Text = Loc.Instance[blur ? "blur" : "size"];
+        AutomationProperties.SetName(_sizeSlider, _sizeLabel.Text);
         _sizeSlider.Minimum = blur ? 2 : 1;
         _sizeSlider.Maximum = blur ? 60 : 20;   // blur 2–60 = mac; stroke max = main editor
         double val = blur
@@ -430,7 +472,7 @@ public partial class QuickEditOverlayWindow : Window
             BorderThickness = new Thickness(1),
             Margin = new Thickness(0, 6, 0, 0),
             HorizontalAlignment = HorizontalAlignment.Center,   // size to content, don't stretch
-            Child = content,
+            Child = new ScrollViewer { Content = content, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, MaxHeight = Math.Max(40, _availableToolbarHeight - 160) },
         };
         flyoutBar.SetResourceReference(Border.BackgroundProperty, "DmSurface");
         flyoutBar.SetResourceReference(Border.BorderBrushProperty, "DmControlChromeStroke");
@@ -445,7 +487,7 @@ public partial class QuickEditOverlayWindow : Window
 
     private bool RemoveFlyoutIfKind(string kind)
     {
-        if (_flyout is Border b && b.Child is FrameworkElement fe && (fe.Tag as string) == kind) { RemoveFlyout(); return true; }
+        if (_flyout is Border b && b.Child is ScrollViewer { Content: FrameworkElement fe } && (fe.Tag as string) == kind) { RemoveFlyout(); return true; }
         return false;
     }
 
@@ -480,8 +522,7 @@ public partial class QuickEditOverlayWindow : Window
     {
         if (ToolbarHost.Content is not FrameworkElement toolbar) return;
         toolbar.InvalidateMeasure();   // content (flyout) may have changed since the last measure
-        toolbar.Measure(new WSize(double.PositiveInfinity, double.PositiveInfinity));
-        double tbW = toolbar.DesiredSize.Width, tbH = toolbar.DesiredSize.Height;
+
 
         double capLeftDip = _capLeftDip, capTopDip = _capTopDip, capWDip = _capWDip, capHDip = _capHDip;
         double screenW = ActualWidth, screenH = ActualHeight;
@@ -503,6 +544,14 @@ public partial class QuickEditOverlayWindow : Window
             safeBottom = screenH - (mi.rcMonitor.Bottom - mi.rcWork.Bottom) / s;
         }
 
+        double availableWidth = Math.Max(1, safeRight - safeLeft - 2 * margin);
+        _availableToolbarHeight = Math.Max(1, safeBottom - safeTop - 2 * margin);
+        toolbar.Width = Math.Min(720, availableWidth);
+        if (_flyout is Border { Child: ScrollViewer scroll })
+            scroll.MaxHeight = Math.Max(1, _availableToolbarHeight - 160);
+        toolbar.Measure(new WSize(toolbar.Width, _availableToolbarHeight));
+        double tbW = toolbar.DesiredSize.Width, tbH = toolbar.DesiredSize.Height;
+
         // X: center on capture, clamped so the whole toolbar stays in the safe area.
         double halfW = tbW / 2;
         double loX = safeLeft + halfW + margin, hiX = safeRight - halfW - margin;
@@ -518,6 +567,7 @@ public partial class QuickEditOverlayWindow : Window
         else if (aboveY >= safeTop + margin) tbTop = aboveY;
         else tbTop = Math.Max(safeTop + margin, safeBottom - tbH - margin);
 
+        tbTop = Math.Clamp(tbTop, safeTop + margin, Math.Max(safeTop + margin, safeBottom - tbH - margin));
         System.Windows.Controls.Canvas.SetLeft(ToolbarHost, tbLeft);
         System.Windows.Controls.Canvas.SetTop(ToolbarHost, tbTop);
     }

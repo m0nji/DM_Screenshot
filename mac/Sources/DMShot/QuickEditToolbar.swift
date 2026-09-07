@@ -18,6 +18,7 @@ private let quickTools: [(tool: Tool, icon: String, help: L)] = [
 struct QuickEditToolbar: View {
     @ObservedObject var model: EditorModel
     let appDesign: AppDesign
+    let availableSize: CGSize
     let onCopy: () -> Void
     let onSave: () -> Void
     let onEditInMain: () -> Void
@@ -30,63 +31,74 @@ struct QuickEditToolbar: View {
     var body: some View {
         let _ = localizer.language  // re-render on language change
         VStack(spacing: 8) {
-            toolbarRow
-            if flyout == .color {
-                EditorColorPalette(model: model, appDesign: appDesign, onPick: { flyout = .none })
-                    .background(panelBackground)
+            VStack(spacing: 8) {
+                HStack(spacing: 6) {
+                    action("doc.on.doc", .copy, onCopy).disabled(model.image == nil)
+                    action("square.and.arrow.down", .save, onSave).disabled(model.image == nil)
+                    action("macwindow", .editInMainWindow, onEditInMain)
+                    action("arrow.uturn.backward", .undo, model.undo).disabled(!model.canUndo)
+                    action("arrow.uturn.forward", .redo, model.redo).disabled(!model.canRedo)
+                    Spacer(minLength: 8)
+                    action("xmark", .close, onClose)
+                }
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 6) { toolButtons; contextControls }
+                    HStack(spacing: 6) {
+                        Menu {
+                            Picker(tr(.moreTools), selection: $model.tool) {
+                                ForEach(quickTools, id: \.tool) { spec in
+                                    Label(tr(spec.help), systemImage: spec.icon).tag(spec.tool)
+                                }
+                            }.pickerStyle(.inline)
+                        } label: { Label(tr(.moreTools), systemImage: "ellipsis") }
+                        .fixedSize()
+                        contextControls
+                    }
+                }.disabled(model.image == nil)
             }
-            if flyout == .frame {
-                FrameControlsPanel(model: model, appDesign: appDesign)
-                    .background(panelBackground)
+            .padding(12)
+            .background(panelBackground)
+            if flyout != .none {
+                ScrollView(.vertical) {
+                    if flyout == .color {
+                        EditorColorPalette(model: model, appDesign: appDesign, onPick: { flyout = .none })
+                    } else {
+                        FrameControlsPanel(model: model, appDesign: appDesign)
+                    }
+                }
+                .frame(width: min(264, availableSize.width), height: min(flyout == .color ? 170 : 240, max(0, availableSize.height - 110)))
+                .background(panelBackground)
             }
         }
+        .frame(width: min(720, availableSize.width))
         .dmTooltipLayer()
     }
 
-    private var toolbarRow: some View {
+    private func action(_ icon: String, _ label: L, _ perform: @escaping () -> Void) -> some View {
+        Button(action: perform) { Image(systemName: icon) }
+            .buttonStyle(ToolButtonStyle(active: false, design: appDesign)).dmTooltip(tr(label))
+    }
+
+    private var toolButtons: some View {
         HStack(spacing: 6) {
             ForEach(quickTools, id: \.tool) { spec in
-                Button { model.tool = spec.tool } label: {
-                    Image(systemName: spec.icon).frame(width: 18)
-                }
-                .dmTooltip(tr(spec.help))
-                .buttonStyle(ToolButtonStyle(active: model.tool == spec.tool, design: appDesign))
-                .disabled(model.image == nil)
+                Button { model.tool = spec.tool } label: { Image(systemName: spec.icon).frame(width: 18) }
+                    .dmTooltip(tr(spec.help))
+                    .accessibilityAddTraits(model.tool == spec.tool ? .isSelected : [])
+                    .buttonStyle(ToolButtonStyle(active: model.tool == spec.tool, design: appDesign))
             }
-            Divider().frame(height: 22).background(appDesign.borderColor)
+        }.fixedSize()
+    }
+
+    private var contextControls: some View {
+        HStack(spacing: 6) {
             Button { toggle(.color) } label: {
-                Circle().fill(Color(nsColor: NSColor(hex: model.colorHex)))
-                    .frame(width: 20, height: 20)
-                    .overlay(Circle().stroke(appDesign.borderColor, lineWidth: 1))
-            }
-            .buttonStyle(ToolButtonStyle(active: flyout == .color, design: appDesign)).dmTooltip(tr(.color))
-            Divider().frame(height: 22).background(appDesign.borderColor)
-            Button { toggle(.frame) } label: {
-                Image(systemName: "photo.artframe")
-                    .foregroundStyle(model.backgroundEnabled ? Color.dmAccent : appDesign.textColor)
-                    .frame(width: 18)
-            }
-            .buttonStyle(ToolButtonStyle(active: flyout == .frame, design: appDesign)).dmTooltip(tr(.background))
-            Divider().frame(height: 22).background(appDesign.borderColor)
-            EditorContextualSlider(model: model, appDesign: appDesign)   // always visible so size/blur strength can be set in advance
-            Divider().frame(height: 22).background(appDesign.borderColor)
-            Button(action: model.undo) { Image(systemName: "arrow.uturn.backward") }
-                .buttonStyle(ToolButtonStyle(active: false, design: appDesign)).dmTooltip(tr(.undo)).disabled(model.image == nil)
-            Button(action: model.redo) { Image(systemName: "arrow.uturn.forward") }
-                .buttonStyle(ToolButtonStyle(active: false, design: appDesign)).dmTooltip(tr(.redo)).disabled(model.image == nil)
-            Divider().frame(height: 22).background(appDesign.borderColor)
-            Button(action: onClose) { Image(systemName: "xmark") }
-                .buttonStyle(ToolButtonStyle(active: false, design: appDesign)).dmTooltip(tr(.close))
-            Button(action: onEditInMain) { Image(systemName: "macwindow") }
-                .buttonStyle(ToolButtonStyle(active: false, design: appDesign)).dmTooltip(tr(.editInMainWindow))
-            Button(action: onSave) { Image(systemName: "square.and.arrow.down") }
-                .buttonStyle(ToolButtonStyle(active: false, design: appDesign)).dmTooltip(tr(.save)).disabled(model.image == nil)
-            Button(action: onCopy) { Image(systemName: "doc.on.doc") }
-                .buttonStyle(ToolButtonStyle(active: false, design: appDesign)).dmTooltip(tr(.copy)).disabled(model.image == nil)
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(panelBackground)
+                Circle().fill(Color(nsColor: NSColor(hex: model.colorHex))).frame(width: 20, height: 20)
+            }.buttonStyle(ToolButtonStyle(active: flyout == .color, design: appDesign)).dmTooltip(tr(.color))
+            Button { toggle(.frame) } label: { Image(systemName: "photo.artframe") }
+                .buttonStyle(ToolButtonStyle(active: flyout == .frame, design: appDesign)).dmTooltip(tr(.background))
+            EditorContextualSlider(model: model, appDesign: appDesign)
+        }.fixedSize()
     }
 
     private var panelBackground: some View {

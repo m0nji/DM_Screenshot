@@ -91,18 +91,18 @@ enum FrameRenderer {
     /// background on every redraw (i.e. every mouse-move while dragging), and
     /// re-blurring a full-resolution capture per frame stalls the main thread.
     /// The result only changes with the source (identity — EditorModel keeps it
-    /// stable) or the radius. Main-thread only, like all callers.
+    /// stable) or the radius. Background snapshot renders bypass this main-thread cache.
     private static var blurFillCache: (source: CGImage, radius: CGFloat, blurred: CGImage)?
 
     private static func blurredFill(source: CGImage, radius: CGFloat) -> CGImage {
-        if let c = blurFillCache, c.source === source, c.radius == radius { return c.blurred }
+        if Thread.isMainThread, let c = blurFillCache, c.source === source, c.radius == radius { return c.blurred }
         let ci = CIImage(cgImage: source)
         guard let f = CIFilter(name: "CIGaussianBlur") else { return source }
         f.setValue(ci.clampedToExtent(), forKey: kCIInputImageKey)
         f.setValue(radius, forKey: kCIInputRadiusKey)
         guard let out = f.outputImage, let cg = ciContext.createCGImage(out, from: ci.extent)
         else { return source }
-        blurFillCache = (source, radius, cg)
+        if Thread.isMainThread { blurFillCache = (source, radius, cg) }
         return cg
     }
 

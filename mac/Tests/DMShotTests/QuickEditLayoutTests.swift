@@ -24,6 +24,15 @@ final class QuickEditLayoutTests: XCTestCase {
         XCTAssertLessThanOrEqual(f.maxY, area.maxY, file: file, line: line)
     }
 
+    func testOversizedToolbarGetsBoundedViewportAtEveryCorner() {
+        let area = CGRect(x: 70, y: 25, width: 570, height: 310)
+        let size = QuickEditLayout.toolbarViewport(preferred: CGSize(width: 1000, height: 500), safeArea: area)
+        XCTAssertEqual(size, CGSize(width: 546, height: 286))
+        for point in [CGPoint(x: 0, y: 0), CGPoint(x: 640, y: 0), CGPoint(x: 0, y: 360), CGPoint(x: 640, y: 360)] {
+            frameInside(QuickEditLayout.toolbarFrame(capture: CGRect(origin: point, size: CGSize(width: 30, height: 30)), safeArea: area, toolbar: size), area)
+        }
+    }
+
     func testCenteredCaptureKeepsToolbarOnScreen() {
         let cap = CGRect(x: 600, y: 380, width: 240, height: 140)
         let f = QuickEditLayout.toolbarFrame(capture: cap, safeArea: fullSafe, toolbar: toolbar)

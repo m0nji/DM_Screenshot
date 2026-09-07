@@ -1,6 +1,7 @@
 using System;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using DMShot.Platform;
 
 namespace DMShot.Editor;
 
@@ -23,46 +24,47 @@ public static class FrameRenderer
         var innerRect = FrameGeometry.InnerRect(innerWpfSize, style.Padding);
         double radius = FrameGeometry.CornerRadius(innerWpfSize, style.Corner);
 
-        var outp = new Bitmap(w, h);
-        using var g = Graphics.FromImage(outp);
-        g.SmoothingMode = SmoothingMode.AntiAlias;
-        g.InterpolationMode = InterpolationMode.HighQualityBicubic;
-
-        var outerRect = new RectangleF(0, 0, w, h);
-        var ir = new RectangleF(
-            (float)innerRect.X, (float)innerRect.Y,
-            (float)innerRect.Width, (float)innerRect.Height);
-
-        // (a) Draw the background fill across the full outer rect.
-        switch (style.Kind)
+        return OwnedResult.Create(new Bitmap(w, h), outp =>
         {
-            case FrameBackgroundKind.Solid:
-                using (var b = new SolidBrush(ColorTranslator.FromHtml(style.SolidHex)))
-                    g.FillRectangle(b, outerRect);
-                break;
+            using var g = Graphics.FromImage(outp);
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            g.InterpolationMode = InterpolationMode.HighQualityBicubic;
 
-            case FrameBackgroundKind.Gradient:
-                var (s0, s1) = FramePresets.GradientStops(style.Gradient);
-                using (var lg = new LinearGradientBrush(
-                    new PointF(0, 0), new PointF(w, h),
-                    ColorTranslator.FromHtml(s0), ColorTranslator.FromHtml(s1)))
-                    g.FillRectangle(lg, outerRect);
-                break;
+            var outerRect = new RectangleF(0, 0, w, h);
+            var ir = new RectangleF(
+                (float)innerRect.X, (float)innerRect.Y,
+                (float)innerRect.Width, (float)innerRect.Height);
 
-            case FrameBackgroundKind.Blur:
-                DrawBlurFill(g, outerRect, ir, blurSource);
-                break;
-        }
+            // (a) Draw the background fill across the full outer rect.
+            switch (style.Kind)
+            {
+                case FrameBackgroundKind.Solid:
+                    using (var b = new SolidBrush(ColorTranslator.FromHtml(style.SolidHex)))
+                        g.FillRectangle(b, outerRect);
+                    break;
 
-        // (b) Clip to the rounded inner rect, draw the sharp inner image, reset clip.
-        using (var clip = RoundedPath(ir, (float)radius))
-        {
-            g.SetClip(clip);
-            g.DrawImage(inner, ir);
-            g.ResetClip();
-        }
+                case FrameBackgroundKind.Gradient:
+                    var (s0, s1) = FramePresets.GradientStops(style.Gradient);
+                    using (var lg = new LinearGradientBrush(
+                        new PointF(0, 0), new PointF(w, h),
+                        ColorTranslator.FromHtml(s0), ColorTranslator.FromHtml(s1)))
+                        g.FillRectangle(lg, outerRect);
+                    break;
 
-        return outp;
+                case FrameBackgroundKind.Blur:
+                    DrawBlurFill(g, outerRect, ir, blurSource);
+                    break;
+            }
+
+            // (b) Clip to the rounded inner rect, draw the sharp inner image, reset clip.
+            using (var clip = RoundedPath(ir, (float)radius))
+            {
+                g.SetClip(clip);
+                g.DrawImage(inner, ir);
+                g.ResetClip();
+            }
+
+        });
     }
 
     /// <summary>Aspect-fill the blur source across <paramref name="outer"/>, apply a
@@ -110,14 +112,12 @@ public static class FrameRenderer
             sg.DrawImage(src, new Rectangle(0, 0, dw, dh));
         }
 
-        var big = new Bitmap(src.Width, src.Height);
-        using (var sg = Graphics.FromImage(big))
+        return OwnedResult.Create(new Bitmap(src.Width, src.Height), big =>
         {
+            using var sg = Graphics.FromImage(big);
             sg.InterpolationMode = InterpolationMode.HighQualityBilinear;
             sg.DrawImage(small, new Rectangle(0, 0, src.Width, src.Height));
-        }
-
-        return big;
+        });
     }
 
     /// <summary>Returns a <see cref="GraphicsPath"/> describing a rectangle with uniformly

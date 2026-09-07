@@ -93,14 +93,23 @@ public sealed class UpdaterService
         catch (Exception ex) { Set(UpdateState.ForError(ex.Message)); }
     }
 
-    public Func<bool>? BeforeRestart { get; set; }
+    public Func<Task<bool>>? BeforeRestart { get; set; }
+    public Action<Exception>? RestartFailed { get; set; }
+    private bool _relaunching;
 
-    /// <summary>Apply the downloaded update and relaunch into the new version.</summary>
-    public void Relaunch()
+    /// <summary>Apply the downloaded update after pending history is durable.</summary>
+    public async void Relaunch()
     {
-        if (_pending is null) return;
-        if (BeforeRestart?.Invoke() == false) return;
-        _mgr.ApplyUpdatesAndRestart(_pending.TargetFullRelease);
+        if (_pending is null || _relaunching) return;
+        var pending = _pending;
+        _relaunching = true;
+        try
+        {
+            await RestartHandoff.ExecuteAsync(BeforeRestart ?? (() => Task.FromResult(true)),
+                () => _mgr.ApplyUpdatesAndRestart(pending.TargetFullRelease),
+                ex => { Set(UpdateState.ForError(ex.Message)); RestartFailed?.Invoke(ex); });
+        }
+        finally { _relaunching = false; }
     }
 
     public void Dismiss() => Set(_mgr.IsInstalled ? UpdateState.Idle : UpdateState.Disabled);

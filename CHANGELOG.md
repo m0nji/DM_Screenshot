@@ -4,6 +4,13 @@ All notable changes to DM_Screenshot. Newest version first. Always written in En
 
 ## [Unreleased]
 
+## 0.9.5 – 2026-09-07
+
+- new: Keep Copy and Save visible in adaptive editor toolbars, fit Quick Edit to smaller displays, and show capture actions and shortcuts in the empty editor (macOS, Windows).
+- fix: Improve keyboard navigation, screen-reader labels, selected tool states, live translations and history deletion (macOS, Windows).
+- perf: Save Windows history through a background revision queue with immutable snapshots and cached thumbnails; render macOS history snapshots off the main thread.
+- fix: Preserve pending changes during history switches, failed writes, quit and update restart; prevent new editor windows during shutdown and recover missing history originals (Windows).
+
 ## 0.9.4 – 2026-09-06
 
 - fix: Preserve annotations, crop and background when switching history entries or restarting; retain failed saves for retry (macOS, Windows).

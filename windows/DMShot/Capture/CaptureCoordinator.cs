@@ -13,6 +13,7 @@ public sealed class CaptureCoordinator
     private readonly IScreenCapturer _capturer;
     private readonly Func<bool> _showLoupe;
     private bool _busy;
+    public bool Suspended { get; set; }
     private Action? _cancel;
     public event Action<CaptureResult>? CaptureProduced;
     public event Action<Exception>? CaptureFailed;
@@ -28,7 +29,7 @@ public sealed class CaptureCoordinator
 
     private void CaptureFull(bool video)
     {
-        if (_busy) return;
+        if (_busy || Suspended) return;
         _busy = true;
         try
         {
@@ -51,7 +52,7 @@ public sealed class CaptureCoordinator
 
     private void SelectArea(bool video)
     {
-        if (_busy) return;
+        if (_busy || Suspended) return;
         _busy = true;
         var overlays = new List<OverlayWindow>();
         bool done = false;

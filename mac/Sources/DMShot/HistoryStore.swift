@@ -35,6 +35,7 @@ struct HistoryItemMeta: Codable, Identifiable {
 final class HistoryStore: ObservableObject {
     @Published private(set) var items: [HistoryItemMeta] = []
     var onError: ((Error) -> Void)?
+    private let renderSnapshot: (RenderSnapshot) -> CGImage?
     private let dir: URL
     private let maxEntries = 10
     private let ioQueue = DispatchQueue(label: "DMShot.HistoryStore.io", qos: .utility)
@@ -43,13 +44,15 @@ final class HistoryStore: ObservableObject {
     private let failureLock = NSLock()
     private var failedIDs: Set<String> = []     // protected by failureLock
     private var pendingRendered: [String: CGImage] = [:] // main thread, retained until commit
+    private var pendingSnapshots: [String: RenderSnapshot] = [:] // main thread, latest revision only
     private var pendingDeletes: Set<String> = []
     private var thumbCache: [String: NSImage] = [:]
     private var documents: [String: HistoryDocument] = [:]
     private var pendingOriginals: [String: CGImage] = [:]
     private var pendingGIFs: [String: Data] = [:]
 
-    init(root: URL? = nil) {
+    init(root: URL? = nil, renderSnapshot: @escaping (RenderSnapshot) -> CGImage? = { $0.render() }) {
+        self.renderSnapshot = renderSnapshot
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         dir = root ?? base.appendingPathComponent("DMShot/history", isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
@@ -107,6 +110,10 @@ final class HistoryStore: ObservableObject {
     /// Retry the newest in-memory snapshot, including documents no longer open.
     func retryFailedWrites() {
         for meta in items where needsRetry(meta.id) {
+            if let snapshot = pendingSnapshots[meta.id] {
+                updateEntry(id: meta.id, document: loadDocument(meta.id), snapshot: snapshot)
+                continue
+            }
             guard let rendered = pendingRendered[meta.id] else { continue }
             if meta.kind == .image {
                 updateEntry(id: meta.id, document: loadDocument(meta.id), flattened: rendered)
@@ -121,6 +128,7 @@ final class HistoryStore: ObservableObject {
         DispatchQueue.main.async { [weak self] in
             guard let self, self.items.contains(where: { $0.id == meta.id && $0.revision == meta.revision }) else { return }
             self.pendingRendered[meta.id] = nil
+            self.pendingSnapshots[meta.id] = nil
         }
     }
 
@@ -163,6 +171,7 @@ final class HistoryStore: ObservableObject {
         var meta = items[index]
         meta.revision = UUID().uuidString
         items[index] = meta
+        pendingSnapshots[id] = nil
         pendingRendered[id] = flattened
         documents[id] = document // a rapid history switch reads the pending state
         let original = pendingOriginals[id]
@@ -175,6 +184,30 @@ final class HistoryStore: ObservableObject {
             try writeDocument(document, meta: meta, thumbnail: flattened)
             try commit(meta)
             DispatchQueue.main.async { [weak self] in self?.pendingOriginals[id] = nil }
+        }
+    }
+
+    /// Snapshot state is visible immediately; render and durable writes share the I/O queue.
+    func updateEntry(id: String, document: HistoryDocument, snapshot: RenderSnapshot) {
+        guard let index = items.firstIndex(where: { $0.id == id && $0.kind == .image }) else { return }
+        var meta = items[index]
+        meta.revision = UUID().uuidString
+        items[index] = meta
+        pendingSnapshots[id] = snapshot
+        pendingRendered[id] = nil
+        documents[id] = document
+        let original = pendingOriginals[id]
+        enqueue(id: id) { [self] in
+            try autoreleasepool {
+                guard let rendered = renderSnapshot(snapshot) else { throw CocoaError(.fileWriteUnknown) }
+                if !FileManager.default.fileExists(atPath: originalURL(id).path), let original,
+                   let png = ImageUtils.pngData(original) {
+                    try png.write(to: originalURL(id), options: .atomic)
+                }
+                try writeDocument(document, meta: meta, thumbnail: rendered)
+                try commit(meta)
+                DispatchQueue.main.async { [weak self] in self?.pendingOriginals[id] = nil }
+            }
         }
     }
 
@@ -258,6 +291,7 @@ final class HistoryStore: ObservableObject {
         thumbCache[id] = nil
         documents[id] = nil
         pendingRendered[id] = nil
+        pendingSnapshots[id] = nil
         pendingOriginals[id] = nil
         pendingGIFs[id] = nil
     }

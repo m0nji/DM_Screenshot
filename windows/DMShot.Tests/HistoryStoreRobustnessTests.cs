@@ -40,7 +40,7 @@ public class HistoryStoreRobustnessTests : IDisposable
     }
 
     [Fact]
-    public void Load_DropsEntriesWhoseFilesAreGone()
+    public async Task Load_DropsEntriesWhoseFilesAreGone()
     {
         var store = new HistoryStore(_root);
         HistoryEntry kept, orphan;
@@ -50,6 +50,8 @@ public class HistoryStoreRobustnessTests : IDisposable
             orphan = store.Add(bmp, Array.Empty<Annotation>(), null, new DateTime(2026, 1, 1, 0, 1, 0, DateTimeKind.Utc));
         }
         // Simulate a temp cleaner / sync tool removing the payload behind our back.
+        await store.FlushPendingAsync();
+        orphan = store.Entries.Single(e => e.Id == orphan.Id);
         File.Delete(orphan.OriginalPngPath);
 
         var reloaded = new HistoryStore(_root);
@@ -57,33 +59,40 @@ public class HistoryStoreRobustnessTests : IDisposable
 
         Assert.Single(reloaded.Entries);
         Assert.Equal(kept.Id, reloaded.Entries[0].Id);
+        await reloaded.FlushPendingAsync();
     }
 
     [Fact]
-    public void Load_DropsVideoEntriesWhoseGifIsGone()
+    public async Task Load_DropsVideoEntriesWhoseGifIsGone()
     {
         var store = new HistoryStore(_root);
         HistoryEntry entry;
         using (var thumb = new Bitmap(8, 8))
             entry = store.AddVideo(thumb, new byte[] { 0x47, 0x49, 0x46 }, DateTime.UtcNow);
+        await store.FlushPendingAsync();
+        entry = store.Entries.Single();
         File.Delete(entry.GifPath!);
 
         var reloaded = new HistoryStore(_root);
         reloaded.Load();
 
         Assert.Empty(reloaded.Entries);
+        await reloaded.FlushPendingAsync();
     }
 
     [Fact]
-    public void Load_PrunedIndexIsPersisted()
+    public async Task Load_PrunedIndexIsPersisted()
     {
         var store = new HistoryStore(_root);
         HistoryEntry orphan;
         using (var bmp = new Bitmap(8, 8))
             orphan = store.Add(bmp, Array.Empty<Annotation>(), null, DateTime.UtcNow);
+        await store.FlushPendingAsync();
+        orphan = store.Entries.Single();
         File.Delete(orphan.ThumbnailPngPath);
 
-        new HistoryStore(_root).Load();          // prunes + rewrites index.json
+        var pruned = new HistoryStore(_root); pruned.Load();
+        await pruned.FlushPendingAsync();
         var again = new HistoryStore(_root);     // a second run must see the pruned index
         again.Load();
 
@@ -92,11 +101,11 @@ public class HistoryStoreRobustnessTests : IDisposable
     }
 
     [Fact]
-    public void Add_UnwritableRoot_DoesNotThrowAndDoesNotIndexTheEntry()
+    public async Task Add_UnwritableRoot_PublishesPendingAndRetainsRetrySnapshot()
     {
         var store = new HistoryStore(_root);
         // Block the storage root itself: asset names use unpredictable GUIDs.
-        Directory.Delete(_root);
+        if (Directory.Exists(_root)) Directory.Delete(_root);
         File.WriteAllText(_root, "blocked");
         var clashTime = new DateTime(2026, 5, 5, 0, 0, 0, DateTimeKind.Utc);
 
@@ -104,14 +113,16 @@ public class HistoryStoreRobustnessTests : IDisposable
         var entry = store.Add(bmp, Array.Empty<Annotation>(), null, clashTime);
 
         Assert.NotNull(entry);          // the caller still gets a handle back
-        Assert.Empty(store.Entries);    // ...but a half-written capture never enters the sidebar
+        Assert.Single(store.Entries);   // pending entries are immediately reopenable
+        Assert.False(await store.FlushPendingAsync());
         Assert.True(store.CanRetryImage(entry.Id));
         Assert.False(File.Exists(entry.OriginalPngPath));
 
         File.Delete(_root);
         Directory.CreateDirectory(_root);
-        Assert.True(store.RetryImage(entry.Id, bmp, Array.Empty<Annotation>(), null,
-            new EditorModel().Style, bmp));
+        Assert.True(store.QueueImage(entry.Id, bmp, Array.Empty<Annotation>(), null,
+            new EditorModel().Style));
+        await store.FlushPendingAsync();
         Assert.False(store.CanRetryImage(entry.Id));
         var reloaded = new HistoryStore(_root);
         reloaded.Load();

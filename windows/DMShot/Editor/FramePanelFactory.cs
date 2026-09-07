@@ -1,6 +1,8 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Automation;
 using System.Windows.Media;
+using System.Windows.Data;
 using DMShot.Localization;
 
 namespace DMShot.Editor;
@@ -39,6 +41,9 @@ public static class FramePanelFactory
                              HorizontalAlignment='Center' VerticalAlignment='Center'/>
                 </Border>
                 <ControlTemplate.Triggers>
+                  <Trigger Property='IsEnabled' Value='False'>
+                    <Setter TargetName='bd' Property='Opacity' Value='0.4'/>
+                  </Trigger>
                   <Trigger Property='IsMouseOver' Value='True'>
                     <Setter TargetName='bd' Property='Opacity' Value='0.85'/>
                   </Trigger>
@@ -64,11 +69,14 @@ public static class FramePanelFactory
           <Setter Property='Template'>
             <Setter.Value>
               <ControlTemplate TargetType='Button'>
-                <Grid>
+                <Grid x:Name='swatch'>
                   <Ellipse Fill='{TemplateBinding Background}'/>
                   <Ellipse x:Name='ring' Stroke='Transparent' StrokeThickness='2.5'/>
                 </Grid>
                 <ControlTemplate.Triggers>
+                  <Trigger Property='IsEnabled' Value='False'>
+                    <Setter TargetName='swatch' Property='Opacity' Value='0.4'/>
+                  </Trigger>
                   <DataTrigger Binding='{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}' Value='sel'>
                     <Setter TargetName='ring' Property='Stroke' Value='{DynamicResource DmAccent}'/>
                   </DataTrigger>
@@ -96,24 +104,20 @@ public static class FramePanelFactory
         // ── Enable / disable toggle ────────────────────────────────────────────
         var toggle = new CheckBox
         {
-            Content = Loc.Instance["background"],
             IsChecked = model.BackgroundEnabled,
             Margin = new Thickness(0, 0, 0, 10),
             FontSize = 13,
         };
 
-        // ── Sub-panel: dimmed and non-interactive while toggle is off ──────────
-        // Use IsHitTestVisible + Opacity (not IsEnabled) so each child doesn't
-        // apply its own 0.4 opacity trigger on top of the container's 0.4 — that
-        // would give 0.16 total, far too dark.  IsHitTestVisible still blocks all
-        // mouse input on the sub-panel when off.
+        BindText(toggle, ContentControl.ContentProperty, "background");
+        // Actual disabled state blocks keyboard and automation too. Child templates
+        // apply dimming once; the container does not multiply their opacity.
         var sub = new StackPanel();
 
         void SyncSubPanel()
         {
             bool on = model.BackgroundEnabled;
-            sub.IsHitTestVisible = on;
-            sub.Opacity = on ? 1.0 : 0.4;
+            sub.IsEnabled = on;
         }
 
         toggle.Checked += (_, _) =>
@@ -131,26 +135,26 @@ public static class FramePanelFactory
 
         // ── Padding row ────────────────────────────────────────────────────────
         sub.Children.Add(LabelRow(
-            Loc.Instance["bgPadding"],
+            "bgPadding",
             SegmentedRow(
                 new[]
                 {
-                    (FramePadding.Small,  Loc.Instance["bgPadSmall"]),
-                    (FramePadding.Medium, Loc.Instance["bgPadMedium"]),
-                    (FramePadding.Large,  Loc.Instance["bgPadLarge"]),
+                    (FramePadding.Small,  "bgPadSmall"),
+                    (FramePadding.Medium, "bgPadMedium"),
+                    (FramePadding.Large,  "bgPadLarge"),
                 },
                 () => model.FramePadding,
                 v => { model.FramePadding = v; onChanged(); })));
 
         // ── Corners row ────────────────────────────────────────────────────────
         sub.Children.Add(LabelRow(
-            Loc.Instance["bgCorners"],
+            "bgCorners",
             SegmentedRow(
                 new[]
                 {
-                    (FrameCorner.None,  Loc.Instance["bgCornerNone"]),
-                    (FrameCorner.Soft,  Loc.Instance["bgCornerSoft"]),
-                    (FrameCorner.Round, Loc.Instance["bgCornerRound"]),
+                    (FrameCorner.None,  "bgCornerNone"),
+                    (FrameCorner.Soft,  "bgCornerSoft"),
+                    (FrameCorner.Round, "bgCornerRound"),
                 },
                 () => model.FrameCorner,
                 v => { model.FrameCorner = v; onChanged(); })));
@@ -167,10 +171,15 @@ public static class FramePanelFactory
 
     // ── Private helpers ──────────────────────────────────────────────────────────────────────────
 
+    private static void BindText(DependencyObject target, DependencyProperty property, string key, string? format = null)
+        => BindingOperations.SetBinding(target, property, new Binding($"[{key}]")
+            { Source = Loc.Instance, Mode = BindingMode.OneWay, StringFormat = format });
+
     private static UIElement LabelRow(string label, UIElement content)
     {
         var panel = new StackPanel { Margin = new Thickness(0, 0, 0, 8) };
-        var lbl = new TextBlock { Text = label, FontSize = 11, Margin = new Thickness(0, 0, 0, 4) };
+        var lbl = new TextBlock { FontSize = 11, Margin = new Thickness(0, 0, 0, 4) };
+        BindText(lbl, TextBlock.TextProperty, label);
         lbl.SetResourceReference(TextBlock.ForegroundProperty, "DmTextDim");
         panel.Children.Add(lbl);
         panel.Children.Add(content);
@@ -189,7 +198,8 @@ public static class FramePanelFactory
         for (int i = 0; i < items.Length; i++)
         {
             var (value, label) = items[i];
-            var btn = new Button { Style = SegStyle, Content = label };
+            var btn = new Button { Style = SegStyle };
+            BindText(btn, ContentControl.ContentProperty, label);
             buttons[i] = btn;
 
             var captured = value;
@@ -220,7 +230,8 @@ public static class FramePanelFactory
     private static UIElement FillRow(EditorModel model, Action onChanged)
     {
         var panel = new StackPanel { Margin = new Thickness(0, 0, 0, 4) };
-        var lbl = new TextBlock { Text = Loc.Instance["bgFill"], FontSize = 11, Margin = new Thickness(0, 0, 0, 4) };
+        var lbl = new TextBlock { FontSize = 11, Margin = new Thickness(0, 0, 0, 4) };
+        BindText(lbl, TextBlock.TextProperty, "bgFill");
         lbl.SetResourceReference(TextBlock.ForegroundProperty, "DmTextDim");
         panel.Children.Add(lbl);
 
@@ -232,6 +243,7 @@ public static class FramePanelFactory
         {
             var h = hex;
             var btn = MakeSwatch(new SolidColorBrush(HexToColor(hex)));
+            BindText(btn, AutomationProperties.NameProperty, "color", "{0} " + hex);
             allBtns.Add(btn);
             btn.Click += (_, _) =>
             {
@@ -257,6 +269,7 @@ public static class FramePanelFactory
                 startPoint: new Point(0, 0),
                 endPoint:   new Point(1, 1));
             var btn = MakeSwatch(brush);
+            BindText(btn, AutomationProperties.NameProperty, g == FrameGradient.Warm ? "gradientWarm" : g == FrameGradient.Cool ? "gradientCool" : "gradientNeutral");
             allBtns.Add(btn);
             btn.Click += (_, _) =>
             {
@@ -271,7 +284,8 @@ public static class FramePanelFactory
         // Blur swatch — neutral grey circle, tooltip "Blur"
         var blurBrush = new SolidColorBrush(Color.FromRgb(0x88, 0x99, 0xAA));
         var blurBtn = MakeSwatch(blurBrush);
-        blurBtn.ToolTip = Loc.Instance["bgBlur"];
+        BindText(blurBtn, FrameworkElement.ToolTipProperty, "bgBlur");
+        BindText(blurBtn, AutomationProperties.NameProperty, "bgBlur");
         allBtns.Add(blurBtn);
         blurBtn.Click += (_, _) =>
         {

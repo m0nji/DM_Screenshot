@@ -23,7 +23,10 @@ public partial class App : Application
     private QuickEditOverlayWindow? _quickEdit;
     private Func<bool, bool>? _flushQuickEdit;
     private bool _quitting;
+    private bool _preparingQuit;
+    private Task<bool>? _quitTask;
     internal bool IsQuitting => _quitting;
+    private bool CanPresentWindows => !_preparingQuit && !_quitting;
     private HistoryStore _history = null!;
     private ITrayIcon _tray = null!;
     private Settings.Settings _settings = null!;
@@ -44,6 +47,9 @@ public partial class App : Application
     private RecordingRegionFrame? _regionFrame;
     private DispatcherTimer? _controlTimer;
     private VideoPreviewWindow? _preview;
+    private IReadOnlyList<RecordedFrame>? _deferredPreview;
+    private readonly HashSet<Task<GifOutcome>> _gifDeliveries = new();
+    private readonly HashSet<GifViewerWindow> _gifViewers = new();
 
     internal const int HK_FULL = 1, HK_AREA = 2, HK_VIDEO_FULL = 3, HK_VIDEO_AREA = 4;
 
@@ -56,9 +62,13 @@ public partial class App : Application
         base.OnStartup(e);
         ShutdownMode = ShutdownMode.OnExplicitShutdown; // tray app; no main window yet
 
-        _history = new HistoryStore(Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "DMShot", "history"));
+        string historyRoot = Environment.GetEnvironmentVariable("DMSHOT_HISTORY_ROOT") ?? Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "DMShot", "history");
+        _history = new HistoryStore(historyRoot, action => Dispatcher.BeginInvoke(action));
         _history.Load();
+        _history.Changed += () => _editor?.RefreshHistory();
+        _history.WriteFailed += ex => { if (!_preparingQuit && !_quitting) Alerts.Show("historyWriteFailedMessage", ex); };
+        HistoryPerf.StartDispatcherProbe();
 
         _coordinator = new CaptureCoordinator(new GdiScreenCapturer(), () => _settings.ShowZoomLoupe);
         _coordinator.CaptureProduced += OnCaptureProduced;
@@ -89,7 +99,7 @@ public partial class App : Application
         _tray.VideoAreaRequested += () => _coordinator.StartVideoArea();
         _tray.OpenRequested += ShowEditor;
         _tray.SettingsRequested += OpenSettings;
-        _tray.QuitRequested += () => { if (PrepareToQuit()) Shutdown(); };
+        _tray.QuitRequested += async () => { if (await PrepareToQuitAsync()) Shutdown(); };
         UpdateTrayHotkeyHints();
         _tray.Show();
 
@@ -104,7 +114,11 @@ public partial class App : Application
 
         // Velopack-backed auto-update. Created on the UI thread so the service captures
         // the dispatcher SynchronizationContext for state callbacks. Silent launch check.
-        _updater = new UpdaterService { BeforeRestart = PrepareToQuit };
+        _updater = new UpdaterService { BeforeRestart = PrepareToQuitAsync, RestartFailed = ex =>
+        {
+            ResumeAfterQuitPreparation();
+            Alerts.Show("restartFailedMessage", ex);
+        } };
         // Tray badge + first menu item while an update is actionable, and the active
         // prompt once it is downloaded. StateChanged already fires on the dispatcher.
         _updater.StateChanged += OnUpdateState;
@@ -162,6 +176,7 @@ public partial class App : Application
 
     private void EvaluateUpdatePrompt()
     {
+        if (!CanPresentWindows) return;
         if (_updatePrompt is not null) return;
 
         var snooze = UpdatePrompt.SnoozeFrom(_settings.UpdateSnoozeVersion, _settings.UpdateSnoozeUntil);
@@ -213,6 +228,11 @@ public partial class App : Application
         var d = new Settings.Settings();
         static string Effective(string stored, string fallback)
             => HotkeySpec.TryParse(stored, out _) ? stored : fallback;
+        _editor?.UpdateCaptureShortcuts(
+            Effective(_settings.FullScreenHotkey, d.FullScreenHotkey),
+            Effective(_settings.AreaHotkey, d.AreaHotkey),
+            Effective(_settings.VideoFullHotkey, d.VideoFullHotkey),
+            Effective(_settings.VideoAreaHotkey, d.VideoAreaHotkey));
         _tray.SetHotkeyHints(
             Effective(_settings.FullScreenHotkey, d.FullScreenHotkey),
             Effective(_settings.AreaHotkey, d.AreaHotkey),
@@ -222,6 +242,7 @@ public partial class App : Application
 
     private void OpenSettings()
     {
+        if (!CanPresentWindows) return;
         var w = new SettingsWindow(_settings, _settingsStore, _updater)
         {
             IsHotkeyRegistrationFailed = id => _hotkeyFailures.Contains(id)
@@ -229,6 +250,7 @@ public partial class App : Application
         w.Saved += s =>
         {
             _settings = s;
+
             AppDesignTheme.Apply(_settings.AppDesign);
             RegisterHotkeysFromSettings();
             UpdateTrayHotkeyHints();
@@ -292,6 +314,7 @@ public partial class App : Application
             OnRequestSettings = OpenSettings,
             OnVideoEntryActivated = OpenGifViewerForEntry   // V17
         };
+        UpdateTrayHotkeyHints();
         _editor.InitDefaults(_settings.StrokeWidth, _settings.BlurStrength);   // remembered stroke/blur
         _editor.InitFrameStyle(new BackgroundStyle(                            // remembered frame style
             _settings.BackgroundEnabled,
@@ -306,6 +329,7 @@ public partial class App : Application
 
     private void ShowEditor()
     {
+        if (!CanPresentWindows) return;
         EnsureEditor();
         _editor!.Store = _history;
         _editor.RefreshHistory();
@@ -317,6 +341,7 @@ public partial class App : Application
     /// the Topmost flip reliably brings the window to front.</summary>
     internal void ShowMainWindowFromRelaunch()
     {
+        if (!CanPresentWindows) return;
         ShowEditor();
         _editor!.Topmost = true;
         _editor.Topmost = false;
@@ -326,6 +351,9 @@ public partial class App : Application
     private void OnCaptureProduced(CaptureResult result)
     {
         var bmp = result.Image;
+        if (_preparingQuit || _quitting) { bmp.Dispose(); return; }
+        long captureReady = HistoryPerf.Now;
+        bool ownsCapture = true;
         try
         {
             DismissQuickEdit();
@@ -333,46 +361,45 @@ public partial class App : Application
 
             // Capturing stores the raw image immediately; satisfies the "last 10" sidebar for v1.
             var entry = _history.Add(bmp, Array.Empty<Annotation>(), null, DateTime.UtcNow);
+            HistoryPerf.CaptureReady(entry.Id, captureReady);
 
             if (_settings.AfterCapture == AfterCaptureMode.QuickEdit)
-                ShowQuickEdit(result, entry.Id);          // the overlay takes ownership of result.Image
+                ShowQuickEdit(result, entry.Id, () => ownsCapture = false);          // the overlay takes ownership of result.Image
             else
             {
                 ShowEditorWithImage(bmp, entry.Id);       // LoadImage clones — the capture itself is done with
                 // Clipboard errors do not affect editor/history delivery.
                 Alerts.Guard(() => _clipboard.SetImage(bmp), "clipboardFailedMessage");
-                bmp.Dispose();
             }
-            if (!_history.Entries.Any(e => e.Id == entry.Id))
-                Alerts.Show("historyWriteFailedMessage", new IOException(Loc.Instance["historyWriteFailedDetail"]));
+
         }
-        catch
-        {
-            DismissQuickEdit();
-            bmp.Dispose();
-            throw;
-        }
+        catch { DismissQuickEdit(); throw; }
+        finally { if (ownsCapture) bmp.Dispose(); }
     }
 
     private void ShowEditorWithImage(System.Drawing.Bitmap bmp, string entryId)
     {
+        if (!CanPresentWindows) return;
         EnsureEditor();
         _editor!.LoadImage(bmp, entryId, CurrentFrameStyle());
         _editor.FlushDocument();
         if (!_editor.IsVisible) _editor.Show();
         _editor.Activate();
         _editor.WindowState = WindowState.Normal;
+        Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () => HistoryPerf.Milestone("editor-visible", entryId));
         _editor.Store = _history;
         _editor.RefreshHistory();
     }
 
-    private void ShowQuickEdit(CaptureResult result, string entryId)
+    private void ShowQuickEdit(CaptureResult result, string entryId, Action takeOwnership)
     {
-        if (_quickEdit is not null) { result.Image.Dispose(); return; }   // idempotent (Q1); nobody else owns the bitmap
+        if (!CanPresentWindows) { result.Image.Dispose(); takeOwnership(); return; }
+        if (_quickEdit is not null) { result.Image.Dispose(); takeOwnership(); return; }   // idempotent (Q1); nobody else owns the bitmap
         _editor?.Hide();                                    // single key window (Q6)
 
         var overlay = new QuickEditOverlayWindow(result.Image, result.ScreenRectPx, result.DisplayBoundsPx);
         _quickEdit = overlay;
+        takeOwnership(); // from this point the overlay's Closed handler disposes capture
         overlay.Canvas.ActiveStroke = _settings.StrokeWidth;          // seed remembered defaults before first paint
         overlay.Canvas.ActiveBlurStrength = _settings.BlurStrength;
         // Seed the frame style so the overlay's Copy/Save output is framed if the user had it on.
@@ -386,29 +413,12 @@ public partial class App : Application
         overlay.DefaultsChanged += OnAnnotationDefaultsChanged;
         overlay.FrameStyleChanged += OnFrameStyleChanged;   // persist frame-style changes from the overlay
 
-        bool initiallyPersisted = _history.Entries.Any(e => e.Id == entryId);
         bool PersistOverlay(bool showError = true)
         {
             overlay.Canvas.CommitTextEdit();
-            bool exists = _history.Entries.Any(e => e.Id == entryId);
-            if (!exists && initiallyPersisted) return true;
-            try
-            {
-                using var flat = Renderer.Flatten(result.Image, om);
-                bool persisted = exists
-                    ? _history.UpdateImage(entryId, om.Annotations, om.Crop, om.Style, flat)
-                    : _history.RetryImage(entryId, result.Image, om.Annotations, om.Crop, om.Style, flat);
-                if (!persisted)
-                    throw new IOException(Loc.Instance["historyWriteFailedDetail"]);
-                initiallyPersisted = true;
-                return true;
-            }
-            catch (Exception ex)
-            {
-                _history.RememberPending(entryId, result.Image, om.Annotations, om.Crop, om.Style);
-                if (showError) Alerts.Show("historyWriteFailedMessage", ex);
-                return false;
-            }
+            if (!_history.Entries.Any(e => e.Id == entryId)) return true;
+            try { return _history.QueueImage(entryId, result.Image, om.Annotations, om.Crop, om.Style); }
+            catch (Exception ex) { if (showError) Alerts.Show("historyWriteFailedMessage", ex); return false; }
         }
         _flushQuickEdit = PersistOverlay;
         overlay.CopyRequested += () =>
@@ -435,9 +445,10 @@ public partial class App : Application
             DismissQuickEdit();
             _editor?.Activate();                            // overlay close must not steal focus back
         };
-        overlay.Dismissed += () => { PersistOverlay(!_quitting); _quickEdit = null; _flushQuickEdit = null; };
+        overlay.Dismissed += () => { if (!_quitting) PersistOverlay(); _quickEdit = null; _flushQuickEdit = null; };
 
         overlay.ShowOverlay();
+        Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () => HistoryPerf.Milestone("quick-edit-visible", entryId));
         PersistOverlay();
         Alerts.Guard(() => _clipboard.SetImage(result.Image), "clipboardFailedMessage");
     }
@@ -445,6 +456,7 @@ public partial class App : Application
     private void ShowEditorWithState(System.Drawing.Bitmap bmp,
                                      IReadOnlyList<Annotation> anns, PixelRect? crop, string entryId, BackgroundStyle style)
     {
+        if (!CanPresentWindows) return;
         EnsureEditor();
         _editor!.LoadWithState(bmp, anns, crop, entryId, style);
         _editor.Show(); _editor.WindowState = WindowState.Normal; _editor.Activate();
@@ -486,6 +498,7 @@ public partial class App : Application
 
     private async void OnVideoRequested(DisplayInfo display, PixelRect? crop)
     {
+        if (_preparingQuit || _quitting) return;
         if (_recorder is not null) { FinishRecording(); return; }   // V8: re-trigger = stop
 
         // OS-floor guard: WGC requires Windows 10 version 1803 (build 17134)+.
@@ -558,6 +571,12 @@ public partial class App : Application
 
     private void ShowPreview(IReadOnlyList<RecordedFrame> frames)
     {
+        if (!CanPresentWindows)
+        {
+            if (_deferredPreview != null) foreach (var frame in _deferredPreview) frame.Image.Dispose();
+            _deferredPreview = frames; // keep auto-stopped frames if quit is cancelled
+            return;
+        }
         _preview?.Close();                                          // V15: close prior before new
         var preview = new VideoPreviewWindow(frames);
         _preview = preview;
@@ -566,7 +585,12 @@ public partial class App : Application
         // whole recording — the user could not even retry with a shorter trim.
         preview.CreateGifRequested += async (start, end, quality) =>
         {
-            var outcome = await DeliverGifAsync(frames, start, end, quality);
+            if (_preparingQuit || _quitting) { preview.ResetAfterFailedRender(); return; }
+            var delivery = DeliverGifAsync(frames, start, end, quality);
+            _gifDeliveries.Add(delivery);
+            GifOutcome outcome;
+            try { outcome = await delivery; }
+            finally { _gifDeliveries.Remove(delivery); }
             // Only hand the window back when the frames are still there to retry with.
             if (outcome == GifOutcome.FailedRetryPossible) preview.ResetAfterFailedRender();
             else preview.Close();
@@ -594,9 +618,11 @@ public partial class App : Application
             if (gif.Length == 0) { thumb.Dispose(); return GifOutcome.FailedRecordingGone; }  // I2: guard empty GIF
             HistoryEntry entry;
             using (thumb) { entry = _history.AddVideo(thumb, gif, DateTime.UtcNow); }
-            Alerts.Guard(() => _clipboard.SetGif(gif, entry.GifPath), "clipboardFailedMessage");                 // auto-copy the GIF
-            var viewer = new GifViewerWindow(gif, entry.GifPath, _clipboard, GifConvertedHandler(entry));
-            viewer.Show(); viewer.Activate();                      // V20
+            if (!_preparingQuit && !_quitting)
+            {
+                Alerts.Guard(() => _clipboard.SetGif(gif, entry.GifPath), "clipboardFailedMessage");
+                ShowGifViewer(gif, entry);
+            }
             _editor?.RefreshHistory();
             // I1: the encoder released the frames it used; anything dedup skipped is still
             // ours. Disposal is idempotent, so sweep the whole list.
@@ -616,15 +642,25 @@ public partial class App : Application
     /// <summary>V17: re-copy a stored GIF and open it in the viewer (instead of editing as an image).</summary>
     private void OpenGifViewerForEntry(HistoryEntry entry)
     {
-        if (string.IsNullOrEmpty(entry.GifPath) || !File.Exists(entry.GifPath)) return;
+        if (!CanPresentWindows) return;
+        var pending = _history.PendingGifFor(entry.Id);
+        if (pending is null && !File.Exists(entry.GifPath)) return;
         try
         {
-            var bytes = File.ReadAllBytes(entry.GifPath);
+            var bytes = pending ?? File.ReadAllBytes(entry.GifPath);
             Alerts.Guard(() => _clipboard.SetGif(bytes, entry.GifPath), "clipboardFailedMessage");
-            var viewer = new GifViewerWindow(bytes, entry.GifPath, _clipboard, GifConvertedHandler(entry));
-            viewer.Show(); viewer.Activate();
+            ShowGifViewer(bytes, entry);
         }
         catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"open gif failed: {ex}"); }
+    }
+
+    private void ShowGifViewer(byte[] bytes, HistoryEntry entry)
+    {
+        if (!CanPresentWindows) return;
+        var viewer = new GifViewerWindow(bytes, entry.GifPath, _clipboard, GifConvertedHandler(entry));
+        _gifViewers.Add(viewer);
+        viewer.Closed += (_, _) => _gifViewers.Remove(viewer);
+        viewer.Show(); viewer.Activate();
     }
 
     /// <summary>Post-hoc Standard→Small (mac parity): called by the viewer on the UI
@@ -633,12 +669,13 @@ public partial class App : Application
     private Func<byte[], System.Drawing.Bitmap, string?> GifConvertedHandler(HistoryEntry entry)
         => (smallGif, thumbnail) =>
         {
+            if (_quitting) return null;
             if (!_history.UpdateVideo(entry, smallGif, thumbnail))
             {
                 Alerts.Show("historyWriteFailedMessage", new IOException(Loc.Instance["historyWriteFailedDetail"]));
                 return null;
             }
-            Alerts.Guard(() => _clipboard.SetGif(smallGif, entry.GifPath), "clipboardFailedMessage");
+            if (!_preparingQuit) Alerts.Guard(() => _clipboard.SetGif(smallGif, entry.GifPath), "clipboardFailedMessage");
             _editor?.RefreshHistory();
             return entry.GifPath;
         };
@@ -665,30 +702,87 @@ public partial class App : Application
         SetWindowPos(h, IntPtr.Zero, x, y, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
     }
 
-    private bool PrepareToQuit()
+    private async Task<bool> PrepareToQuitAsync()
     {
-        _editor?.FlushDocument(false);
-        _flushQuickEdit?.Invoke(false);
-        bool pendingSaved = _history.FlushPending();
-        if (!pendingSaved && MessageBox.Show(
-            Loc.Instance["quitUnsavedMessage"], Loc.Instance["saveFailedTitle"],
-            MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) != MessageBoxResult.Yes)
+        if (_quitting) return true;
+        if (_quitTask != null) return await _quitTask;
+        var completion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        _quitTask = completion.Task;
+        try
+        {
+            bool result = await PrepareToQuitCoreAsync();
+            completion.SetResult(result);
+            return result;
+        }
+        catch (Exception ex)
+        {
+            Alerts.Show("historyWriteFailedMessage", ex);
+            completion.SetResult(false);
             return false;
-        _quitting = true;
-        return true;
+        }
+        finally { _quitTask = null; }
+    }
+
+    private async Task<bool> PrepareToQuitCoreAsync()
+    {
+        var windows = Windows.Cast<Window>().ToDictionary(window => window, window => window.IsEnabled);
+        _preparingQuit = true;
+        try
+        {
+            _coordinator.Suspended = true;
+            _coordinator.Cancel();
+            bool accepted = _editor?.FlushDocument(false) ?? true;
+            accepted &= _flushQuickEdit?.Invoke(false) ?? true;
+            foreach (var window in windows.Keys) window.IsEnabled = false;
+            // Await every producer before the final drain; Dispatcher remains available.
+            var outcomes = await Task.WhenAll(_gifDeliveries.ToArray());
+            accepted &= outcomes.All(outcome => outcome == GifOutcome.Success);
+            await Task.WhenAll(_gifViewers.Select(viewer => viewer.PendingConversion).ToArray());
+            bool pendingSaved = await _history.FlushPendingAsync();
+            if ((!pendingSaved || !accepted) && MessageBox.Show(
+                Loc.Instance["quitUnsavedMessage"], Loc.Instance["saveFailedTitle"],
+                MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) != MessageBoxResult.Yes)
+                return false;
+            _quitting = true;
+            return true;
+        }
+        finally
+        {
+            // Restore window state even on a successful drain: a failed installer
+            // handoff must leave a usable app. No UI event runs before caller's shutdown.
+            foreach (var (window, enabled) in windows) window.IsEnabled = enabled;
+            if (!_quitting) ResumeAfterQuitPreparation();
+        }
+    }
+
+    private void ResumeAfterQuitPreparation()
+    {
+        _quitting = false; _preparingQuit = false;
+        if (_coordinator != null) _coordinator.Suspended = false;
+        var frames = _deferredPreview; _deferredPreview = null;
+        if (frames != null) ShowPreview(frames);
     }
 
     protected override void OnSessionEnding(SessionEndingCancelEventArgs e)
     {
-        if (!PrepareToQuit()) e.Cancel = true;
+        // Windows requires a synchronous answer. Cancel this request while saving,
+        // then finish our own shutdown asynchronously; no nested Dispatcher pump.
+        if (!_quitting)
+        {
+            e.Cancel = true;
+            Dispatcher.BeginInvoke(async () => { if (await PrepareToQuitAsync()) Shutdown(); });
+        }
         base.OnSessionEnding(e);
     }
 
     protected override void OnExit(ExitEventArgs e)
     {
-        if (!_quitting) _editor?.FlushDocument();
+        // Authorized shutdown paths drain history before reaching OnExit.
         DismissQuickEdit();
         _coordinator?.Cancel();
+        CancelRecording();
+        if (_deferredPreview != null) foreach (var frame in _deferredPreview) frame.Image.Dispose();
+        _deferredPreview = null;
         _settingsSaveTimer?.Stop();
         if (_settingsStore is not null && _settings is not null)
             try { _settingsStore.Save(_settings); } catch { /* best-effort flush */ }

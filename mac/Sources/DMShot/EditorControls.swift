@@ -29,6 +29,8 @@ struct EditorColorPalette: View {
                             .overlay(Circle().stroke(appDesign.borderColor.opacity(0.8)))
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel(Text("\(tr(.color)) \(hex)"))
+                    .accessibilityAddTraits(model.colorHex == hex ? .isSelected : [])
                 }
             }
             Divider()
@@ -101,6 +103,8 @@ struct EditorContextualSlider: View {
                 Text(tr(.blur)).font(.caption).foregroundStyle(appDesign.textMutedColor).fixedSize()
                 Slider(value: $model.blurStrength, in: 2...60).frame(width: 90)
                     .tint(.dmAccent)
+                    .accessibilityLabel(Text(tr(.blur)))
+                    .accessibilityValue(Text("\(Int(model.blurStrength))"))
                     .onChange(of: model.blurStrength) { _, v in applyBlur(v) }
                 Text("\(Int(model.blurStrength))").font(.caption).foregroundStyle(appDesign.textMutedColor).monospacedDigit().fixedSize()
             }
@@ -109,6 +113,8 @@ struct EditorContextualSlider: View {
                 Text(tr(.size)).font(.caption).foregroundStyle(appDesign.textMutedColor).fixedSize()
                 Slider(value: $model.strokeWidth, in: 1...20).frame(width: 90)
                     .tint(.dmAccent)
+                    .accessibilityLabel(Text(tr(.size)))
+                    .accessibilityValue(Text("\(Int(model.strokeWidth)) \(tr(.pixelsSuffix))"))
                     .onChange(of: model.strokeWidth) { _, v in applyStroke(v) }
                 Text("\(Int(model.strokeWidth))\(tr(.pixelsSuffix))").font(.caption).foregroundStyle(appDesign.textMutedColor).monospacedDigit().fixedSize()
             }

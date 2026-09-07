@@ -23,6 +23,8 @@ struct EditorView: View {
     @ObservedObject var model: EditorModel
     @ObservedObject var history: HistoryStore
     @ObservedObject var settings: AppSettingsStore
+    @ObservedObject var shortcuts: ShortcutStore
+    @FocusState private var focusedHistoryID: String?
     var onCopy: () -> Void
     var onSave: () -> Void
     var onCaptureFull: () -> Void
@@ -47,76 +49,108 @@ struct EditorView: View {
 
     var body: some View {
         let _ = localizer.language  // re-render on language change
-        VStack(spacing: 0) {
-            toolbar
-            HStack(spacing: 0) {
-                sidebar
-                    .frame(width: sidebarWidth)
-                resizeHandle
-                // Inset card (macOS Settings grouping): the chrome tone runs behind
-                // it, so titlebar, toolbar and sidebar read as one surface and only
-                // the work area steps back.
-                CanvasView(model: model, appDesign: design, cornerRadius: Theme.canvasCornerRadius)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .padding(.trailing, Self.cardGap)
-                    .padding(.vertical, Self.cardGap)
+        GeometryReader { geometry in
+            VStack(spacing: 0) {
+                toolbar
+                HStack(spacing: 0) {
+                    sidebar
+                        .frame(width: min(sidebarWidth, max(130, geometry.size.width - 300)))
+                    resizeHandle
+                    // Inset card (macOS Settings grouping): the chrome tone runs behind
+                    // it, so titlebar, toolbar and sidebar read as one surface and only
+                    // the work area steps back.
+                    CanvasView(model: model, appDesign: design, cornerRadius: Theme.canvasCornerRadius)
+                        .overlay { if model.image == nil { ScrollView { emptyCanvas.frame(maxWidth: .infinity) } } }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .padding(.trailing, Self.cardGap)
+                        .padding(.vertical, Self.cardGap)
+                }
             }
         }
-        .frame(minWidth: 900, minHeight: 560)
+        .frame(minWidth: 600, minHeight: 320)
         .background(design.panelColor)
         .dmTooltipLayer()
     }
 
     private var toolbar: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
                 Button(action: onCopy) { Label(tr(.copy), systemImage: "doc.on.doc") }
-                    .buttonStyle(BlackUtilityButtonStyle(design: design))
-                    .disabled(model.image == nil)
+                    .buttonStyle(BlackUtilityButtonStyle(design: design)).disabled(model.image == nil)
                 Button(action: onSave) { Label(tr(.save), systemImage: "square.and.arrow.down") }
-                    .buttonStyle(BlackUtilityButtonStyle(design: design))
-                    .disabled(model.image == nil)
-                Divider().frame(height: 22).background(design.borderColor)
-
-                ForEach(toolSpecs, id: \.tool) { spec in
-                    Button { model.tool = spec.tool } label: {
-                        Image(systemName: spec.icon).frame(width: 18)
-                    }
-                    .dmTooltip(tr(spec.help))
-                    .buttonStyle(ToolButtonStyle(active: model.tool == spec.tool, design: design))
-                    .disabled(model.image == nil)
-                }
-                Divider().frame(height: 22).background(design.borderColor)
-
-                FrameToolbarButton(model: model, appDesign: design)
-                Divider().frame(height: 22).background(design.borderColor)
-                EditorColorPicker(model: model, appDesign: design)
-                Divider().frame(height: 22).background(design.borderColor)
-                EditorContextualSlider(model: model, appDesign: design)
-                Divider().frame(height: 22).background(design.borderColor)
-
+                    .buttonStyle(BlackUtilityButtonStyle(design: design)).disabled(model.image == nil)
                 Button(action: model.undo) { Image(systemName: "arrow.uturn.backward") }
-                    .dmTooltip(tr(.undo))
-                    .buttonStyle(ToolButtonStyle(active: false, design: design))
+                    .dmTooltip(tr(.undo)).buttonStyle(ToolButtonStyle(active: false, design: design)).disabled(!model.canUndo)
                 Button(action: model.redo) { Image(systemName: "arrow.uturn.forward") }
-                    .dmTooltip(tr(.redo))
-                    .buttonStyle(ToolButtonStyle(active: false, design: design))
-                Divider().frame(height: 22).background(design.borderColor)
-
-                Text("\(Int(model.viewRect.width)) × \(Int(model.viewRect.height)) \(tr(.pixelsSuffix))")
-                    .font(.caption).foregroundStyle(design.textMutedColor).fixedSize()
-                Button("\(model.zoomPercent)%") { model.resetZoom() }
-                    .buttonStyle(.plain)
-                    .font(.caption)
-                    .foregroundStyle(design.textMutedColor)
-                    .dmTooltip(tr(.resetZoomToFit))
-                    .fixedSize()
-                    .disabled(model.image == nil)
+                    .dmTooltip(tr(.redo)).buttonStyle(ToolButtonStyle(active: false, design: design)).disabled(!model.canRedo)
+                Spacer()
+                if model.image != nil {
+                    Text("\(Int(model.viewRect.width)) × \(Int(model.viewRect.height)) \(tr(.pixelsSuffix))")
+                        .foregroundStyle(design.textMutedColor)
+                    Button("\(model.zoomPercent)%") { model.resetZoom() }
+                        .buttonStyle(BlackUtilityButtonStyle(design: design)).dmTooltip(tr(.resetZoomToFit))
+                }
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 8) { tools; contextControls }
+                HStack(spacing: 8) {
+                    Menu {
+                        Picker(tr(.moreTools), selection: $model.tool) {
+                            ForEach(toolSpecs, id: \.tool) { spec in
+                                Label(tr(spec.help), systemImage: spec.icon).tag(spec.tool)
+                            }
+                        }.pickerStyle(.inline)
+                    } label: { Label(tr(.moreTools), systemImage: "ellipsis") }
+                    .fixedSize()
+                    contextControls
+                }
+            }
+            .disabled(model.image == nil)
         }
+        .padding(.horizontal, 12).padding(.vertical, 8)
         .background(design.panelColor)
+    }
+
+    private var tools: some View {
+        HStack(spacing: 6) {
+            ForEach(toolSpecs, id: \.tool) { spec in
+                Button { model.tool = spec.tool } label: { Image(systemName: spec.icon).frame(width: 18) }
+                    .dmTooltip(tr(spec.help))
+                    .accessibilityAddTraits(model.tool == spec.tool ? .isSelected : [])
+                    .buttonStyle(ToolButtonStyle(active: model.tool == spec.tool, design: design))
+            }
+        }.fixedSize()
+    }
+
+    private var contextControls: some View {
+        HStack(spacing: 8) {
+            FrameToolbarButton(model: model, appDesign: design)
+            EditorColorPicker(model: model, appDesign: design)
+            EditorContextualSlider(model: model, appDesign: design)
+        }.fixedSize()
+    }
+
+    private var emptyCanvas: some View {
+        VStack(spacing: 16) {
+            Text(tr(.emptyCanvasTitle)).font(.title2).foregroundStyle(design.textColor)
+            Text(tr(.emptyCanvasHint)).foregroundStyle(design.textMutedColor).multilineTextAlignment(.center)
+            ForEach(ShortcutAction.allCases) { action in
+                Button {
+                    switch action {
+                    case .fullScreen: onCaptureFull()
+                    case .areaSelection: onCaptureArea()
+                    case .videoFullScreen: onVideoFull()
+                    case .videoAreaSelection: onVideoArea()
+                    }
+                } label: {
+                    VStack(spacing: 4) {
+                        Text(action.title)
+                        Text((shortcuts.shortcuts[action] ?? action.defaultShortcut).keyCaps.joined(separator: " "))
+                            .foregroundStyle(design.textMutedColor)
+                    }
+                }.buttonStyle(BlackUtilityButtonStyle(design: design))
+            }
+        }.padding(20)
     }
 
     // A plain sidebar row with a fixed-width icon column, so every label lines up
@@ -133,7 +167,7 @@ struct EditorView: View {
             Button(action: action) {
                 HStack(spacing: 8) {
                     Image(systemName: icon).frame(width: 22)
-                    Text(title)
+                    Text(title).fixedSize(horizontal: false, vertical: true)
                 }
             }
             .buttonStyle(SidebarRowStyle(design: design, hovered: hovered))
@@ -146,17 +180,17 @@ struct EditorView: View {
     private var sidebar: some View {
         // One grouped surface holding plain rows — the groups inside are separated by
         // space, not by rules, so no hard line competes with the surface's own edge.
-        VStack(spacing: 2) {
-            CaptureButton(title: tr(.editorFullScreen), icon: "rectangle.dashed", design: design, action: onCaptureFull)
-            CaptureButton(title: tr(.editorSelection), icon: "selection.pin.in.out", design: design, action: onCaptureArea)
-            CaptureButton(title: tr(.editorVideoFullScreen), icon: "video", design: design, action: onVideoFull)
-            CaptureButton(title: tr(.editorVideoSection), icon: "video.badge.plus", design: design, action: onVideoArea)
-            Text(tr(.historyHeader)).font(.caption2).foregroundStyle(design.textMutedColor)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 10)
-                .padding(.top, 14)
-                .padding(.bottom, 4)
-            ScrollView {
+        ScrollView {
+            VStack(spacing: 2) {
+                CaptureButton(title: tr(.editorFullScreen), icon: "rectangle.dashed", design: design, action: onCaptureFull)
+                CaptureButton(title: tr(.editorSelection), icon: "selection.pin.in.out", design: design, action: onCaptureArea)
+                CaptureButton(title: tr(.editorVideoFullScreen), icon: "video", design: design, action: onVideoFull)
+                CaptureButton(title: tr(.editorVideoSection), icon: "video.badge.plus", design: design, action: onVideoArea)
+                Text(tr(.historyHeader)).font(.caption2).foregroundStyle(design.textMutedColor)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 10)
+                    .padding(.top, 14)
+                    .padding(.bottom, 4)
                 VStack(spacing: 8) {
                     ForEach(history.items) { item in
                         if let thumb = history.thumbnail(item.id) {
@@ -165,11 +199,11 @@ struct EditorView: View {
                     }
                 }
                 .padding(.horizontal, 4)
+                CaptureButton(title: tr(.settings), icon: "gearshape", design: design, action: onOpenSettings)
+                    .padding(.top, 14)
             }
-            CaptureButton(title: tr(.settings), icon: "gearshape", design: design, action: onOpenSettings)
-                .padding(.top, 14)
+            .padding(6)
         }
-        .padding(6)
         .dmGroupSurface(design)
         .padding(.leading, Self.cardGap)
         .padding(.vertical, Self.cardGap)
@@ -213,6 +247,16 @@ struct EditorView: View {
                 }
         }
         .buttonStyle(.plain)
+        .focused($focusedHistoryID, equals: item.id)
+        .overlay(RoundedRectangle(cornerRadius: 6).stroke(focusedHistoryID == item.id ? design.accentColor : .clear, lineWidth: 2))
+        .accessibilityLabel(Text("\(tr(.historyHeader)), \(Date(timeIntervalSince1970: item.createdAt).formatted())"))
+        .accessibilityAddTraits(model.entryID == item.id ? .isSelected : [])
+        .accessibilityAction(named: Text(tr(.deleteCapture))) { onDeleteHistory(item.id) }
+        .contextMenu { Button(tr(.deleteCapture), role: .destructive) { onDeleteHistory(item.id) } }
+        // Participate in AppKit's nil-target delete: command before AppDelegate's
+        // canvas fallback; nil leaves text/canvas commands with their own responder.
+        .onDeleteCommand(perform: focusedHistoryID == item.id ? { onDeleteHistory(item.id) } : nil)
+        .onKeyPress(.delete) { onDeleteHistory(item.id); return .handled }
         .onHover { inside in
             hoveredHistoryID = inside ? item.id : (hoveredHistoryID == item.id ? nil : hoveredHistoryID)
         }
@@ -240,6 +284,11 @@ struct EditorView: View {
             .onHover { inside in
                 withAnimation(.easeOut(duration: 0.12)) { resizeHovered = inside }
                 if inside { NSCursor.resizeLeftRight.push() } else { NSCursor.pop() }
+            }
+            .accessibilityLabel(Text(tr(.sidebarWidth)))
+            .accessibilityValue(Text("\(Int(sidebarWidth))"))
+            .accessibilityAdjustableAction { direction in
+                sidebarWidth = min(max(sidebarWidth + (direction == .increment ? 10 : -10), sidebarRange.lowerBound), sidebarRange.upperBound)
             }
             .gesture(
                 DragGesture(minimumDistance: 0)

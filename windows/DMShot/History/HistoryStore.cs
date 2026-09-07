@@ -1,265 +1,242 @@
+using System.Collections.Concurrent;
 using System.Drawing;
 using System.IO;
 using System.Text.Json;
 using DMShot.Capture;
 using DMShot.Editor;
+
 namespace DMShot.History;
 
+/// <summary>UI-facing desired state and worker-only durable state. All mutations share one
+/// revision queue; only immutable pixels/metadata cross it. Enqueue success means accepted,
+/// not durable: WriteFailed and FlushPendingAsync report persistence failures.</summary>
 public sealed class HistoryStore
 {
     private const int Max = 10;
-    public sealed record PendingDocument(Bitmap Original, IReadOnlyList<Annotation> Annotations,
+    public sealed record PendingDocument(ImageSnapshot Original, IReadOnlyList<AnnotationDto> Annotations,
         PixelRect? Crop, BackgroundStyle Style);
-    private readonly Dictionary<string, PendingDocument> _pending = new();
-    public bool CanRetryImage(string id) => _failedImageAdds.ContainsKey(id);
-    public PendingDocument? PendingFor(string id) => _pending.GetValueOrDefault(id);
-    public void RememberPending(string id, Bitmap original, IEnumerable<Annotation> annotations,
-                                PixelRect? crop, BackgroundStyle style)
-    {
-        if (!_entries.Any(e => e.Id == id) && !_failedImageAdds.ContainsKey(id)) return;
-        var image = _pending.TryGetValue(id, out var existing) ? existing.Original : (Bitmap)original.Clone();
-        _pending[id] = new PendingDocument(image, annotations.Select(a => a.Clone()).ToList(), crop, style);
-    }
-    private void ForgetPending(string id)
-    {
-        if (_pending.Remove(id, out var pending)) pending.Original.Dispose();
-    }
-    public bool FlushPending()
-    {
-        bool saved = true;
-        foreach (var (id, pending) in _pending.ToArray())
-        {
-            try
-            {
-                var model = new EditorModel();
-                model.SetImageSize(pending.Original.Width, pending.Original.Height);
-                model.ReplaceDocument(pending.Annotations, pending.Crop);
-                model.BackgroundEnabled = pending.Style.Enabled;
-                model.FramePadding = pending.Style.Padding; model.FrameCorner = pending.Style.Corner;
-                model.FrameBackgroundKind = pending.Style.Kind; model.FrameSolidHex = pending.Style.SolidHex;
-                model.FrameGradient = pending.Style.Gradient;
-                using var rendered = Renderer.Flatten(pending.Original, model);
-                saved &= _failedImageAdds.ContainsKey(id)
-                    ? RetryImage(id, pending.Original, pending.Annotations, pending.Crop, pending.Style, rendered)
-                    : UpdateImage(id, pending.Annotations, pending.Crop, pending.Style, rendered);
-            }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine(ex); saved = false; }
-        }
-        return saved;
-    }
-
+    private sealed record Revision(HistoryEntry Entry, PendingDocument? Document, ImageSnapshot? VideoThumb,
+        byte[]? Gif, bool Deleted = false);
+    private readonly object _state = new();
     private readonly List<HistoryEntry> _entries = new();
-    private readonly Dictionary<string, HistoryEntry> _failedImageAdds = new();
+    private readonly List<HistoryEntry> _diskEntries = new(); // worker only after Load
+    private readonly Dictionary<string, Revision> _pending = new();
+    private readonly ConcurrentQueue<(string Id, Revision Value, Exception? Error)> _completions = new();
+    private readonly RevisionQueue<Revision> _queue;
+    private readonly Action<Action>? _publish;
+    private readonly Func<Task>? _beforeWrite;
+    public event Action? Changed;
+    public event Action<Exception>? WriteFailed;
     public string Root { get; }
-    public IReadOnlyList<HistoryEntry> Entries => _entries;
     private string IndexPath => Path.Combine(Root, "index.json");
+    public IReadOnlyList<HistoryEntry> Entries { get { lock (_state) return _entries.Select(Copy).ToArray(); } }
+    public bool CanRetryImage(string id) { lock (_state) return _pending.GetValueOrDefault(id) is { Deleted: false, Document: not null }; }
+    public PendingDocument? PendingFor(string id) { lock (_state) return _pending.GetValueOrDefault(id)?.Document; }
+    public byte[]? PendingGifFor(string id) { lock (_state) return _pending.GetValueOrDefault(id)?.Gif?.ToArray(); }
 
-    public HistoryStore(string root)
+    public HistoryStore(string root, Action<Action>? publish = null, Func<Task>? beforeWrite = null)
     {
-        Root = root;
-        TryWrite(() => Directory.CreateDirectory(Root));
+        Root = root; _publish = publish; _beforeWrite = beforeWrite;
+        _queue = new RevisionQueue<Revision>(WriteAsync);
+        _queue.Completed += (id, revision, error) =>
+        {
+            _completions.Enqueue((id, revision, error));
+            if (_publish is null) ApplyCompletions(); else _publish(ApplyCompletions);
+        };
     }
 
-    /// <summary>
-    /// Restores the index. Never throws: a truncated / hand-edited / partially written
-    /// index.json used to take the whole app down on every launch (the store is built in
-    /// App.OnStartup), and entries whose files were removed underneath us (temp cleaners,
-    /// sync tools, manual cleanup) crashed the sidebar on the first refresh. Both cases
-    /// now degrade to "that entry is gone" — matching the macOS store, which tolerates
-    /// unreadable state via `try?` throughout.
-    /// </summary>
     public void Load()
     {
-        _entries.Clear();
-        if (!File.Exists(IndexPath)) return;
-        List<HistoryEntry> list;
-        try { list = JsonSerializer.Deserialize<List<HistoryEntry>>(File.ReadAllText(IndexPath)) ?? new(); }
-        catch { return; }   // unreadable index -> start with an empty history, don't crash
-        _entries.AddRange(list.Where(IsRestorable).OrderBy(e => e.CreatedUtc));
-        if (_entries.Count != list.Count) Commit(_entries.ToList());   // drop the dangling entries for good
+        lock (_state)
+        {
+            _entries.Clear(); _diskEntries.Clear();
+            try
+            {
+                var list = JsonSerializer.Deserialize<List<HistoryEntry>>(File.ReadAllText(IndexPath)) ?? new();
+                _entries.AddRange(list.Where(IsRestorable).OrderBy(e => e.CreatedUtc).TakeLast(Max));
+                _diskEntries.AddRange(list.Select(Copy));
+                foreach (var removed in list.Where(e => !_entries.Any(kept => kept.Id == e.Id)))
+                    Enqueue(new(removed, null, null, null, Deleted: true));
+            }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine(ex); }
+        }
     }
-
-    /// <summary>An entry is only restorable while the files the sidebar and the open action
-    /// need are still on disk (thumbnail always; PNG for images, GIF for videos).</summary>
     private static bool IsRestorable(HistoryEntry e)
-        => !string.IsNullOrEmpty(e.ThumbnailPngPath) && File.Exists(e.ThumbnailPngPath)
-           && (e.Kind == HistoryKind.Video
-                 ? !string.IsNullOrEmpty(e.GifPath) && File.Exists(e.GifPath)
-                 : !string.IsNullOrEmpty(e.OriginalPngPath) && File.Exists(e.OriginalPngPath));
+        => File.Exists(e.ThumbnailPngPath) && File.Exists(e.Kind == HistoryKind.Video ? e.GifPath : e.OriginalPngPath);
 
     public HistoryEntry Add(Bitmap original, IEnumerable<Annotation> annotations, PixelRect? crop, DateTime nowUtc)
     {
-        string id = Guid.NewGuid().ToString("N");
-        string orig = Path.Combine(Root, id + ".png");
-        string thumb = Path.Combine(Root, id + "_thumb.png");
-
-        var entry = new HistoryEntry
-        {
-            Id = id, OriginalPngPath = orig, ThumbnailPngPath = thumb,
-            Annotations = annotations.Select(AnnotationDto.From).ToList(),
-            Crop = crop, CreatedUtc = nowUtc
-        };
-        // Keep failed adds retryable without publishing missing assets. The caller
-        // retains the editable capture and can supply its complete snapshot later.
-        if (!TryWrite(() => { original.Save(orig, System.Drawing.Imaging.ImageFormat.Png); SaveThumb(original, thumb); }))
-        {
-            TryDelete(orig); TryDelete(thumb);
-            _failedImageAdds[id] = entry;
-            return entry;
-        }
-
-        if (!Index(entry)) _failedImageAdds[id] = entry;
-        return entry;
+        var entry = new HistoryEntry { Id = Guid.NewGuid().ToString("N"), CreatedUtc = nowUtc,
+            Crop = crop, Annotations = annotations.Select(AnnotationDto.From).ToList() };
+        var document = new PendingDocument(ImageSnapshot.Capture(original), entry.Annotations.AsReadOnly(), crop, BackgroundStyle.Disabled);
+        lock (_state) { _entries.Add(entry); Enqueue(new(entry, document, null, null)); Evict(); }
+        Changed?.Invoke();
+        return Copy(entry);
     }
-
     public HistoryEntry AddVideo(Bitmap thumbnail, byte[] gifBytes, DateTime nowUtc)
     {
-        string id = Guid.NewGuid().ToString("N");
-        string thumb = Path.Combine(Root, id + "_thumb.png");
-        string gif = Path.Combine(Root, id + ".gif");
+        var entry = new HistoryEntry { Id = Guid.NewGuid().ToString("N"), Kind = HistoryKind.Video, CreatedUtc = nowUtc };
+        var revision = new Revision(entry, null, ImageSnapshot.Capture(thumbnail), gifBytes.ToArray());
+        lock (_state) { _entries.Add(entry); Enqueue(revision); Evict(); }
+        Changed?.Invoke(); return Copy(entry);
+    }
+    private void Evict()
+    {
+        while (_entries.Count > Max) Delete(_entries.OrderBy(e => e.CreatedUtc).First().Id);
+    }
+    private void Enqueue(Revision revision)
+    {
+        revision = revision with { Entry = Copy(revision.Entry) };
+        _pending[revision.Entry.Id] = revision;
+        _queue.Enqueue(revision.Entry.Id, revision);
+    }
 
-        var entry = new HistoryEntry
+    public void RememberPending(string id, Bitmap original, IEnumerable<Annotation> annotations, PixelRect? crop, BackgroundStyle style)
+        => QueueImage(id, original, annotations, crop, style);
+
+    public bool QueueImage(string id, Bitmap original, IEnumerable<Annotation> annotations, PixelRect? crop, BackgroundStyle style)
+    {
+        lock (_state)
         {
-            Id = id, ThumbnailPngPath = thumb, GifPath = gif, Kind = HistoryKind.Video, CreatedUtc = nowUtc
-        };
-        if (!TryWrite(() => { SaveThumb(thumbnail, thumb); File.WriteAllBytes(gif, gifBytes); }))
-        {
-            TryDelete(thumb); TryDelete(gif);
-            return entry;   // the caller still has the bytes for clipboard + viewer
+            int i = _entries.FindIndex(e => e.Id == id && e.Kind == HistoryKind.Image);
+            if (i < 0) return false; // delete/eviction is final, including in-flight jobs
+            var old = _entries[i];
+            var pixels = _pending.GetValueOrDefault(id)?.Document?.Original ?? ImageSnapshot.Capture(original);
+            var dtos = annotations.Select(AnnotationDto.From).ToArray();
+            var entry = Copy(old); entry.Annotations = dtos.ToList(); entry.Crop = crop; entry.FrameStyle = style;
+            _entries[i] = entry;
+            Enqueue(new(entry, new(pixels, Array.AsReadOnly(dtos), crop, style), null, null));
         }
-
-        Index(entry);
-        return entry;
+        Changed?.Invoke(); return true;
     }
-
-    /// <summary>Appends an entry, evicts past the cap (deleting the evicted files) and persists.</summary>
-    private bool Index(HistoryEntry entry)
-    {
-        var next = _entries.Append(entry).ToList();
-        while (next.Count > Max)
-        {
-            var oldest = next.FirstOrDefault(e => !_pending.ContainsKey(e.Id) && e.Id != entry.Id);
-            if (oldest is null) break;
-            next.Remove(oldest);
-        }
-        if (!Commit(next))
-        {
-            DeleteFiles(entry);
-            return false;
-        }
-        return true;
-    }
-
-    // New assets are immutable revisions. Publish the index last; a failed publish
-    // leaves the old index and all assets it references intact.
-    private bool Commit(List<HistoryEntry> next)
-    {
-        string temp = IndexPath + "." + Guid.NewGuid().ToString("N") + ".tmp";
-        bool ok = TryWrite(() =>
-        {
-            File.WriteAllText(temp, JsonSerializer.Serialize(next));
-            File.Move(temp, IndexPath, true);
-        });
-        TryDelete(temp);
-        if (!ok) return false;
-        var retained = next.SelectMany(Files).ToHashSet();
-        foreach (string path in _entries.SelectMany(Files).Where(p => !retained.Contains(p))) TryDelete(path);
-        _entries.Clear();
-        _entries.AddRange(next);
-        return true;
-    }
-
-    private static IEnumerable<string> Files(HistoryEntry entry)
-        => new[] { entry.OriginalPngPath, entry.ThumbnailPngPath, entry.GifPath };
-    private static void DeleteFiles(HistoryEntry entry) { foreach (var path in Files(entry)) TryDelete(path); }
-
-    public bool RetryImage(string id, Bitmap original, IEnumerable<Annotation> annotations,
-                           PixelRect? crop, BackgroundStyle style, Bitmap rendered)
-    {
-        // Only an initial add that failed in this process can be retried. A deleted
-        // or evicted ID never enters this set and cannot be resurrected.
-        if (!_failedImageAdds.TryGetValue(id, out var entry)) return false;
-        entry.Annotations = annotations.Select(AnnotationDto.From).ToList();
-        entry.Crop = crop; entry.FrameStyle = style;
-        if (!TryWrite(() =>
-        {
-            Directory.CreateDirectory(Root);
-            original.Save(entry.OriginalPngPath, System.Drawing.Imaging.ImageFormat.Png);
-            SaveThumb(rendered, entry.ThumbnailPngPath);
-        })) { DeleteFiles(entry); return false; }
-        if (!Index(entry)) return false;
-        _failedImageAdds.Remove(id);
-        ForgetPending(id);
-        return true;
-    }
-
-    public bool UpdateImage(string id, IEnumerable<Annotation> annotations, PixelRect? crop,
-                            BackgroundStyle style, Bitmap rendered)
-    {
-        int i = _entries.FindIndex(e => e.Id == id && e.Kind == HistoryKind.Image);
-        if (i < 0) return false; // stale editor / deleted / evicted: never insert
-        var old = _entries[i];
-        string thumb = Path.Combine(Root, id + "_" + Guid.NewGuid().ToString("N") + "_thumb.png");
-        if (!TryWrite(() => SaveThumb(rendered, thumb))) { TryDelete(thumb); return false; }
-        var replacement = new HistoryEntry
-        {
-            Id = old.Id, OriginalPngPath = old.OriginalPngPath, ThumbnailPngPath = thumb,
-            CreatedUtc = old.CreatedUtc, Crop = crop, FrameStyle = style,
-            Annotations = annotations.Select(AnnotationDto.From).ToList()
-        };
-        var next = _entries.ToList(); next[i] = replacement;
-        if (Commit(next)) { ForgetPending(id); return true; }
-        TryDelete(thumb);
-        return false;
-    }
-
-    private static bool TryWrite(Action write)
-    {
-        try { write(); return true; }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"history write failed: {ex}"); return false; }
-    }
-
     public string? GifPathFor(string id)
-        => _entries.FirstOrDefault(e => e.Id == id && e.Kind == HistoryKind.Video)?.GifPath;
-
-    /// <summary>Replace an existing video entry's GIF + thumbnail in place (post-hoc
-    /// Standard→Small conversion). Same id, same list position — no insert/evict.</summary>
+    { lock (_state) return _entries.FirstOrDefault(e => e.Id == id && e.Kind == HistoryKind.Video)?.GifPath; }
     public bool UpdateVideo(HistoryEntry entry, byte[] gifBytes, Bitmap thumbnail)
     {
-        int i = _entries.FindIndex(e => e.Id == entry.Id && e.Kind == HistoryKind.Video);
-        if (i < 0) return false;
-        var old = _entries[i];
-        string revision = Path.Combine(Root, old.Id + "_" + Guid.NewGuid().ToString("N"));
-        var replacement = new HistoryEntry { Id = old.Id, CreatedUtc = old.CreatedUtc,
-            Kind = HistoryKind.Video, GifPath = revision + ".gif", ThumbnailPngPath = revision + "_thumb.png" };
-        if (!TryWrite(() => { File.WriteAllBytes(replacement.GifPath, gifBytes); SaveThumb(thumbnail, replacement.ThumbnailPngPath); }))
-        { DeleteFiles(replacement); return false; }
-        var next = _entries.ToList(); next[i] = replacement;
-        if (!Commit(next)) { DeleteFiles(replacement); return false; }
-        entry.GifPath = replacement.GifPath; entry.ThumbnailPngPath = replacement.ThumbnailPngPath;
-        return true;
+        lock (_state)
+        {
+            int i = _entries.FindIndex(e => e.Id == entry.Id && e.Kind == HistoryKind.Video);
+            if (i < 0) return false;
+            var next = Copy(_entries[i]);
+            Enqueue(new(next, null, ImageSnapshot.Capture(thumbnail), gifBytes.ToArray()));
+        }
+        Changed?.Invoke(); return true;
     }
-
     public bool Delete(string id)
     {
-        if (!_entries.Any(e => e.Id == id))
-        { _failedImageAdds.Remove(id); ForgetPending(id); return true; }
-        if (!Commit(_entries.Where(e => e.Id != id).ToList())) return false;
-        ForgetPending(id);
-        return true;
+        lock (_state)
+        {
+            var entry = _entries.FirstOrDefault(e => e.Id == id);
+            if (entry is null) return true;
+            _entries.Remove(entry);
+            Enqueue(new(entry, null, null, null, Deleted: true));
+        }
+        Changed?.Invoke(); return true;
+    }
+    public async Task<bool> FlushPendingAsync()
+    {
+        await _queue.RetryAndDrainAsync();
+        ApplyCompletions();
+        return !_queue.HasFailures;
+    }
+    public async Task DrainAsync()
+    {
+        await _queue.DrainAsync(); ApplyCompletions();
+    }
+    private void ApplyCompletions()
+    {
+        while (_completions.TryDequeue(out var result))
+        {
+            _written.TryRemove(result.Value, out var persisted);
+            bool current;
+            lock (_state)
+            {
+                current = ReferenceEquals(_pending.GetValueOrDefault(result.Id), result.Value);
+                if (current && result.Error is null)
+                {
+                    _pending.Remove(result.Id);
+                    int i = _entries.FindIndex(e => e.Id == result.Id);
+                    if (i >= 0 && !result.Value.Deleted) _entries[i] = persisted!;
+                }
+            }
+            if (!current) continue;
+            if (result.Error is not null) WriteFailed?.Invoke(result.Error);
+            Changed?.Invoke();
+        }
     }
 
+    private async Task WriteAsync(string id, Revision revision)
+    {
+        var timer = System.Diagnostics.Stopwatch.StartNew();
+        var next = _diskEntries.Where(e => e.Id != id).ToList();
+        var entry = revision.Entry;
+        var created = new List<string>();
+        try
+        {
+            if (_beforeWrite != null) await _beforeWrite().ConfigureAwait(false);
+            await HistoryPerf.DelayWriterAsync().ConfigureAwait(false);
+            Directory.CreateDirectory(Root);
+            if (!revision.Deleted)
+            {
+                string prefix = Path.Combine(Root, id + "_" + Guid.NewGuid().ToString("N"));
+                // Entry is private to this revision except UI desired metadata. Build assets
+                // into a separate instance; the UI receives it only via completion.
+                var persisted = Copy(entry);
+                persisted.ThumbnailPngPath = prefix + "_thumb.png";
+                created.Add(persisted.ThumbnailPngPath);
+                if (revision.Document is { } document)
+                {
+                    var durable = _diskEntries.FirstOrDefault(e => e.Id == id);
+                    using var original = document.Original.Open();
+                    bool needsOriginal = durable is null || !File.Exists(durable.OriginalPngPath);
+                    persisted.OriginalPngPath = needsOriginal ? prefix + ".png" : durable!.OriginalPngPath;
+                    if (needsOriginal) { created.Add(persisted.OriginalPngPath); original.Save(persisted.OriginalPngPath, System.Drawing.Imaging.ImageFormat.Png); }
+                    var model = new EditorModel(); model.SetImageSize(original.Width, original.Height);
+                    model.ReplaceDocument(document.Annotations.Select(a => a.To()).ToList(), document.Crop);
+                    model.BackgroundEnabled = document.Style.Enabled; model.FramePadding = document.Style.Padding;
+                    model.FrameCorner = document.Style.Corner; model.FrameBackgroundKind = document.Style.Kind;
+                    model.FrameSolidHex = document.Style.SolidHex; model.FrameGradient = document.Style.Gradient;
+                    using var rendered = Renderer.Flatten(original, model);
+                    SaveThumb(rendered, persisted.ThumbnailPngPath);
+                }
+                else
+                {
+                    persisted.GifPath = prefix + ".gif"; created.Add(persisted.GifPath);
+                    File.WriteAllBytes(persisted.GifPath, revision.Gif!);
+                    using var thumbnail = revision.VideoThumb!.Open(); SaveThumb(thumbnail, persisted.ThumbnailPngPath);
+                }
+                next.Add(persisted); next.Sort((a, b) => a.CreatedUtc.CompareTo(b.CreatedUtc));
+                Commit(next);
+                // Only asset strings change here; publish the persisted copy separately.
+                _written[revision] = persisted;
+            }
+            else Commit(next);
+        }
+        catch { foreach (var path in created) TryDelete(path); throw; }
+        finally { HistoryPerf.Record("worker-write", id, timer.Elapsed.TotalMilliseconds); }
+    }
+    private readonly ConcurrentDictionary<Revision, HistoryEntry> _written = new();
+    private void Commit(List<HistoryEntry> next)
+    {
+        string temp = IndexPath + "." + Guid.NewGuid().ToString("N") + ".tmp";
+        try { File.WriteAllText(temp, JsonSerializer.Serialize(next)); File.Move(temp, IndexPath, true); }
+        finally { TryDelete(temp); }
+        var retained = next.SelectMany(Files).ToHashSet();
+        foreach (var path in _diskEntries.SelectMany(Files).Where(p => !retained.Contains(p))) TryDelete(path);
+        _diskEntries.Clear(); _diskEntries.AddRange(next);
+    }
+    private static HistoryEntry Copy(HistoryEntry entry) => new() {
+        Id = entry.Id, Kind = entry.Kind, CreatedUtc = entry.CreatedUtc, OriginalPngPath = entry.OriginalPngPath,
+        ThumbnailPngPath = entry.ThumbnailPngPath, GifPath = entry.GifPath, Annotations = entry.Annotations.ToList(),
+        Crop = entry.Crop, FrameStyle = entry.FrameStyle };
+    private static IEnumerable<string> Files(HistoryEntry e) => new[] { e.OriginalPngPath, e.ThumbnailPngPath, e.GifPath };
     private static void SaveThumb(Bitmap src, string path)
     {
-        // mac parity (writeThumb): max width 320, never upscale small captures.
         double scale = Math.Min(1.0, 320.0 / src.Width);
-        int w = Math.Max(1, (int)(src.Width * scale));
-        int h = Math.Max(1, (int)(src.Height * scale));
-        using var t = new Bitmap(w, h);
-        using (var g = Graphics.FromImage(t))
-        { g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic; g.DrawImage(src, 0, 0, w, h); }
-        t.Save(path, System.Drawing.Imaging.ImageFormat.Png);
+        int w = Math.Max(1, (int)(src.Width * scale)), h = Math.Max(1, (int)(src.Height * scale));
+        using var thumb = new Bitmap(w, h);
+        using (var g = Graphics.FromImage(thumb)) { g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic; g.DrawImage(src, 0, 0, w, h); }
+        thumb.Save(path, System.Drawing.Imaging.ImageFormat.Png);
     }
-
-    private static void TryDelete(string p) { try { if (File.Exists(p)) File.Delete(p); } catch { } }
+    private static void TryDelete(string path) { try { if (File.Exists(path)) File.Delete(path); } catch { } }
 }

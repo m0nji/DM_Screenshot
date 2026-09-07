@@ -10,6 +10,12 @@ import CoreGraphics
 enum QuickEditLayout {
     static let margin: CGFloat = 12
 
+    /// Bound the viewport before placement; oversized flyouts scroll inside it.
+    static func toolbarViewport(preferred: CGSize, safeArea: CGRect) -> CGSize {
+        CGSize(width: min(preferred.width, max(0, safeArea.width - 2 * margin)),
+               height: min(preferred.height, max(0, safeArea.height - 2 * margin)))
+    }
+
     /// `.position` centre for the toolbar. `safeArea` is the usable region
     /// (top-left space); the toolbar is kept fully inside it.
     static func toolbarCenter(
@@ -35,7 +41,8 @@ enum QuickEditLayout {
         } else {
             top = max(safeArea.minY + margin, safeArea.maxY - toolbar.height - margin)
         }
-        return CGPoint(x: cx, y: top + halfH)
+        let boundedTop = min(max(top, safeArea.minY + margin), max(safeArea.minY + margin, safeArea.maxY - toolbar.height - margin))
+        return CGPoint(x: cx, y: boundedTop + halfH)
     }
 
     /// The resulting toolbar rect (top-left space).

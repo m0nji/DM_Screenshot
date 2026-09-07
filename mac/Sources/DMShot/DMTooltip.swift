@@ -73,6 +73,8 @@ private struct DMTooltipModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         content
+            .accessibilityLabel(Text(text))
+            .accessibilityHint(Text(text))
             .background(DMAlwaysHover { inside in
                 pending?.cancel()
                 if inside {
@@ -106,7 +108,7 @@ private struct DMTooltipBubble: View {
                     .overlay(RoundedRectangle(cornerRadius: 6).stroke(.white.opacity(0.12)))
             )
             .shadow(radius: 4, y: 2)
-            .fixedSize()
+            .fixedSize(horizontal: false, vertical: true)
     }
 }
 
@@ -116,14 +118,14 @@ private struct DMTooltipLayer: ViewModifier {
             GeometryReader { proxy in
                 if let pref {
                     let rect = proxy[pref.bounds]
-                    let gap: CGFloat = 6
-                    let halfGuess: CGFloat = 11          // ~half a one-line bubble
-                    // Prefer below the control; flip above if it would clip the bottom.
-                    let below = rect.maxY + gap + halfGuess
-                    let placeBelow = rect.maxY + gap + 2 * halfGuess <= proxy.size.height
-                    let y = placeBelow ? below : rect.minY - gap - halfGuess
-                    let x = min(max(rect.midX, 44), max(proxy.size.width - 44, 44))
+                    let width = min(proxy.size.width, (pref.text as NSString).size(withAttributes: [.font: NSFont.preferredFont(forTextStyle: .caption1)]).width + 16)
+                    let textRect = (pref.text as NSString).boundingRect(with: CGSize(width: max(1, width - 14), height: .greatestFiniteMagnitude), options: [.usesLineFragmentOrigin], attributes: [.font: NSFont.preferredFont(forTextStyle: .caption1)])
+                    let height = ceil(textRect.height) + 8
+                    let x = min(max(rect.midX, width / 2), max(width / 2, proxy.size.width - width / 2))
+                    let below = rect.maxY + 6 + height / 2
+                    let y = below + height / 2 <= proxy.size.height ? below : max(height / 2, rect.minY - 6 - height / 2)
                     DMTooltipBubble(text: pref.text)
+                        .frame(width: width)
                         .position(x: x, y: y)
                 }
             }

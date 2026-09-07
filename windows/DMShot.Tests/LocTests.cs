@@ -1,6 +1,7 @@
 using DMShot.Localization;
 using Xunit;
 
+[Collection("Localization")]
 public class LocTests
 {
     [Fact]

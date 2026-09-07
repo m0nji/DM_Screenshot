@@ -53,6 +53,7 @@ struct FrameControlsPanel: View {
         HStack(spacing: 6) {
             ForEach(Array(items.enumerated()), id: \.offset) { _, item in
                 Button(item.1) { pick(item.0) }
+                    .accessibilityAddTraits(selection == item.0 ? .isSelected : [])
                     .buttonStyle(.plain)
                     .padding(.horizontal, 8).padding(.vertical, 4)
                     .background(RoundedRectangle(cornerRadius: 6)
@@ -69,6 +70,7 @@ struct FrameControlsPanel: View {
                 swatch(selected: model.frameBackground == .solid(hex)) {
                     model.frameBackground = .solid(hex)
                 } label: { Circle().fill(Color(nsColor: NSColor(hex: hex))) }
+                .accessibilityLabel(Text("\(tr(.color)) \(hex)"))
             }
             ForEach(gradients, id: \.self) { g in
                 let stops = FramePresets.gradientStops(g)
@@ -79,6 +81,7 @@ struct FrameControlsPanel: View {
                         colors: [Color(nsColor: NSColor(hex: stops.0)), Color(nsColor: NSColor(hex: stops.1))],
                         startPoint: .topLeading, endPoint: .bottomTrailing))
                 }
+                .accessibilityLabel(Text(tr(g == .warm ? .gradientWarm : g == .cool ? .gradientCool : .gradientNeutral)))
             }
             swatch(selected: model.frameBackground == .blur) {
                 model.frameBackground = .blur
@@ -86,6 +89,7 @@ struct FrameControlsPanel: View {
                 Image(systemName: "drop.fill").resizable().scaledToFit()
                     .foregroundStyle(appDesign.textColor).padding(3)
             }
+            .accessibilityLabel(Text(tr(.bgBlur)))
         }
     }
 
@@ -99,6 +103,7 @@ struct FrameControlsPanel: View {
                                          lineWidth: selected ? 2 : 1))
         }
         .buttonStyle(.plain)
+        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 }
 

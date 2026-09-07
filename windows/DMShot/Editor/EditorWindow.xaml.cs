@@ -20,7 +20,12 @@ public partial class EditorWindow : Window
     /// <summary>V17: invoked when a video history entry is clicked, instead of loading it as an image.</summary>
     public Action<HistoryEntry>? OnVideoEntryActivated { get; set; }
 
-    public sealed record HistoryVM(string Id, System.Windows.Media.ImageSource Thumb, bool IsVideo);
+    public sealed record HistoryVM(string Id, System.Windows.Media.ImageSource? Thumb, bool IsVideo, DateTime CreatedUtc)
+    {
+        public string Identity => string.Format(Loc.Instance[IsVideo ? "historyVideoIdentity" : "historyImageIdentity"],
+            CreatedUtc.ToLocalTime().ToString("G", System.Globalization.CultureInfo.GetCultureInfo(
+                Loc.Instance.Current == DMShot.Localization.Language.German ? "de-DE" : "en-US")));
+    }
     public HistoryStore? Store { get; set; }
 
     private bool _syncing;
@@ -42,22 +47,14 @@ public partial class EditorWindow : Window
         if (commitEditing) Canvas.CommitTextEdit();
         _historyTimer.Stop();
         if (!_documentDirty || _loadingDocument || _baseImage is null || _entryId is null || Store is null) return true;
-        bool exists = Store.Entries.Any(e => e.Id == _entryId);
-        if (!exists && !Store.CanRetryImage(_entryId)) return true;
         try
         {
-            using var flat = Renderer.Flatten(_baseImage, Canvas.Model);
-            bool persisted = exists
-                ? Store.UpdateImage(_entryId, Canvas.Model.Annotations, Canvas.Model.Crop, Canvas.Model.Style, flat)
-                : Store.RetryImage(_entryId, _baseImage, Canvas.Model.Annotations, Canvas.Model.Crop, Canvas.Model.Style, flat);
-            if (!persisted)
-                throw new System.IO.IOException(Loc.Instance["historyWriteFailedDetail"]);
+            Store.QueueImage(_entryId, _baseImage, Canvas.Model.Annotations, Canvas.Model.Crop, Canvas.Model.Style);
             _documentDirty = false;
             return true;
         }
         catch (Exception ex)
         {
-            Store.RememberPending(_entryId, _baseImage, Canvas.Model.Annotations, Canvas.Model.Crop, Canvas.Model.Style);
             if (showError) Alerts.Show("historyWriteFailedMessage", ex);
             return false;
         }
@@ -106,6 +103,13 @@ public partial class EditorWindow : Window
     public EditorWindow()
     {
         InitializeComponent();
+        Loc.Instance.LanguageChanged += RefreshHistory;
+        Closed += (_, _) =>
+        {
+            Loc.Instance.LanguageChanged -= RefreshHistory;
+            _historyTimer.Stop(); Canvas.DisposeImage();
+            _baseImage?.Dispose(); _baseImage = null;
+        };
         // The editor's chrome runs up to the top edge, so the caption takes the surface tone
         // instead of --dm-bg — otherwise it reads as a black band above the toolbar.
         DarkTitleBar.SetBackdrop(this, DarkTitleBar.CaptionBackdrop.Chrome);
@@ -127,6 +131,9 @@ public partial class EditorWindow : Window
             DefaultsChanged?.Invoke(Canvas.ActiveStroke, Canvas.ActiveBlurStrength);
         };
         Canvas.ContentChanged += UpdateStatus;
+        Canvas.Model.Changed += UpdateStatus;
+        Loaded += (_, _) => UpdateStatus();
+        SizeChanged += (_, _) => SidebarColumn.MaxWidth = Math.Clamp(ActualWidth - 320, 130, 460);
         Canvas.ContentChanged += DocumentChanged;
         // Autosave must not close an active inline text/step editor. Explicit
         // document boundaries still commit it before collecting the snapshot.
@@ -188,6 +195,11 @@ public partial class EditorWindow : Window
 
     private void UpdateStatus()
     {
+        bool hasImage = _baseImage is not null;
+        CopyButton.IsEnabled = SaveButton.IsEnabled = EditControls.IsEnabled = ZoomBtn.IsEnabled = hasImage;
+        UndoButton.IsEnabled = hasImage && Canvas.Model.CanUndo;
+        RedoButton.IsEnabled = hasImage && Canvas.Model.CanRedo;
+        EmptyCanvas.Visibility = hasImage ? Visibility.Collapsed : Visibility.Visible;
         if (_baseImage is null) return;
         var crop = Canvas.Model.Crop;
         int w = crop?.Width ?? _baseImage.Width, h = crop?.Height ?? _baseImage.Height;
@@ -250,51 +262,76 @@ public partial class EditorWindow : Window
     }
 
     // ===== History =====
-    public void RefreshHistory()
+    private readonly ThumbnailCache _thumbnails = new();
+    private long _historyRefresh;
+    private bool _refreshingHistory;
+    public async void RefreshHistory()
     {
         if (Store is null) return;
-        // A thumbnail that vanished or was written half-way must not take the window
-        // down (BitmapImage.EndInit throws): skip that row instead.
-        HistoryList.ItemsSource = Store.Entries
-            .OrderByDescending(e => e.CreatedUtc)
-            .Select(e => (Entry: e, Thumb: LoadFrozen(e.ThumbnailPngPath)))
-            .Where(x => x.Thumb is not null)
-            .Select(x => new HistoryVM(x.Entry.Id, x.Thumb!, x.Entry.Kind == HistoryKind.Video))
-            .ToList();
+        string? selectedId = (HistoryList.SelectedItem as HistoryVM)?.Id;
+        long generation = ++_historyRefresh;
+        var entries = Store.Entries.OrderByDescending(e => e.CreatedUtc).ToArray();
+        _thumbnails.Retain(entries.Select(e => e.ThumbnailPngPath));
+        // Pending rows are selectable immediately, even before their first thumbnail.
+        _refreshingHistory = true;
+        var pendingRows = entries.Select(e => new HistoryVM(e.Id, _thumbnails.GetReady(e.ThumbnailPngPath), e.Kind == HistoryKind.Video, e.CreatedUtc)).ToList();
+        HistoryList.ItemsSource = pendingRows;
+        HistoryList.SelectedItem = pendingRows.FirstOrDefault(row => row.Id == selectedId);
+        _refreshingHistory = false;
+        var images = await Task.WhenAll(entries.Select(e => _thumbnails.GetAsync(e.ThumbnailPngPath)));
+        if (generation != _historyRefresh) return; // deleted/revised while loading
+        _refreshingHistory = true;
+        selectedId = (HistoryList.SelectedItem as HistoryVM)?.Id;
+        var rows = entries.Select((e, i) => new HistoryVM(e.Id, images[i], e.Kind == HistoryKind.Video, e.CreatedUtc)).ToList();
+        HistoryList.ItemsSource = rows;
+        HistoryList.SelectedItem = rows.FirstOrDefault(row => row.Id == selectedId);
+        _refreshingHistory = false;
+        for (int i = 0; i < entries.Length; i++)
+            if (images[i] != null) HistoryPerf.Milestone("thumbnail-ready", entries[i].Id);
     }
 
-    private static System.Windows.Media.ImageSource? LoadFrozen(string path)
-    {
-        try
-        {
-            var bi = new System.Windows.Media.Imaging.BitmapImage();
-            bi.BeginInit();
-            bi.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
-            bi.UriSource = new Uri(path);
-            bi.EndInit(); bi.Freeze();
-            return bi;
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"history thumbnail unreadable ({path}): {ex.Message}");
-            return null;
-        }
-    }
-
-    private void DeleteHistoryClick(object sender, MouseButtonEventArgs e)
+    private void DeleteHistoryClick(object sender, RoutedEventArgs e)
     {
         // Handle on preview-down so the click never reaches the ListBoxItem —
         // otherwise it would select (and load) the entry we're about to delete.
         e.Handled = true;
-        if (Store is null || (sender as FrameworkElement)?.Tag is not string id) return;
+        if ((sender as FrameworkElement)?.Tag is not string id) return;
+        DeleteHistory(id);
+    }
+
+    private void DeleteHistory(string id)
+    {
+        if (Store is null) return;
         if (!Store.Delete(id))
             Alerts.Show("historyWriteFailedMessage", new System.IO.IOException(Loc.Instance["historyWriteFailedDetail"]));
         RefreshHistory();
     }
 
+    private void HistoryKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Delete && HistoryList.SelectedItem is HistoryVM item)
+        {
+            e.Handled = true;
+            DeleteHistory(item.Id);
+        }
+    }
+
+    private void DeleteHistoryMenuClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { DataContext: HistoryVM item }) DeleteHistory(item.Id);
+    }
+
+    public void UpdateCaptureShortcuts(string full, string area, string videoFull, string videoArea)
+    {
+        EmptyFullHotkey.Text = full;
+        EmptyAreaHotkey.Text = area;
+        EmptyVideoFullHotkey.Text = videoFull;
+        EmptyVideoAreaHotkey.Text = videoArea;
+    }
+
     private void HistorySelected(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
-        if (Store is null || HistoryList.SelectedItem is not HistoryVM vm) return;
+        if (_refreshingHistory || Store is null || HistoryList.SelectedItem is not HistoryVM vm) return;
         FlushDocument();
         var entry = Store.Entries.FirstOrDefault(x => x.Id == vm.Id);
         if (entry is null) return;
@@ -305,8 +342,8 @@ public partial class EditorWindow : Window
         }
         if (Store.PendingFor(entry.Id) is { } pending)
         {
-            using var pendingImage = (System.Drawing.Bitmap)pending.Original.Clone();
-            LoadWithState(pendingImage, pending.Annotations, pending.Crop, entry.Id, pending.Style);
+            using var pendingImage = pending.Original.Open();
+            LoadWithState(pendingImage, pending.Annotations.Select(a => a.To()).ToList(), pending.Crop, entry.Id, pending.Style);
             DocumentChanged();
             return;
         }

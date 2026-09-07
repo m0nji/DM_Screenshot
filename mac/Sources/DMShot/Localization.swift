@@ -35,6 +35,8 @@ enum L: CaseIterable {
     case captureFailedTitle, captureFailedBody, clipboardFailedTitle, clipboardFailedBody
     case historyFailedTitle, historyFailedBody, quitUnsavedBody, quitWithoutSaving
     // Editor
+    case sidebarWidth, gradientWarm, gradientCool, gradientNeutral
+    case moreTools, emptyCanvasTitle, emptyCanvasHint
     case copy, save, saveEllipsis, undo, redo
     case editorFullScreen, editorSelection, editorVideoFullScreen, editorVideoSection
     case historyHeader, settings, deleteCapture, resetZoomToFit
@@ -70,6 +72,13 @@ final class Localizer: ObservableObject {
 
     private static func value(_ key: L) -> (en: String, de: String) {
         switch key {
+        case .sidebarWidth: return ("Sidebar width", "Seitenleistenbreite")
+        case .gradientWarm: return ("Warm gradient", "Warmer Verlauf")
+        case .gradientCool: return ("Cool gradient", "Kühler Verlauf")
+        case .gradientNeutral: return ("Neutral gradient", "Neutraler Verlauf")
+        case .moreTools: return ("More tools", "Mehr Werkzeuge")
+        case .emptyCanvasTitle: return ("Create a capture", "Aufnahme erstellen")
+        case .emptyCanvasHint: return ("Choose a capture action or use its shortcut.", "Wähle eine Aufnahme oder nutze den Kurzbefehl.")
         case .captureFailedTitle: return ("Capture failed", "Aufnahme fehlgeschlagen")
         case .captureFailedBody: return ("Please try the capture again. %@", "Bitte starte die Aufnahme erneut. %@")
         case .clipboardFailedTitle: return ("Could not copy", "Kopieren fehlgeschlagen")

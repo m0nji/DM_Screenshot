@@ -41,6 +41,13 @@ public sealed class Loc : INotifyPropertyChanged
 
     public static readonly IReadOnlyDictionary<string, string> En = new Dictionary<string, string>
     {
+        ["sidebarWidth"] = "Sidebar width",
+        ["gradientWarm"] = "Warm gradient",
+        ["gradientCool"] = "Cool gradient",
+        ["gradientNeutral"] = "Neutral gradient",
+        ["moreTools"] = "More tools",
+        ["emptyCanvasTitle"] = "Create a capture",
+        ["emptyCanvasHint"] = "Choose a capture action or use its shortcut.",
         ["settingsTitle"] = "Settings",
         ["sectionGeneral"] = "General",
         ["sectionShortcuts"] = "Shortcuts",
@@ -129,6 +136,7 @@ public sealed class Loc : INotifyPropertyChanged
         ["historyWriteFailedMessage"] = "Could not save changes to history. Please save the image before closing.\n\n{0}",
         ["historyWriteFailedDetail"] = "The history folder could not be written.",
         ["saveFailedMessage"] = "The file could not be written:\n{0}",
+        ["restartFailedMessage"] = "The update could not restart the app:\n{0}",
         ["gifFailedMessage"] = "The GIF could not be created:\n{0}",
         ["shortcutRecorderPrompt"] = "Click and press keys…",
         ["quickEditSizeBlur"] = "Size / blur strength",
@@ -140,6 +148,8 @@ public sealed class Loc : INotifyPropertyChanged
         ["editorVideoFull"] = "Record Screen",
         ["editorVideoArea"] = "Record Area",
         ["historyHeader"] = "HISTORY",
+        ["historyImageIdentity"] = "Screenshot · {0}",
+        ["historyVideoIdentity"] = "GIF · {0}",
         ["settings"] = "Settings",
         ["deleteCapture"] = "Delete this capture",
         ["toolSelect"] = "Select / Move",
@@ -177,6 +187,13 @@ public sealed class Loc : INotifyPropertyChanged
 
     public static readonly IReadOnlyDictionary<string, string> De = new Dictionary<string, string>
     {
+        ["sidebarWidth"] = "Seitenleistenbreite",
+        ["gradientWarm"] = "Warmer Verlauf",
+        ["gradientCool"] = "Kühler Verlauf",
+        ["gradientNeutral"] = "Neutraler Verlauf",
+        ["moreTools"] = "Mehr Werkzeuge",
+        ["emptyCanvasTitle"] = "Aufnahme erstellen",
+        ["emptyCanvasHint"] = "Wähle eine Aufnahme oder nutze den Kurzbefehl.",
         ["settingsTitle"] = "Einstellungen",
         ["sectionGeneral"] = "Allgemein",
         ["sectionShortcuts"] = "Kurzbefehle",
@@ -265,6 +282,7 @@ public sealed class Loc : INotifyPropertyChanged
         ["historyWriteFailedMessage"] = "Änderungen konnten nicht im Verlauf gespeichert werden. Bitte das Bild vor dem Schließen speichern.\n\n{0}",
         ["historyWriteFailedDetail"] = "Der Verlaufsordner konnte nicht beschrieben werden.",
         ["saveFailedMessage"] = "Die Datei konnte nicht geschrieben werden:\n{0}",
+        ["restartFailedMessage"] = "Das Update konnte die App nicht neu starten:\n{0}",
         ["gifFailedMessage"] = "Das GIF konnte nicht erstellt werden:\n{0}",
         ["shortcutRecorderPrompt"] = "Klicken und Tastenkombination drücken…",
         ["quickEditSizeBlur"] = "Größe / Weichzeichnerstärke",
@@ -276,6 +294,8 @@ public sealed class Loc : INotifyPropertyChanged
         ["editorVideoFull"] = "Bildschirm aufnehmen",
         ["editorVideoArea"] = "Bereich aufnehmen",
         ["historyHeader"] = "VERLAUF",
+        ["historyImageIdentity"] = "Bildschirmfoto · {0}",
+        ["historyVideoIdentity"] = "GIF · {0}",
         ["settings"] = "Einstellungen",
         ["deleteCapture"] = "Diese Aufnahme löschen",
         ["toolSelect"] = "Auswählen / Bewegen",

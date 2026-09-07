@@ -49,7 +49,8 @@ private struct QuickEditOverlayView: View {
                     .position(x: localCapture.midX, y: localCapture.midY)
 
                 QuickEditToolbar(
-                    model: model, appDesign: appDesign, onCopy: onCopy, onSave: onSave,
+                    model: model, appDesign: appDesign,
+                    availableSize: QuickEditLayout.toolbarViewport(preferred: safeArea.size, safeArea: safeArea), onCopy: onCopy, onSave: onSave,
                     onEditInMain: onEditInMain, onClose: onClose)
                     .fixedSize()
                     .background(GeometryReader { proxy in

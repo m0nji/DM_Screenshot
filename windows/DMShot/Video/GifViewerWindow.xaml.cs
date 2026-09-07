@@ -20,6 +20,8 @@ public partial class GifViewerWindow : Window
     private IReadOnlyList<GifPreviewDecoder.Frame> _frames = Array.Empty<GifPreviewDecoder.Frame>();
     private int _frameIndex;
     private bool _closed;
+    public Task PendingConversion { get; private set; } = Task.CompletedTask;
+    private long _decodeRevision;
 
     public GifViewerWindow(byte[] gifBytes, string gifPath, IClipboardService clipboard,
                            Func<byte[], System.Drawing.Bitmap, string?>? onConverted = null)
@@ -61,10 +63,11 @@ public partial class GifViewerWindow : Window
     /// Serves both the initial GIF and the converted Small GIF.</summary>
     private async System.Threading.Tasks.Task LoadFramesAsync(byte[] bytes)
     {
+        long revision = ++_decodeRevision;
         _timer.Stop();
         DecodingLabel.Visibility = Visibility.Visible;
         var frames = await System.Threading.Tasks.Task.Run(() => GifPreviewDecoder.Decode(bytes));
-        if (_closed) return;                       // window went away while decoding
+        if (_closed || revision != _decodeRevision) return; // closed or superseded
         DecodingLabel.Visibility = Visibility.Collapsed;
         _frames = frames;
         _frameIndex = 0;
@@ -79,32 +82,48 @@ public partial class GifViewerWindow : Window
     // ── Convert to Small (mac parity) ─────────────────────────────────────────
     private async void OnConvertClick(object sender, RoutedEventArgs e)
     {
-        ConvertButton.IsEnabled = false;
-        ConvertingLabel.Visibility = Visibility.Visible;
-        Cursor = System.Windows.Input.Cursors.Wait;
-        var bytes = _gifBytes;
-        var result = await System.Threading.Tasks.Task.Run(() => GifResample.MakeSmall(bytes));
-        Cursor = null;
-        ConvertingLabel.Visibility = Visibility.Collapsed;
-        if (result is null)
-        {
-            ConvertButton.IsEnabled = true;   // failed: original untouched
-            return;
-        }
-        var (smallGif, thumb) = result.Value;
-        string? savedPath;
-        using (thumb) { savedPath = _onConverted?.Invoke(smallGif, thumb); }
-        if (savedPath is null)
-        {
-            ConvertButton.IsEnabled = true;
-            return; // keep the original viewer and allow retry after storage recovers
-        }
-        _gifPath = savedPath;
+        if (!PendingConversion.IsCompleted) return;
+        PendingConversion = ConvertAsync();
+        await PendingConversion;
+    }
 
-        // Swap the viewer to the small GIF; the button is gone (one-way).
-        _gifBytes = smallGif;
-        ConvertButton.Visibility = Visibility.Collapsed;
-        await LoadFramesAsync(smallGif);
+    private async Task ConvertAsync()
+    {
+        try
+        {
+            ConvertButton.IsEnabled = false;
+            ConvertingLabel.Visibility = Visibility.Visible;
+            Cursor = System.Windows.Input.Cursors.Wait;
+            var bytes = _gifBytes;
+            var result = await System.Threading.Tasks.Task.Run(() => GifResample.MakeSmall(bytes));
+            Cursor = null;
+            ConvertingLabel.Visibility = Visibility.Collapsed;
+            if (result is null)
+            {
+                ConvertButton.IsEnabled = true;   // failed: original untouched
+                return;
+            }
+            var (smallGif, thumb) = result.Value;
+            if (_closed) { thumb.Dispose(); return; }
+            string? savedPath;
+            using (thumb) { savedPath = _onConverted?.Invoke(smallGif, thumb); }
+            if (savedPath is null)
+            {
+                ConvertButton.IsEnabled = true;
+                return; // keep the original viewer and allow retry after storage recovers
+            }
+            _gifPath = savedPath;
+
+            // Swap the viewer to the small GIF; the button is gone (one-way).
+            _gifBytes = smallGif;
+            ConvertButton.Visibility = Visibility.Collapsed;
+            await LoadFramesAsync(smallGif);
+        }
+        catch (Exception ex)
+        {
+            if (!_closed) { ConvertButton.IsEnabled = true; Alerts.Show("gifFailedMessage", ex); }
+        }
+        finally { if (!_closed) { Cursor = null; ConvertingLabel.Visibility = Visibility.Collapsed; } }
     }
 
     // ── Animation ─────────────────────────────────────────────────────────────

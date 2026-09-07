@@ -2,6 +2,7 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using DMShot.Capture;
+using DMShot.Platform;
 namespace DMShot.Editor;
 
 public static class Renderer
@@ -17,13 +18,13 @@ public static class Renderer
     public static Bitmap RenderComposite(Bitmap baseImage, IEnumerable<Annotation> annotations)
     {
         int w = baseImage.Width, h = baseImage.Height;
-        var outp = new Bitmap(w, h, PixelFormat.Format32bppArgb);
-        using var g = Graphics.FromImage(outp);
-        g.SmoothingMode = SmoothingMode.AntiAlias;
-        g.DrawImage(baseImage, new Rectangle(0, 0, w, h), new Rectangle(0, 0, w, h), GraphicsUnit.Pixel);
-        foreach (var a in annotations)
-            DrawGdi(g, a, 0, 0, baseImage);
-        return outp;
+        return OwnedResult.Create(new Bitmap(w, h, PixelFormat.Format32bppArgb), outp =>
+        {
+            using var g = Graphics.FromImage(outp);
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            g.DrawImage(baseImage, new Rectangle(0, 0, w, h), new Rectangle(0, 0, w, h), GraphicsUnit.Pixel);
+            foreach (var a in annotations) DrawGdi(g, a, 0, 0, baseImage);
+        });
     }
 
     public static Bitmap Flatten(Bitmap baseImage, EditorModel model)
@@ -33,15 +34,15 @@ public static class Renderer
         int h = crop?.Height ?? baseImage.Height;
         double ox = crop?.X ?? 0, oy = crop?.Y ?? 0;
 
-        var outp = new Bitmap(w, h, PixelFormat.Format32bppArgb);
-        using (var g = Graphics.FromImage(outp))
+        var outp = OwnedResult.Create(new Bitmap(w, h, PixelFormat.Format32bppArgb), image =>
         {
+            using var g = Graphics.FromImage(image);
             g.SmoothingMode = SmoothingMode.AntiAlias;
             g.DrawImage(baseImage, new Rectangle(0, 0, w, h),
                 new Rectangle((int)ox, (int)oy, w, h), GraphicsUnit.Pixel);
             foreach (var a in model.Annotations)
                 DrawGdi(g, a, ox, oy, baseImage);
-        }   // g disposed here — outp is fully rendered and its GDI lock released
+        }); // g disposed here — outp is fully rendered and its GDI lock released
 
         // Wrap in the pretty-background frame when enabled; return plain bitmap otherwise.
         if (!model.BackgroundEnabled) return outp;

@@ -63,8 +63,10 @@ final class EditorModel: ObservableObject {
         var crop: CGRect?
     }
 
-    private var undoStack: [DocumentState] = []
-    private var redoStack: [DocumentState] = []
+    @Published private var undoStack: [DocumentState] = []
+    @Published private var redoStack: [DocumentState] = []
+    var canUndo: Bool { !undoStack.isEmpty }
+    var canRedo: Bool { !redoStack.isEmpty }
     var stepCounter = 0
 
     var pixelSize: CGSize {
@@ -240,36 +242,12 @@ final class EditorModel: ObservableObject {
         annotations.filter { $0.kind == .step }.map { $0.stepLabel }.max() ?? 0
     }
 
-    /// Flatten the base image + annotations to a CGImage (respecting crop).
-    func flatten() -> CGImage? {
+    func renderSnapshot() -> RenderSnapshot? {
         guard let image else { return nil }
-        let w = image.width
-        let h = image.height
-        guard
-            let cg = CGContext(
-                data: nil, width: w, height: h, bitsPerComponent: 8, bytesPerRow: 0,
-                space: CGColorSpaceCreateDeviceRGB(),
-                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
-        else { return nil }
-        // The on-screen canvas is a flipped (top-left origin) NSView, for which
-        // AppKit flips the backing CTM. A raw CGContext is bottom-left, and
-        // NSGraphicsContext(flipped:) only sets the isFlipped flag — it does NOT
-        // flip the CTM. Flip it manually so SceneRenderer (built for flipped
-        // contexts) produces the same upright orientation as the canvas;
-        // otherwise the exported/copied image comes out vertically mirrored.
-        cg.translateBy(x: 0, y: CGFloat(h))
-        cg.scaleBy(x: 1, y: -1)
-        let nsctx = NSGraphicsContext(cgContext: cg, flipped: true)
-        NSGraphicsContext.saveGraphicsState()
-        NSGraphicsContext.current = nsctx
-        SceneRenderer.draw(image: image, annotations: annotations)
-        NSGraphicsContext.restoreGraphicsState()
-        guard let full = cg.makeImage() else { return nil }
-        let inner: CGImage
-        if let crop, let cropped = ImageUtils.crop(full, to: crop) { inner = cropped }
-        else { inner = full }
-        guard backgroundEnabled else { return inner }
-        let blurSrc = blurSourceImage ?? inner
-        return FrameRenderer.render(inner: inner, blurSource: blurSrc, style: backgroundStyle)
+        return RenderSnapshot(image: image, annotations: annotations, crop: crop,
+                              style: backgroundStyle, blurSourceImage: blurSourceImage)
     }
+
+    /// Copy/export retain the same full-resolution renderer as history.
+    func flatten() -> CGImage? { renderSnapshot()?.render() }
 }
