@@ -24,7 +24,6 @@ struct EditorView: View {
     @ObservedObject var history: HistoryStore
     @ObservedObject var settings: AppSettingsStore
     @ObservedObject var shortcuts: ShortcutStore
-    @FocusState private var focusedHistoryID: String?
     var onCopy: () -> Void
     var onSave: () -> Void
     var onCaptureFull: () -> Void
@@ -41,7 +40,6 @@ struct EditorView: View {
     @State private var batchSaving = false
     @State var batchSelecting = false
 
-    @State private var hoveredHistoryID: String?
     @ObservedObject private var localizer = Localizer.shared
     @AppStorage("dmSidebarWidth") private var sidebarWidth: Double = 170
     @State private var sidebarDragStart: Double?
@@ -255,7 +253,9 @@ struct EditorView: View {
                     Text(tr(.historyHeader)).font(.caption2).foregroundStyle(design.textMutedColor)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal, 10).padding(.top, 14).padding(.bottom, 4)
-                    LazyVStack(spacing: 8) {
+                    // Variable image heights must be measured before scrolling; lazy
+                    // estimates change the scroll extent and make AppKit correct its offset.
+                    VStack(spacing: 8) {
                         ForEach(history.items) { item in
                             if let thumb = history.thumbnail(item.id) {
                                 HStack(alignment: .top, spacing: 5) {
@@ -269,7 +269,8 @@ struct EditorView: View {
                                             .toggleStyle(.checkbox).labelsHidden().disabled(batchSaving)
                                             .accessibilityLabel(Text("\(tr(.selectForSave)), \(Date(timeIntervalSince1970: item.createdAt).formatted())"))
                                     }
-                                    historyThumb(item: item, thumb: thumb)
+                                    HistoryThumbnailRow(item: item, thumb: thumb, selected: model.entryID == item.id,
+                                                        design: design, onSelect: onSelectHistory, onDelete: onDeleteHistory)
                                 }
                             }
                         }
@@ -281,59 +282,6 @@ struct EditorView: View {
         .dmGroupSurface(design)
         .padding(.leading, Self.cardGap)
         .padding(.vertical, Self.cardGap)
-    }
-
-    @ViewBuilder
-    private func historyThumb(item: HistoryItemMeta, thumb: NSImage) -> some View {
-        Button {
-            onSelectHistory(item.id)
-        } label: {
-            Image(nsImage: thumb)
-                .resizable().scaledToFit()
-                .frame(maxWidth: .infinity)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 6)
-                        .stroke(model.entryID == item.id ? Color.dmAccent : .clear, lineWidth: 2))
-                .overlay(alignment: .topTrailing) {
-                    if hoveredHistoryID == item.id {
-                        Button {
-                            onDeleteHistory(item.id)
-                        } label: {
-                            Image(systemName: "trash")
-                                .font(.system(size: 11, weight: .semibold))
-                                .foregroundStyle(.white)
-                                .padding(5)
-                                .background(Circle().fill(Color.black.opacity(0.55)))
-                        }
-                        .buttonStyle(.plain)
-                        .padding(4)
-                        .dmTooltip(tr(.deleteCapture))
-                    }
-                }
-                .overlay(alignment: .bottomLeading) {
-                    if item.kind == .video {
-                        Image(systemName: "play.circle.fill")
-                            .foregroundStyle(.white)
-                            .padding(4)
-                            .background(Circle().fill(Color.black.opacity(0.55)))
-                            .padding(4)
-                    }
-                }
-        }
-        .buttonStyle(.plain)
-        .focused($focusedHistoryID, equals: item.id)
-        .overlay(RoundedRectangle(cornerRadius: 6).stroke(focusedHistoryID == item.id ? design.accentColor : .clear, lineWidth: 2))
-        .accessibilityLabel(Text("\(tr(.historyHeader)), \(Date(timeIntervalSince1970: item.createdAt).formatted())"))
-        .accessibilityAddTraits(model.entryID == item.id ? .isSelected : [])
-        .accessibilityAction(named: Text(tr(.deleteCapture))) { onDeleteHistory(item.id) }
-        .contextMenu { Button(tr(.deleteCapture), role: .destructive) { onDeleteHistory(item.id) } }
-        // Participate in AppKit's nil-target delete: command before AppDelegate's
-        // canvas fallback; nil leaves text/canvas commands with their own responder.
-        .onDeleteCommand(perform: focusedHistoryID == item.id ? { onDeleteHistory(item.id) } : nil)
-        .onKeyPress(.delete) { onDeleteHistory(item.id); return .handled }
-        .onHover { inside in
-            hoveredHistoryID = inside ? item.id : (hoveredHistoryID == item.id ? nil : hoveredHistoryID)
-        }
     }
 
     // A `Divider()` only renders vertically inside an HStack; anywhere else
@@ -376,4 +324,68 @@ struct EditorView: View {
             )
     }
 
+}
+
+// Keep pointer/focus changes local: scrolling under the pointer must not redraw the canvas.
+private struct HistoryThumbnailRow: View {
+    let item: HistoryItemMeta
+    let thumb: NSImage
+    let selected: Bool
+    let design: AppDesign
+    let onSelect: (String) -> Void
+    let onDelete: (String) -> Void
+    @State private var hovered = false
+    @FocusState private var focused: Bool
+    @ObservedObject private var localizer = Localizer.shared
+
+    var body: some View {
+        let _ = localizer.language
+        Button {
+            onSelect(item.id)
+        } label: {
+            Image(nsImage: thumb)
+                .resizable().scaledToFit()
+                .frame(maxWidth: .infinity)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6)
+                        .stroke(selected ? Color.dmAccent : .clear, lineWidth: 2))
+                .overlay(alignment: .topTrailing) {
+                    if hovered {
+                        Button {
+                            onDelete(item.id)
+                        } label: {
+                            Image(systemName: "trash")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundStyle(.white)
+                                .padding(5)
+                                .background(Circle().fill(Color.black.opacity(0.55)))
+                        }
+                        .buttonStyle(.plain)
+                        .padding(4)
+                        .dmTooltip(tr(.deleteCapture))
+                    }
+                }
+                .overlay(alignment: .bottomLeading) {
+                    if item.kind == .video {
+                        Image(systemName: "play.circle.fill")
+                            .foregroundStyle(.white)
+                            .padding(4)
+                            .background(Circle().fill(Color.black.opacity(0.55)))
+                            .padding(4)
+                    }
+                }
+        }
+        .buttonStyle(.plain)
+        .focused($focused)
+        .overlay(RoundedRectangle(cornerRadius: 6).stroke(focused ? design.accentColor : .clear, lineWidth: 2))
+        .accessibilityLabel(Text("\(tr(.historyHeader)), \(Date(timeIntervalSince1970: item.createdAt).formatted())"))
+        .accessibilityAddTraits(selected ? .isSelected : [])
+        .accessibilityAction(named: Text(tr(.deleteCapture))) { onDelete(item.id) }
+        .contextMenu { Button(tr(.deleteCapture), role: .destructive) { onDelete(item.id) } }
+        // Participate in AppKit's nil-target delete: command before AppDelegate's
+        // canvas fallback; nil leaves text/canvas commands with their own responder.
+        .onDeleteCommand(perform: focused ? { onDelete(item.id) } : nil)
+        .onKeyPress(.delete) { onDelete(item.id); return .handled }
+        .onHover { hovered = $0 }
+    }
 }

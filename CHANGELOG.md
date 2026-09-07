@@ -4,6 +4,13 @@ All notable changes to DM_Screenshot. Newest version first. Always written in En
 
 ## [Unreleased]
 
+## 0.9.11 – 2026-09-07
+
+## 0.9.11 – 2026-09-07
+
+- fix: Keep history scrolling stable with mixed thumbnail heights and avoid redrawing the macOS canvas when hovering history previews.
+- fix: Reuse Windows thumbnail decodes for the full retained history, including more than ten captures.
+
 ## 0.9.10 – 2026-09-07
 
 - fix: Restore Quick Edit actions to the right: Copy, Save, Open in Editor, Undo and Redo sit beside Close; drawing tools stay on the left in a single row (macOS, Windows).

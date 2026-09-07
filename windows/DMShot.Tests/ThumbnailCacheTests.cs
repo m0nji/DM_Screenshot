@@ -7,6 +7,35 @@ using Xunit;
 public class ThumbnailCacheTests
 {
     [Fact]
+    public async Task MoreThanTenActiveThumbnailsSurviveRefresh()
+    {
+        string root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            var paths = Enumerable.Range(0, 14).Select(i => Path.Combine(root, $"{i}.png")).ToArray();
+            foreach (var path in paths)
+            {
+                using var image = new Bitmap(8, 8);
+                image.Save(path, ImageFormat.Png);
+            }
+            var cache = new ThumbnailCache();
+            var tasks = paths.Select(cache.GetAsync).ToArray();
+            var decoded = await Task.WhenAll(tasks);
+            cache.Retain(paths);
+            for (int i = 0; i < paths.Length; i++)
+            {
+                Assert.NotNull(decoded[i]);
+                Assert.Same(tasks[i], cache.GetAsync(paths[i]));
+                Assert.Same(decoded[i], cache.GetReady(paths[i]));
+            }
+            cache.Retain(paths.Skip(1));
+            Assert.Null(cache.GetReady(paths[0]));
+        }
+        finally { Directory.Delete(root, true); }
+    }
+
+    [Fact]
     public async Task RepeatedRefreshReusesFrozenDecodeAndReleasesFileHandle()
     {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".png");
