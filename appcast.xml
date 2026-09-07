@@ -611,5 +611,14 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.9.6/DM_Screenshot-v0.9.6.dmg" type="application/octet-stream" sparkle:edSignature="6sPDsqif2laXFvAMuJ9iX4zsIbKMUBxL2Uh/ptajF5yPk9pToDvPlMbtjt+VCgpf3GdyCfl/idQmJ3NAdC+MCA==" length="2475059" />
 </item>
 
+<item>
+  <title>Version 0.9.7</title>
+  <description><![CDATA[<ul><li>new: Open PNG/JPEG images, drop a file onto the editor, or paste an image from the clipboard. Imported images support the same annotations, crop, backgrounds and persistent history as captures (macOS, Windows).</li>
+<li>fix: Preserve inline text paste during image editing; validate image dimensions and file size before decoding, normalize photo orientation and retain transparency without changing the original file (macOS, Windows).</li></ul>]]></description>
+  <sparkle:version>0.9.7</sparkle:version>
+  <sparkle:shortVersionString>0.9.7</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.9.7/DM_Screenshot-v0.9.7.dmg" type="application/octet-stream" sparkle:edSignature="RCB+oOldoLDDxjjjPMWDbZTCFL3I74YYBlSxvm3aigJ8hbLGxgVArWgZ/LX+BmIkQbTvpUF424rw+G0Idq6PCw==" length="2499641" />
+</item>
+
 </channel>
 </rss>
