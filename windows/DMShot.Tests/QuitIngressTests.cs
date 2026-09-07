@@ -23,7 +23,7 @@ public class QuitIngressTests
             {
                 string root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
                 var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-                var app = new App(); // real app entry points; no capture or UI is initialized
+                var app = new TestApp(); // real entry points with external startup services disabled
                 var store = new HistoryStore(root, beforeWrite: () => release.Task);
                 try
                 {
@@ -66,6 +66,13 @@ public class QuitIngressTests
         await finished.Task.WaitAsync(TimeSpan.FromSeconds(10));
         Assert.True(thread.Join(TimeSpan.FromSeconds(10)));
     }
+    private sealed class TestApp : App
+    {
+        // Application queues OnStartup even without Run(). This test pumps the
+        // dispatcher to exercise quit, so suppress tray/hotkeys/updater startup.
+        protected override void OnStartup(System.Windows.StartupEventArgs e) { }
+    }
+
     private static object? Invoke(App app, string name)
         => typeof(App).GetMethod(name, BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(app, null);
     private static object? Get(App app, string name)
