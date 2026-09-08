@@ -503,6 +503,18 @@ public partial class EditorWindow : Window
         }
     }
 
+    private void HistoryContextMenuOpening(object sender, System.Windows.Controls.ContextMenuEventArgs e)
+    {
+        // A Click handler inside a Style Setter's ContextMenu produces corrupt
+        // WPF connection IDs (the history Button is cast to GridSplitter).
+        // Wire it here and refresh the shared menu's context for recycled rows.
+        if (sender is not System.Windows.Controls.ListBoxItem { ContextMenu: { } menu } row) return;
+        menu.DataContext = row.DataContext;
+        if (menu.Items[0] is not System.Windows.Controls.MenuItem delete) return;
+        delete.Click -= DeleteHistoryMenuClick;
+        delete.Click += DeleteHistoryMenuClick;
+    }
+
     private void DeleteHistoryMenuClick(object sender, RoutedEventArgs e)
     {
         if (sender is FrameworkElement { DataContext: HistoryVM item }) DeleteHistory(item.Id);

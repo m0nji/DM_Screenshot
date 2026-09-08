@@ -20,7 +20,7 @@
                SelectionChanged="NavChanged" ItemContainerStyle="{StaticResource NavItem}">
         <ListBoxItem IsSelected="True">
           <StackPanel Orientation="Horizontal">
-            <Viewbox Width="18" Height="18"><Canvas Width="24" Height="24"><Path Data="M12,9 C13.66,9 15,10.34 15,12 C15,13.66 13.66,15 12,15 C10.34,15 9,13.66 9,12 C9,10.34 10.34,9 12,9 Z M12,3.5 L12,6 M12,18 L12,20.5 M3.5,12 L6,12 M18,12 L20.5,12 M5.8,5.8 L7.6,7.6 M16.4,16.4 L18.2,18.2 M18.2,5.8 L16.4,7.6 M7.6,16.4 L5.8,18.2" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/></Canvas></Viewbox>
+            <Viewbox Width="18" Height="18"><Canvas Width="24" Height="24"><Path Data="{StaticResource SettingsGearGeometry}" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" StrokeThickness="1.8" StrokeLineJoin="Round"/></Canvas></Viewbox>
             <TextBlock Text="{loc:Tr sectionGeneral}" Margin="12,0,0,0" VerticalAlignment="Center" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ListBoxItem}}"/>
           </StackPanel>
         </ListBoxItem>

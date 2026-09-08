@@ -51,8 +51,14 @@ printf '%s\n' "$NEW" > VERSION
 
 # Both CFBundleShortVersionString and CFBundleVersion. PlistBuddy addresses the
 # keys by name, so this cannot hit an unrelated string that happens to match.
-/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $NEW" "$PLIST"
-/usr/libexec/PlistBuddy -c "Set :CFBundleVersion $NEW" "$PLIST"
+if [ -x /usr/libexec/PlistBuddy ]; then
+  /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $NEW" "$PLIST"
+  /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $NEW" "$PLIST"
+else
+  # Git Bash on Windows has Perl but no macOS PlistBuddy. Match the named
+  # string keys, not arbitrary occurrences of the old version.
+  NEW_VERSION="$NEW" perl -0pi -e 's{(<key>CFBundle(?:ShortVersionString|Version)</key>\s*<string>)[^<]*(</string>)}{$1.$ENV{NEW_VERSION}.$2}ge' "$PLIST"
+fi
 
 # The fallback used by `swift run` (unbundled), where there is no Info.plist.
 perl -0pi -e "s/\Q?? \"$OLD\"\E/?? \"$NEW\"/g" "$APP_SWIFT"

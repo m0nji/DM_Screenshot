@@ -4,6 +4,11 @@ All notable changes to DM_Screenshot. Newest version first. Always written in En
 
 ## [Unreleased]
 
+## 0.9.13 – 2026-09-08
+
+- fix: Prevent a Windows crash when opening the main editor with captures in history.
+- fix: Match the Windows settings icon to the outlined macOS gear shape.
+
 ## 0.9.12 – 2026-09-07
 
 ## 0.9.12 – 2026-09-07

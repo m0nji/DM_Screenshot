@@ -229,10 +229,10 @@
         <!-- Fixed controls outside the scrolling capture/history area. -->
         <StackPanel DockPanel.Dock="Top">
           <DockPanel Margin="0,0,0,6">
-            <Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Click="SettingsClick"
+            <Button x:Name="SettingsButton" DockPanel.Dock="Right" Style="{StaticResource IconButton}" Click="SettingsClick"
                     Width="32" Height="32" Margin="4,0,0,0" ToolTip="{loc:Tr settings}" AutomationProperties.Name="{loc:Tr settings}">
               <Viewbox Width="18" Height="18"><Canvas Width="24" Height="24">
-                <Path Data="M12,9 C13.66,9 15,10.34 15,12 C15,13.66 13.66,15 12,15 C10.34,15 9,13.66 9,12 C9,10.34 10.34,9 12,9 Z M12,3.5 L12,6 M12,18 L12,20.5 M3.5,12 L6,12 M18,12 L20.5,12 M5.8,5.8 L7.6,7.6 M16.4,16.4 L18.2,18.2 M18.2,5.8 L16.4,7.6 M7.6,16.4 L5.8,18.2" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+                <Path Data="{StaticResource SettingsGearGeometry}" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.8" StrokeLineJoin="Round"/>
               </Canvas></Viewbox>
             </Button>
             <Button x:Name="SelectionModeButton" Style="{StaticResource SidebarButton}" Click="SelectionModeClick"
@@ -294,10 +294,11 @@
                  ScrollViewer.HorizontalScrollBarVisibility="Disabled">
           <ListBox.ItemContainerStyle>
             <Style TargetType="ListBoxItem">
+              <EventSetter Event="ContextMenuOpening" Handler="HistoryContextMenuOpening"/>
               <Setter Property="FocusVisualStyle" Value="{StaticResource DmKeyboardFocus}"/>
               <Setter Property="AutomationProperties.Name" Value="{Binding Identity}"/>
               <Setter Property="ContextMenu">
-                <Setter.Value><ContextMenu><MenuItem Header="{loc:Tr deleteCapture}" Click="DeleteHistoryMenuClick"/></ContextMenu></Setter.Value>
+                <Setter.Value><ContextMenu><MenuItem Header="{loc:Tr deleteCapture}"/></ContextMenu></Setter.Value>
               </Setter>
               <Setter Property="Padding" Value="0"/>
               <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
