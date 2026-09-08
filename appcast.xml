@@ -674,5 +674,16 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.9.13/DM_Screenshot-v0.9.13.dmg" type="application/octet-stream" sparkle:edSignature="aXOAqThWoisia09mB4KdPbqCkfmfgueF8pIMc8CfY9RAhn5+KfuV+pGoT6B8HfKK2N+yLAjIWtZWgUVS3YFxBA==" length="2422816" />
 </item>
 
+<item>
+  <title>Version 0.9.14</title>
+  <description><![CDATA[<ul><li>new: Shift-click annotations or drag a selection rectangle to recolor or delete multiple annotations together, with one-step undo (macOS, Windows).</li>
+<li>fix: Scroll Windows history with the mouse wheel over capture previews, not just the scrollbar.</li>
+<li>fix: Support Delete and Backspace consistently in the Windows main editor and Quick Edit without interfering with text input.</li>
+<li>change: Give the Windows history Select/Done button a visible outline beside Settings, matching the macOS button treatment.</li></ul>]]></description>
+  <sparkle:version>0.9.14</sparkle:version>
+  <sparkle:shortVersionString>0.9.14</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.9.14/DM_Screenshot-v0.9.14.dmg" type="application/octet-stream" sparkle:edSignature="MY2CRXpMGsQYzvMbWSLJpLizZhZBFFUulfmVDU/eMQSGA8KUxblWIQqguu9tq1j9Gt5L9ni3pGyUIS9385SYAg==" length="2435923" />
+</item>
+
 </channel>
 </rss>
