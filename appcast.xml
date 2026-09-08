@@ -665,5 +665,14 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.9.12/DM_Screenshot-v0.9.12.dmg" type="application/octet-stream" sparkle:edSignature="GEXk+0+8L53DzNvfNwBQL0NnxuTZPrzY4Br57pC5lEgXQJaw93a/7My8scsH0nKpS8jVkJZ8sFsF0hXhBiWIDg==" length="2422742" />
 </item>
 
+<item>
+  <title>Version 0.9.13</title>
+  <description><![CDATA[<ul><li>fix: Prevent a Windows crash when opening the main editor with captures in history.</li>
+<li>fix: Match the Windows settings icon to the outlined macOS gear shape.</li></ul>]]></description>
+  <sparkle:version>0.9.13</sparkle:version>
+  <sparkle:shortVersionString>0.9.13</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.9.13/DM_Screenshot-v0.9.13.dmg" type="application/octet-stream" sparkle:edSignature="aXOAqThWoisia09mB4KdPbqCkfmfgueF8pIMc8CfY9RAhn5+KfuV+pGoT6B8HfKK2N+yLAjIWtZWgUVS3YFxBA==" length="2422816" />
+</item>
+
 </channel>
 </rss>
