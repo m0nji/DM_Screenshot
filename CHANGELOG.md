@@ -4,6 +4,13 @@ All notable changes to DM_Screenshot. Newest version first. Always written in En
 
 ## [Unreleased]
 
+## 0.9.14 – 2026-09-08
+
+- new: Shift-click annotations or drag a selection rectangle to recolor or delete multiple annotations together, with one-step undo (macOS, Windows).
+- fix: Scroll Windows history with the mouse wheel over capture previews, not just the scrollbar.
+- fix: Support Delete and Backspace consistently in the Windows main editor and Quick Edit without interfering with text input.
+- change: Give the Windows history Select/Done button a visible outline beside Settings, matching the macOS button treatment.
+
 ## 0.9.13 – 2026-09-08
 
 - fix: Prevent a Windows crash when opening the main editor with captures in history.

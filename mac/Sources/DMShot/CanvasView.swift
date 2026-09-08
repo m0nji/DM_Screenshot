@@ -11,6 +11,9 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
     private var offset: CGPoint = .zero
 
     private var draft: Annotation?
+    private var marqueeStart: CGPoint?
+    private var marqueeRect: CGRect?
+    private var marqueeBase: Set<UUID> = []
     private var moveStart: CGPoint?
     private var movedOriginal: Annotation?
     private var resizeHandle: SelectionHandle?
@@ -185,7 +188,7 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
         }
         NSGraphicsContext.restoreGraphicsState()
 
-        if let r = textDragRect {
+        if let r = marqueeRect ?? textDragRect {
             let vr = model.framedContentRect
             let box = NSRect(
                 x: offset.x + (r.minX - vr.minX) * scale,
@@ -200,10 +203,10 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
 
         // Selection highlight (in view space). While a move/resize gesture is in
         // flight, follow the local override — the model still holds the old geometry.
-        if let id = model.selectedID,
-           let ann = liveOverride?.id == id
+        for id in model.selectedIDs {
+            guard let ann = liveOverride?.id == id
                ? liveOverride
-               : model.annotations.first(where: { $0.id == id }) {
+               : model.annotations.first(where: { $0.id == id }) else { continue }
             let vr = model.framedContentRect
             let r = SelectionGeometry.bounds(for: ann)
             let viewRect = NSRect(
@@ -340,6 +343,12 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
 
         switch model.tool {
         case .select:
+            let extend = event.modifierFlags.contains(.shift)
+            if extend, let hit = annotationHit(p) {
+                model.toggleSelection(hit.id)
+                refresh()
+                return
+            }
             if event.clickCount == 2 {
                 if let hit = textAnnotationHit(p) {
                     beginTextEditing(existing: hit)
@@ -350,7 +359,7 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
                     return
                 }
             }
-            if let selected = selectedAnnotation(),
+            if !extend, model.selectedIDs.count == 1, let selected = selectedAnnotation(),
                let handle = hitSelectionHandle(p, in: selected) {
                 model.selectedID = selected.id
                 resizeHandle = handle
@@ -364,7 +373,10 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
                 resizeHandle = nil
                 resizeOriginal = nil
             } else {
-                model.selectedID = nil
+                marqueeBase = extend ? model.selectedIDs : []
+                if !extend { model.selectedID = nil }
+                marqueeStart = p
+                marqueeRect = CGRect(origin: p, size: .zero)
                 moveStart = nil
                 movedOriginal = nil
                 resizeHandle = nil
@@ -415,6 +427,16 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
         }
         recomputeTransform()
         let p = toImage(convert(event.locationInWindow, from: nil))
+        if let start = marqueeStart {
+            let rect = CGRect(x: min(start.x, p.x), y: min(start.y, p.y),
+                              width: abs(p.x - start.x), height: abs(p.y - start.y))
+            marqueeRect = rect
+            model.select(marqueeBase.union(model.annotations.filter {
+                rect.intersects(SelectionGeometry.bounds(for: $0))
+            }.map(\.id)))
+            refresh()
+            return
+        }
         if model.tool == .select, model.selectedID != nil {
             if let handle = resizeHandle, let orig = resizeOriginal {
                 let resized = SelectionGeometry.resized(orig, dragging: handle, to: p)
@@ -438,6 +460,13 @@ final class CanvasNSView: NSView, NSTextViewDelegate {
     }
 
     override func mouseUp(with event: NSEvent) {
+        if marqueeStart != nil {
+            marqueeStart = nil
+            marqueeRect = nil
+            marqueeBase = []
+            refresh()
+            return
+        }
         if grabStartView != nil {
             grabStartView = nil
             grabStartPan = nil

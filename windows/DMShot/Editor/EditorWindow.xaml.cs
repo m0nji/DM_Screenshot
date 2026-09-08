@@ -627,6 +627,12 @@ public partial class EditorWindow : Window
 
     private void ResetZoomClick(object s, RoutedEventArgs e) => Canvas.ResetFit();
 
+    private void HistoryMouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        HistoryScroll.ScrollToVerticalOffset(HistoryScroll.VerticalOffset - e.Delta);
+        e.Handled = true;
+    }
+
     private void OnKey(object sender, KeyEventArgs e)
     {
         // Keep Ctrl+V inside inline annotation editors (and other text inputs) as text paste.
@@ -649,7 +655,8 @@ public partial class EditorWindow : Window
             }
             return;
         }
-        if (e.Key is Key.Delete or Key.Back) { Canvas.DeleteSelected(); return; }
+        if (textInputFocused) return;
+        if (e.Key is Key.Delete or Key.Back) { Canvas.DeleteSelected(); e.Handled = true; return; }
         if (e.Key == Key.Z && Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift))
         {
             Canvas.Model.Redo(); e.Handled = true; return;   // Ctrl+Shift+Z alongside Ctrl+Y

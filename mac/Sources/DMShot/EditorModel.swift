@@ -43,7 +43,34 @@ final class EditorModel: ObservableObject {
     }
 
     @Published var annotations: [Annotation] = []
-    @Published var selectedID: UUID?
+    @Published var selectedID: UUID? {
+        didSet { selectedIDs = selectedID.map { Set([$0]) } ?? [] }
+    }
+    @Published private(set) var selectedIDs: Set<UUID> = []
+
+    func select(_ ids: Set<UUID>) {
+        let valid = ids.intersection(Set(annotations.map(\.id)))
+        selectedID = annotations.first(where: { valid.contains($0.id) })?.id
+        selectedIDs = valid
+    }
+
+    func toggleSelection(_ id: UUID) {
+        var ids = selectedIDs
+        if ids.contains(id) { ids.remove(id) } else { ids.insert(id) }
+        select(ids)
+    }
+
+    func updateSelected(key: String? = nil, _ transform: (inout Annotation) -> Void) {
+        guard !selectedIDs.isEmpty else { return }
+        let gestureKey = key.map { $0 + selectedIDs.map(\.uuidString).sorted().joined() }
+        if gestureKey == nil || coalesceKey != gestureKey {
+            snapshot()
+            coalesceKey = gestureKey
+        }
+        for index in annotations.indices where selectedIDs.contains(annotations[index].id) {
+            transform(&annotations[index])
+        }
+    }
     @Published var crop: CGRect? { didSet { resetZoom() } }
 
     // View-state for canvas zoom/pan (see ViewportMath). Authoritative; the
@@ -195,9 +222,9 @@ final class EditorModel: ObservableObject {
     }
 
     func removeSelected() {
-        guard let id = selectedID else { return }
+        guard !selectedIDs.isEmpty else { return }
         snapshot()
-        annotations.removeAll { $0.id == id }
+        annotations.removeAll { selectedIDs.contains($0.id) }
         selectedID = nil
         // Recompute like undo/redo do, or deleting step 3 of 1-2-3 makes the
         // next step "4" while undoing the same edit correctly yields "3".
@@ -208,7 +235,7 @@ final class EditorModel: ObservableObject {
         guard annotations.contains(where: { $0.id == id }) else { return }
         snapshot()
         annotations.removeAll { $0.id == id }
-        if selectedID == id { selectedID = nil }
+        select(selectedIDs.subtracting([id]))
         stepCounter = Self.maxStepLabel(in: annotations)
     }
 

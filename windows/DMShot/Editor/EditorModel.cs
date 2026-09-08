@@ -120,6 +120,27 @@ public sealed class EditorModel
         RecordMutation(a, before);
     }
 
+    public void MutateMany(IEnumerable<Annotation> annotations, Action<Annotation> mutate)
+    {
+        var targets = annotations.Where(_items.Contains).Distinct().ToArray();
+        var before = targets.Select(annotation => annotation.Clone()).ToArray();
+        foreach (var annotation in targets) mutate(annotation);
+        var after = targets.Select(annotation => annotation.Clone()).ToArray();
+        if (!targets.Where((annotation, index) => !SameAnnotation(before[index], after[index])).Any()) return;
+        Record(
+            () => { for (int index = 0; index < targets.Length; index++) CopyAnnotation(after[index], targets[index]); },
+            () => { for (int index = 0; index < targets.Length; index++) CopyAnnotation(before[index], targets[index]); });
+    }
+
+    public void RemoveMany(IEnumerable<Annotation> annotations)
+    {
+        var targets = annotations.Where(_items.Contains).ToHashSet();
+        if (targets.Count == 0) return;
+        var before = _items.ToArray();
+        Do(() => _items.RemoveAll(targets.Contains), () => { _items.Clear(); _items.AddRange(before); });
+        _stepCounter = _items.Select(annotation => annotation.StepNumber).DefaultIfEmpty(0).Max();
+    }
+
     // ── Gesture coalescing ──
     // Continuous controls (the stroke/blur sliders) fire per tick. One undo
     // command per tick floods the stack — Ctrl+Z then rewinds the slider one

@@ -75,6 +75,10 @@ public sealed class CanvasControl : FrameworkElement
     private bool _compositeDirty = true;
     private Annotation? _draft;                // shape being drawn
     private Annotation? _selected;             // shape selected with the Select tool
+    private readonly HashSet<Annotation> _selection = new();
+    private Point? _marqueeStart;
+    private Rect? _marquee;
+    private HashSet<Annotation> _marqueeBase = new();
     private Point _start;
     private Point _last;
     private bool _moving;
@@ -150,7 +154,14 @@ public sealed class CanvasControl : FrameworkElement
 
     public CanvasControl()
     {
-        Model.Changed += () => { _compositeDirty = true; InvalidateVisual(); ContentChanged?.Invoke(); };
+        Model.Changed += () =>
+        {
+            _selection.RemoveWhere(annotation => !Model.Annotations.Contains(annotation));
+            _selected = _selection.FirstOrDefault();
+            _compositeDirty = true;
+            InvalidateVisual();
+            ContentChanged?.Invoke();
+        };
         Focusable = true;
     }
 
@@ -311,7 +322,9 @@ public sealed class CanvasControl : FrameworkElement
             dc.DrawRectangle(null, pen, new Rect(c.X, c.Y, c.Width, c.Height));
         }
 
-        if (_selected is not null) DrawSelection(dc, _selected);
+        foreach (var annotation in _selection) DrawSelection(dc, annotation);
+        if (_marquee is { } marquee)
+            dc.DrawRectangle(null, new Pen(new SolidColorBrush(Color.FromRgb(0xC9, 0x7B, 0x4A)), 1 / _scale), marquee);
 
         if (_draggingText)
         {
@@ -553,6 +566,12 @@ public sealed class CanvasControl : FrameworkElement
         // The inline text editor owns the keyboard: its Space bubbles here unhandled,
         // and swallowing it both arms pan mode and blocks the character from TextInput.
         if (_textBox is not null) { base.OnKeyDown(e); return; }
+        if (e.Key is Key.Delete or Key.Back)
+        {
+            DeleteSelected();
+            e.Handled = true;
+            return;
+        }
         if (e.Key == Key.Space && !_space) { _space = true; Cursor = Cursors.Hand; e.Handled = true; }
         // Esc deselects (mac parity). Handled, so in Quick-Edit the FIRST Esc peels the
         // selection and only a second one reaches the overlay's close handler.
@@ -610,12 +629,27 @@ public sealed class CanvasControl : FrameworkElement
 
         if (ActiveTool == ToolKind.Select)
         {
-            if (_selected is not null)
+            bool extend = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift);
+            if (!extend && _selection.Count == 1 && _selected is not null)
             {
                 int h = SelectionGeometry.HitHandle(p, _selected, (HandleR + 7) / _scale);
                 if (h >= 0) { _resizing = true; _handle = h; _last = p; _editBefore = _selected.Clone(); CaptureMouse(); return; }
             }
             var hit = SelectionGeometry.HitTest(Model.Annotations, p);
+            if (extend && hit is not null)
+            {
+                ToggleSelected(hit);
+                return;
+            }
+            if (hit is null)
+            {
+                _marqueeBase = extend ? new HashSet<Annotation>(_selection) : new();
+                if (!extend) SetSelected(null);
+                _marqueeStart = p;
+                _marquee = new Rect(p, p);
+                CaptureMouse();
+                return;
+            }
             SetSelected(hit);
             if (hit is not null) { _moving = true; _last = p; _editBefore = hit.Clone(); CaptureMouse(); }
             return;
@@ -654,6 +688,16 @@ public sealed class CanvasControl : FrameworkElement
         }
         var p = ToImage(e.GetPosition(this));
 
+        if (_marqueeStart is { } start)
+        {
+            _marquee = new Rect(start, p);
+            _selection.Clear();
+            _selection.UnionWith(_marqueeBase);
+            _selection.UnionWith(Model.Annotations.Where(annotation => _marquee.Value.IntersectsWith(SelectionGeometry.BBox(annotation))));
+            NotifySelectionChanged();
+            return;
+        }
+
         if (_resizing && _selected is not null)
         {
             SelectionGeometry.ResizeTo(_selected, _handle, p);
@@ -680,6 +724,15 @@ public sealed class CanvasControl : FrameworkElement
 
     protected override void OnMouseLeftButtonUp(MouseButtonEventArgs e)
     {
+        if (_marqueeStart is not null)
+        {
+            _marqueeStart = null;
+            _marquee = null;
+            _marqueeBase.Clear();
+            ReleaseMouseCapture();
+            InvalidateVisual();
+            return;
+        }
         if (_space) { if (IsMouseCaptured) ReleaseMouseCapture(); return; }
         if (_draggingText)
         {
@@ -717,11 +770,22 @@ public sealed class CanvasControl : FrameworkElement
     }
 
     // ===== Edits applied to the current selection =====
-    public void SelectAt(Point p) => SetSelected(SelectionGeometry.HitTest(Model.Annotations, ToImage(p)));
+    public void SelectAt(Point p, bool extend = false)
+    {
+        var hit = SelectionGeometry.HitTest(Model.Annotations, ToImage(p));
+        if (extend && hit is not null) ToggleSelected(hit);
+        else if (!extend) SetSelected(hit);
+    }
+
+    private void ToggleSelected(Annotation annotation)
+    {
+        if (!_selection.Remove(annotation)) _selection.Add(annotation);
+        NotifySelectionChanged();
+    }
     public void ApplyColorToSelected(uint argb)
     {
         if (_selected is null) return;
-        Model.Mutate(_selected, a => a.ColorArgb = argb);
+        Model.MutateMany(_selection, annotation => annotation.ColorArgb = argb);
     }
     // Coalesced: slider drags fire per tick — one undo step per gesture instead
     // of Ctrl+Z rewinding the slider one notch at a time.
@@ -738,13 +802,21 @@ public sealed class CanvasControl : FrameworkElement
     public void DeleteSelected()
     {
         if (_selected is null) return;
-        var s = _selected; SetSelected(null); Model.Remove(s);
+        var selected = _selection.ToArray();
+        SetSelected(null);
+        Model.RemoveMany(selected);
     }
 
     private void SetSelected(Annotation? a)
     {
-        if (ReferenceEquals(_selected, a)) return;
-        _selected = a;
+        _selection.Clear();
+        if (a is not null) _selection.Add(a);
+        NotifySelectionChanged();
+    }
+
+    private void NotifySelectionChanged()
+    {
+        _selected = _selection.FirstOrDefault();
         InvalidateVisual();
         SelectionChanged?.Invoke();
     }

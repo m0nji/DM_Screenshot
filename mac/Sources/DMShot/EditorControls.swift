@@ -41,9 +41,7 @@ struct EditorColorPalette: View {
                     model.colorHex = hex
                     // Continuous while dragging the wheel — coalesce into ONE
                     // undo step instead of a snapshot per tick.
-                    if let id = model.selectedID {
-                        model.updateCoalesced(id, key: "color-\(id)") { $0.colorHex = hex }
-                    }
+                    model.updateSelected(key: "color") { $0.colorHex = hex }
                 }))
         }
         .padding(12)
@@ -51,7 +49,7 @@ struct EditorColorPalette: View {
     }
 
     private func applyColor(_ hex: String) {
-        if let id = model.selectedID { model.update(id) { $0.colorHex = hex } }
+        model.updateSelected { $0.colorHex = hex }
     }
 
     static func hexString(from color: Color) -> String {

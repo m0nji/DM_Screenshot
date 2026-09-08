@@ -55,6 +55,30 @@ public class EditorWindowTemplateTests
                 editor.Top = -32000;
                 editor.Show();
                 editor.UpdateLayout();
+                var selectionButton = (Button)editor.FindName("SelectionModeButton");
+                var selectionBorder = Assert.IsType<Border>(selectionButton.Template.FindName("Bd", selectionButton));
+                Assert.Equal(new Thickness(1), selectionBorder.BorderThickness);
+                Assert.Same(editor.FindResource("IconButton"), selectionButton.Style);
+                selectionButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                Assert.True(editor.IsBatchSelecting);
+                selectionButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                Assert.False(editor.IsBatchSelecting);
+                if (args.Length == 2 && args[0] == "--render-sidebar")
+                {
+                    var header = (FrameworkElement)selectionButton.Parent;
+                    var bitmap = new System.Windows.Media.Imaging.RenderTargetBitmap(
+                        (int)Math.Ceiling(header.ActualWidth * 3), (int)Math.Ceiling(header.ActualHeight * 3),
+                        288, 288, System.Windows.Media.PixelFormats.Pbgra32);
+                    var drawing = new System.Windows.Media.DrawingVisual();
+                    using (var context = drawing.RenderOpen())
+                        context.DrawRectangle(new System.Windows.Media.VisualBrush(header), null,
+                            new Rect(0, 0, header.ActualWidth, header.ActualHeight));
+                    bitmap.Render(drawing);
+                    var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
+                    encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmap));
+                    using var output = System.IO.File.Create(args[1]);
+                    encoder.Save(output);
+                }
                 if (args.Length == 2 && args[0] == "--render-settings")
                 {
                     var settings = (Button)editor.FindName("SettingsButton");
@@ -81,6 +105,60 @@ public class EditorWindowTemplateTests
                 opening.Handler.DynamicInvoke(container, null);
                 Assert.Same(next, container.ContextMenu.DataContext);
                 Assert.Same(next, ((MenuItem)container.ContextMenu.Items[0]).DataContext);
+                list.ItemsSource = Enumerable.Range(0, 30).Select(index =>
+                    new EditorWindow.HistoryVM(index.ToString(), null, false, DateTime.UtcNow)).ToArray();
+                editor.UpdateLayout();
+                var scroll = (ScrollViewer)editor.FindName("HistoryScroll");
+                Assert.True(scroll.ScrollableHeight > 0);
+                var wheel = new System.Windows.Input.MouseWheelEventArgs(
+                    System.Windows.Input.Mouse.PrimaryDevice, Environment.TickCount, -120)
+                {
+                    RoutedEvent = System.Windows.Input.Mouse.PreviewMouseWheelEvent
+                };
+                list.RaiseEvent(wheel);
+                editor.UpdateLayout();
+                Assert.True(wheel.Handled);
+                Assert.True(scroll.VerticalOffset > 0);
+                var canvas = (CanvasControl)editor.FindName("Canvas");
+                using var capture = new System.Drawing.Bitmap(200, 200);
+                canvas.Load(capture);
+                canvas.Visibility = Visibility.Visible;
+                ((FrameworkElement)editor.FindName("EmptyCanvas")).Visibility = Visibility.Collapsed;
+                editor.UpdateLayout();
+                var first = new Annotation { Kind = ToolKind.Rectangle, X0 = 20, Y0 = 20, X1 = 60, Y1 = 60 };
+                var second = new Annotation { Kind = ToolKind.Blur, X0 = 100, Y0 = 100, X1 = 140, Y1 = 140 };
+                canvas.Model.Add(first);
+                canvas.Model.Add(second);
+                var viewport = new Size(canvas.ActualWidth, canvas.ActualHeight);
+                var content = new Size(200, 200);
+                double scale = ViewportMath.BaseScale(content, viewport, canvas.FitPadding);
+                var offset = ViewportMath.Offset(content, viewport, scale, new Point());
+                var firstPoint = ViewportMath.ImageToView(new Point(20, 40), new Point(), scale, offset);
+                var secondPoint = ViewportMath.ImageToView(new Point(100, 120), new Point(), scale, offset);
+                canvas.SelectAt(firstPoint);
+                canvas.SelectAt(secondPoint, extend: true);
+                canvas.ApplyColorToSelected(0xFF00FF00);
+                Assert.Equal(0xFF00FF00, first.ColorArgb);
+                Assert.Equal(0xFF00FF00, second.ColorArgb);
+                foreach (var key in new[] { System.Windows.Input.Key.Delete, System.Windows.Input.Key.Back })
+                {
+                    var delete = new System.Windows.Input.KeyEventArgs(System.Windows.Input.Keyboard.PrimaryDevice,
+                        PresentationSource.FromVisual(editor), Environment.TickCount, key)
+                    {
+                        RoutedEvent = System.Windows.Input.Keyboard.KeyDownEvent
+                    };
+                    canvas.RaiseEvent(delete);
+                    Assert.True(delete.Handled);
+                    Assert.Empty(canvas.Model.Annotations);
+                    canvas.Model.Undo();
+                    Assert.Equal(2, canvas.Model.Annotations.Count);
+                    canvas.SelectAt(firstPoint);
+                    canvas.SelectAt(secondPoint, extend: true);
+                }
+                canvas.SelectAt(secondPoint, extend: true);
+                canvas.DeleteSelected();
+                Assert.Same(second, Assert.Single(canvas.Model.Annotations));
+                canvas.DisposeImage();
                 return 0;
             }
             catch (Exception ex) { Console.Error.WriteLine(ex); return 1; }

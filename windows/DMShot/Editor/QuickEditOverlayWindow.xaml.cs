@@ -82,8 +82,9 @@ public partial class QuickEditOverlayWindow : Window
             Loc.Instance.LanguageChanged += RefreshToolbarLanguage;
             KeyDown += (_, e) =>
             {
+                if (Keyboard.FocusedElement is System.Windows.Controls.Primitives.TextBoxBase) return;
                 if (e.Key == Key.Escape) CloseOverlay();
-                else if (e.Key == Key.Delete) Canvas.DeleteSelected();
+                else if (e.Key is Key.Delete or Key.Back) { Canvas.DeleteSelected(); e.Handled = true; }
                 else if (e.Key == Key.Z && Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift)) Canvas.Model.Redo();
                 else if (e.Key == Key.Z && (Keyboard.Modifiers & ModifierKeys.Control) != 0) Canvas.Model.Undo();
                 else if (e.Key == Key.Y && (Keyboard.Modifiers & ModifierKeys.Control) != 0) Canvas.Model.Redo();

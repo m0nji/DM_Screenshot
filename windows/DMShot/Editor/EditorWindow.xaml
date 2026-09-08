@@ -235,7 +235,7 @@
                 <Path Data="{StaticResource SettingsGearGeometry}" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.8" StrokeLineJoin="Round"/>
               </Canvas></Viewbox>
             </Button>
-            <Button x:Name="SelectionModeButton" Style="{StaticResource SidebarButton}" Click="SelectionModeClick"
+            <Button x:Name="SelectionModeButton" Style="{StaticResource IconButton}" Click="SelectionModeClick"
                     Content="{loc:Tr selectCaptures}" Height="32"/>
           </DockPanel>
           <StackPanel x:Name="BatchBar" Visibility="Collapsed" Margin="0,0,0,8">
@@ -244,7 +244,8 @@
                     Margin="0,4,0,0" HorizontalContentAlignment="Center" Content="{loc:Tr clearSelection}"/>
           </StackPanel>
         </StackPanel>
-        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <ScrollViewer x:Name="HistoryScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                      PreviewMouseWheel="HistoryMouseWheel">
         <DockPanel>
         <StackPanel x:Name="CaptureActions" DockPanel.Dock="Top">
         <Button DockPanel.Dock="Top" Style="{StaticResource SidebarButton}" Click="FullScreenClick" Margin="0,0,0,2">
