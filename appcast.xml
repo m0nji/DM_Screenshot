@@ -685,5 +685,13 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.9.14/DM_Screenshot-v0.9.14.dmg" type="application/octet-stream" sparkle:edSignature="MY2CRXpMGsQYzvMbWSLJpLizZhZBFFUulfmVDU/eMQSGA8KUxblWIQqguu9tq1j9Gt5L9ni3pGyUIS9385SYAg==" length="2435923" />
 </item>
 
+<item>
+  <title>Version 0.9.15</title>
+  <description><![CDATA[<ul><li>fix: Keep the cancel icon fully visible in the Windows GIF recording controls.</li></ul>]]></description>
+  <sparkle:version>0.9.15</sparkle:version>
+  <sparkle:shortVersionString>0.9.15</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.9.15/DM_Screenshot-v0.9.15.dmg" type="application/octet-stream" sparkle:edSignature="gUVdjWqrcijZTsCo5xbDNs0ZlnFMyYxVXeZbBeor9cZVXCsGXWkrGG9Rl4wyF0VMGlZo1tL/+qNf3CAVNBs0DQ==" length="2435919" />
+</item>
+
 </channel>
 </rss>
