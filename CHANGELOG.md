@@ -4,6 +4,10 @@ All notable changes to DM_Screenshot. Newest version first. Always written in En
 
 ## [Unreleased]
 
+## 0.9.15 – 2026-09-09
+
+- fix: Keep the cancel icon fully visible in the Windows GIF recording controls.
+
 ## 0.9.14 – 2026-09-08
 
 - new: Shift-click annotations or drag a selection rectangle to recolor or delete multiple annotations together, with one-step undo (macOS, Windows).

@@ -14,7 +14,7 @@
       <!-- Visible discard (mac parity): Esc only works while this window has focus,
            which it loses as soon as the user clicks back into the recorded app. -->
       <Button x:Name="CancelButton" Content="✕" Width="28" Height="28" Margin="8,0,0,0"
-              ToolTip="{loc:Tr discard}" FontWeight="Bold"
+              ToolTip="{loc:Tr discard}" FontWeight="Bold" Padding="0"
               Foreground="#B3FFFFFF" Background="#26FFFFFF" BorderThickness="0"/>
     </StackPanel>
   </Border>
