@@ -693,5 +693,13 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.9.15/DM_Screenshot-v0.9.15.dmg" type="application/octet-stream" sparkle:edSignature="gUVdjWqrcijZTsCo5xbDNs0ZlnFMyYxVXeZbBeor9cZVXCsGXWkrGG9Rl4wyF0VMGlZo1tL/+qNf3CAVNBs0DQ==" length="2435919" />
 </item>
 
+<item>
+  <title>Version 0.9.16</title>
+  <description><![CDATA[<ul><li>fix: Make Windows annotation resizing stable when shrinking, crossing corners, or holding the pointer still; choose the nearest handle on small annotations and correctly resize step badges.</li></ul>]]></description>
+  <sparkle:version>0.9.16</sparkle:version>
+  <sparkle:shortVersionString>0.9.16</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.9.16/DM_Screenshot-v0.9.16.dmg" type="application/octet-stream" sparkle:edSignature="oToVzXHEgKMTiUsX03XLLZ73wCXuXGxh54gEkj1uQDV9pIAd0zB75mtk/OeyueCruzwsOl92QwL9OFtCJ5mUBg==" length="2436020" />
+</item>
+
 </channel>
 </rss>
