@@ -122,4 +122,62 @@ public class SelectionGeometryTests
         // 13px away: still a clear miss.
         Assert.True(SelectionGeometry.HitHandle(new Point(13, 0), a, 12) < 0);
     }
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    public void ResizeGesture_CrossingAnchorAndReturning_IsIndependentOfPreviousFrames(int handle)
+    {
+        foreach (var kind in new[] { ToolKind.Rectangle, ToolKind.Ellipse, ToolKind.Blur, ToolKind.Step })
+        {
+            var original = Rect(100, 100, 200, 200);
+            original.Kind = kind;
+            original.StrokeWidth = 8;
+            var live = original.Clone();
+            var anchor = SelectionGeometry.Handles(original)[3 - handle];
+            var corner = SelectionGeometry.Handles(original)[handle];
+            var across = anchor + (anchor - corner);
+            SelectionGeometry.ResizeTo(live, original, handle, across);
+            SelectionGeometry.ResizeTo(live, original, handle, across + new Vector(20, 20));
+            SelectionGeometry.ResizeTo(live, original, handle, corner);
+            Assert.Equal(SelectionGeometry.BBox(original), SelectionGeometry.BBox(live));
+            Assert.Equal(original.StrokeWidth, live.StrokeWidth, 6);
+        }
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    public void TextResizeGesture_RepeatedPointerPositionDoesNotDrift(int handle) => OnSta(() =>
+    {
+        var original = Text("Multi-line\nannotation", 100, 100, 6);
+        var live = original.Clone();
+        var handles = SelectionGeometry.Handles(original);
+        var anchor = handles[3 - handle];
+        var target = anchor + (handles[handle] - anchor) * 1.37;
+        SelectionGeometry.ResizeTo(live, original, handle, target);
+        var expected = live.Clone();
+        for (int i = 0; i < 100; i++)
+            SelectionGeometry.ResizeTo(live, original, handle, target);
+        Assert.Equal(expected.StrokeWidth, live.StrokeWidth);
+        Assert.Equal(SelectionGeometry.BBox(expected), SelectionGeometry.BBox(live));
+        SelectionGeometry.ResizeTo(live, original, handle, handles[handle]);
+        Assert.Equal(original.StrokeWidth, live.StrokeWidth, 6);
+        Assert.Equal(SelectionGeometry.BBox(original), SelectionGeometry.BBox(live));
+    });
+
+    [Fact]
+    public void SmallStepAt55PercentZoom_SelectsNearestCornerAndResizesBadge()
+    {
+        var step = new Annotation { Kind = ToolKind.Step, X0 = 100, Y0 = 100, StrokeWidth = 4 };
+        var original = step.Clone();
+        var corner = SelectionGeometry.Handles(step)[3];
+        Assert.Equal(3, SelectionGeometry.HitHandle(corner - new Vector(8, 8), step, 12 / 0.55));
+        SelectionGeometry.ResizeTo(step, original, 3, new Point(156, 156));
+        Assert.Equal(56, SelectionGeometry.BBox(step).Width);
+        Assert.Equal(new Point(100, 100), SelectionGeometry.BBox(step).TopLeft);
+    }
 }

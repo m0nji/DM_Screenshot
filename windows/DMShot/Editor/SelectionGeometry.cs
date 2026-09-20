@@ -56,15 +56,30 @@ public static class SelectionGeometry
     public static int HitHandle(Point p, Annotation a, double radius)
     {
         var hs = Handles(a);
+        int nearest = -1;
+        double distance = radius;
         for (int i = 0; i < hs.Count; i++)
-            if (Math.Abs(p.X - hs[i].X) <= radius && Math.Abs(p.Y - hs[i].Y) <= radius)
-                return i;
-        return -1;
+        {
+            double candidate = (p - hs[i]).Length;
+            if (candidate <= radius && (nearest < 0 || candidate < distance))
+            {
+                nearest = i;
+                distance = candidate;
+            }
+        }
+        return nearest;
     }
 
     /// <summary>Applies a resize: the given handle follows p, the opposite corner stays put.</summary>
     public static void ResizeTo(Annotation a, int handle, Point p)
+        => ResizeTo(a, a.Clone(), handle, p);
+
+    /// <summary>Resize from the immutable mouse-down snapshot, never the previous frame.</summary>
+    public static void ResizeTo(Annotation a, Annotation original, int handle, Point p)
     {
+        a.X0 = original.X0; a.Y0 = original.Y0;
+        a.X1 = original.X1; a.Y1 = original.Y1;
+        a.StrokeWidth = original.StrokeWidth;
         if (a.Kind == ToolKind.Text)
         {
             // Text resize scales the FONT (the box hugs the text). The dragged corner's
@@ -100,6 +115,17 @@ public static class SelectionGeometry
         }
         var hs = Handles(a);
         var anchor = hs[3 - handle]; // diagonally opposite corner
+        if (a.Kind == ToolKind.Step)
+        {
+            // Steps store their diameter in StrokeWidth, not X1/Y1. Keep the
+            // dragged rectangle's center, as on macOS, using Windows' diameter.
+            double diameter = Math.Max(22, Math.Min(Math.Abs(p.X - anchor.X), Math.Abs(p.Y - anchor.Y)));
+            a.StrokeWidth = diameter / 7;
+            a.X0 = (anchor.X + p.X - diameter) / 2;
+            a.Y0 = (anchor.Y + p.Y - diameter) / 2;
+            a.X1 = a.X0; a.Y1 = a.Y0;
+            return;
+        }
         a.X0 = anchor.X; a.Y0 = anchor.Y; a.X1 = p.X; a.Y1 = p.Y;
     }
 

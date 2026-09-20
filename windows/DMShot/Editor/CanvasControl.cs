@@ -698,9 +698,9 @@ public sealed class CanvasControl : FrameworkElement
             return;
         }
 
-        if (_resizing && _selected is not null)
+        if (_resizing && _selected is not null && _editBefore is not null)
         {
-            SelectionGeometry.ResizeTo(_selected, _handle, p);
+            SelectionGeometry.ResizeTo(_selected, _editBefore, _handle, p);
             InvalidateVisual(); ContentChanged?.Invoke();
             return;
         }

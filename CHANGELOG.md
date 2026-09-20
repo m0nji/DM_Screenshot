@@ -4,6 +4,10 @@ All notable changes to DM_Screenshot. Newest version first. Always written in En
 
 ## [Unreleased]
 
+## 0.9.16 – 2026-09-20
+
+- fix: Make Windows annotation resizing stable when shrinking, crossing corners, or holding the pointer still; choose the nearest handle on small annotations and correctly resize step badges.
+
 ## 0.9.15 – 2026-09-09
 
 - fix: Keep the cancel icon fully visible in the Windows GIF recording controls.
