@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><TargetFramework>net8.0</TargetFramework><Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings><IsPackable>false</IsPackable></PropertyGroup>
+  <ItemGroup><PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1"/><PackageReference Include="xunit" Version="2.9.3"/><PackageReference Include="xunit.runner.visualstudio" Version="2.8.2"/></ItemGroup>
+  <ItemGroup><Compile Include="../DMShot/History/RevisionQueue.cs" Link="RevisionQueue.cs"/><Compile Include="../DMShot.Tests/RevisionQueueTests.cs" Link="RevisionQueueTests.cs"/></ItemGroup>
+  <ItemGroup><Compile Include="../DMShot/Update/RestartHandoff.cs" Link="RestartHandoff.cs"/><Compile Include="../DMShot.Tests/RestartHandoffTests.cs" Link="RestartHandoffTests.cs"/></ItemGroup>
+  <ItemGroup><Compile Include="../DMShot/Platform/OwnedResult.cs" Link="OwnedResult.cs"/><Compile Include="../DMShot.Tests/OwnedResultTests.cs" Link="OwnedResultTests.cs"/></ItemGroup>
+</Project>

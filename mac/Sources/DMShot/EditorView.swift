@@ -1,0 +1,391 @@
+import SwiftUI
+
+private struct ToolSpec {
+    let tool: Tool
+    let icon: String
+    let help: L
+}
+
+private let toolSpecs: [ToolSpec] = [
+    .init(tool: .select, icon: "cursorarrow", help: .toolSelect),
+    .init(tool: .arrow, icon: "arrow.up.right", help: .toolArrow),
+    .init(tool: .rect, icon: "rectangle", help: .toolRect),
+    .init(tool: .ellipse, icon: "circle", help: .toolEllipse),
+    .init(tool: .underline, icon: "underline", help: .toolUnderline),
+    .init(tool: .highlighter, icon: "highlighter", help: .toolHighlighter),
+    .init(tool: .step, icon: "number.circle.fill", help: .toolStep),
+    .init(tool: .text, icon: "textformat", help: .toolText),
+    .init(tool: .blur, icon: "circle.grid.3x3.fill", help: .toolBlur),
+    .init(tool: .crop, icon: "crop", help: .toolCrop),
+]
+
+struct EditorView: View {
+    @ObservedObject var model: EditorModel
+    @ObservedObject var history: HistoryStore
+    @ObservedObject var settings: AppSettingsStore
+    @ObservedObject var shortcuts: ShortcutStore
+    var onCopy: () -> Void
+    var onSave: () -> Void
+    var onCaptureFull: () -> Void
+    var onCaptureArea: () -> Void
+    var onVideoFull: () -> Void
+    var onVideoArea: () -> Void
+    var onSelectHistory: (String) -> Void
+    var onDeleteHistory: (String) -> Void
+    var onOpenSettings: () -> Void
+    var onOpenImage: () -> Void
+    var onDropImages: ([URL]) -> Void
+    var onSaveSelected: (Set<String>, @escaping (Set<String>) -> Void) -> Void = { _, done in done([]) }
+    @State private var batchSelection: Set<String> = []
+    @State private var batchSaving = false
+    @State var batchSelecting = false
+
+    @ObservedObject private var localizer = Localizer.shared
+    @AppStorage("dmSidebarWidth") private var sidebarWidth: Double = 170
+    @State private var sidebarDragStart: Double?
+    @State private var resizeHovered = false
+    private let sidebarRange: ClosedRange<Double> = 130...460
+    /// One gap everywhere: window edge to card, and card to card. The drag handle is
+    /// exactly as wide as the gap, so it lives IN the gap instead of adding to it —
+    /// sidebar and canvas used to sit 26 pt apart against 8 pt at the window edges.
+    private static let cardGap: CGFloat = 8
+    private var design: AppDesign { settings.appDesign }
+
+    var body: some View {
+        let _ = localizer.language  // re-render on language change
+        GeometryReader { geometry in
+            VStack(spacing: 0) {
+                toolbar
+                HStack(spacing: 0) {
+                    sidebar
+                        .frame(width: min(sidebarWidth, max(130, geometry.size.width - 300)))
+                    resizeHandle
+                    // Inset card (macOS Settings grouping): the chrome tone runs behind
+                    // it, so titlebar, toolbar and sidebar read as one surface and only
+                    // the work area steps back.
+                    CanvasView(model: model, appDesign: design, cornerRadius: Theme.canvasCornerRadius)
+                        .overlay { if model.image == nil { ScrollView { emptyCanvas.frame(maxWidth: .infinity) } } }
+                        .dropDestination(for: URL.self) { urls, _ in
+                            onDropImages(urls)
+                            return true
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .padding(.trailing, Self.cardGap)
+                        .padding(.vertical, Self.cardGap)
+                }
+            }
+        }
+        .frame(minWidth: 600, minHeight: 320)
+        .background(design.panelColor)
+        .dmTooltipLayer()
+    }
+
+    private var toolbar: some View {
+        HStack(spacing: 8) {
+            HStack(spacing: 8) {
+                Button(action: onCopy) { Label(tr(.copy), systemImage: "doc.on.doc") }
+                    .buttonStyle(BlackUtilityButtonStyle(design: design)).disabled(model.image == nil)
+                Button(action: onSave) { Label(tr(.save), systemImage: "square.and.arrow.down") }
+                    .buttonStyle(BlackUtilityButtonStyle(design: design)).disabled(model.image == nil)
+                Button(action: model.undo) { Image(systemName: "arrow.uturn.backward") }
+                    .dmTooltip(tr(.undo)).buttonStyle(ToolButtonStyle(active: false, design: design)).disabled(!model.canUndo)
+                Button(action: model.redo) { Image(systemName: "arrow.uturn.forward") }
+                    .dmTooltip(tr(.redo)).buttonStyle(ToolButtonStyle(active: false, design: design)).disabled(!model.canRedo)
+            }.fixedSize()
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 8) { tools; contextControls }
+                HStack(spacing: 8) {
+                    toolMenu
+                    contextControls
+                }
+                HStack(spacing: 6) {
+                    toolMenu
+                    ScrollView(.horizontal) { contextControls }.frame(height: 36)
+                }
+            }
+            .disabled(model.image == nil)
+            Spacer(minLength: 0)
+            if model.image != nil {
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 8) {
+                        Text("\(Int(model.viewRect.width)) × \(Int(model.viewRect.height)) \(tr(.pixelsSuffix))")
+                            .foregroundStyle(design.textMutedColor)
+                        zoomButton
+                    }.fixedSize()
+                    zoomButton
+                }
+            }
+        }
+        .padding(.horizontal, 12).padding(.vertical, 8)
+        .background(design.panelColor)
+    }
+
+    private var zoomButton: some View {
+        Button("\(model.zoomPercent)%") { model.resetZoom() }
+            .buttonStyle(BlackUtilityButtonStyle(design: design)).dmTooltip(tr(.resetZoomToFit))
+            .fixedSize()
+    }
+
+    private var toolMenu: some View {
+        Menu {
+            Picker(tr(.moreTools), selection: $model.tool) {
+                ForEach(toolSpecs, id: \.tool) { spec in
+                    Label(tr(spec.help), systemImage: spec.icon).tag(spec.tool)
+                }
+            }.pickerStyle(.inline)
+        } label: { Label(tr(.moreTools), systemImage: "ellipsis") }
+        .labelStyle(.iconOnly).dmTooltip(tr(.moreTools))
+        .fixedSize()
+    }
+
+    private var tools: some View {
+        HStack(spacing: 6) {
+            ForEach(toolSpecs, id: \.tool) { spec in
+                Button { model.tool = spec.tool } label: { Image(systemName: spec.icon).frame(width: 18) }
+                    .dmTooltip(tr(spec.help))
+                    .accessibilityAddTraits(model.tool == spec.tool ? .isSelected : [])
+                    .buttonStyle(ToolButtonStyle(active: model.tool == spec.tool, design: design))
+            }
+        }.fixedSize()
+    }
+
+    private var contextControls: some View {
+        HStack(spacing: 8) {
+            FrameToolbarButton(model: model, appDesign: design)
+            EditorColorPicker(model: model, appDesign: design)
+            EditorContextualSlider(model: model, appDesign: design)
+        }.fixedSize()
+    }
+
+    private var emptyCanvas: some View {
+        VStack(spacing: 16) {
+            Text(tr(.emptyCanvasTitle)).font(.title2).foregroundStyle(design.textColor)
+            Text(tr(.emptyCanvasHint)).foregroundStyle(design.textMutedColor).multilineTextAlignment(.center)
+            ForEach(ShortcutAction.allCases) { action in
+                Button {
+                    switch action {
+                    case .fullScreen: onCaptureFull()
+                    case .areaSelection: onCaptureArea()
+                    case .videoFullScreen: onVideoFull()
+                    case .videoAreaSelection: onVideoArea()
+                    }
+                } label: {
+                    VStack(spacing: 4) {
+                        Text(action.title)
+                        Text((shortcuts.shortcuts[action] ?? action.defaultShortcut).keyCaps.joined(separator: " "))
+                            .foregroundStyle(design.textMutedColor)
+                    }
+                }.buttonStyle(BlackUtilityButtonStyle(design: design))
+            }
+        }.padding(20)
+    }
+
+    // A plain sidebar row with a fixed-width icon column, so every label lines up
+    // regardless of each SF Symbol's width. No box of its own: the surrounding group
+    // surface is the container (macOS Settings sidebar).
+    private struct CaptureButton: View {
+        let title: String
+        let icon: String
+        let design: AppDesign
+        let action: () -> Void
+        @State private var hovered = false
+
+        var body: some View {
+            Button(action: action) {
+                HStack(spacing: 8) {
+                    Image(systemName: icon).frame(width: 22)
+                    Text(title).fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .buttonStyle(SidebarRowStyle(design: design, hovered: hovered))
+            .onHover { inside in
+                withAnimation(.easeOut(duration: 0.12)) { hovered = inside }
+            }
+        }
+    }
+
+    private var sidebar: some View {
+        VStack(spacing: 0) {
+            // Fixed header: settings and selection remain reachable at minimum height.
+            HStack(spacing: 4) {
+                Button {
+                    batchSelecting.toggle()
+                    if !batchSelecting { batchSelection.removeAll() }
+                } label: {
+                    ViewThatFits(in: .horizontal) {
+                        Label(tr(batchSelecting ? .done : .selectCaptures),
+                              systemImage: batchSelecting ? "checkmark" : "checklist")
+                        Text(tr(batchSelecting ? .done : .selectCaptures))
+                    }.font(.callout).frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .buttonStyle(BlackUtilityButtonStyle(design: design))
+                .disabled(batchSaving)
+                Button(action: onOpenSettings) { Image(systemName: "gearshape").frame(width: 16, height: 16) }
+                    .buttonStyle(BlackUtilityButtonStyle(design: design))
+                    .fixedSize().accessibilityLabel(tr(.settings)).dmTooltip(tr(.settings))
+            }.padding(6)
+            if batchSelecting {
+                VStack(spacing: 4) {
+                    Button(String(format: tr(.saveSelectionCount), batchSelection.count)) {
+                        batchSaving = true
+                        onSaveSelected(batchSelection) { saved in
+                            batchSelection.subtract(saved)
+                            batchSaving = false
+                            if !saved.isEmpty && batchSelection.isEmpty { batchSelecting = false }
+                        }
+                    }.buttonStyle(AccentFilledButtonStyle())
+                        .disabled(batchSelection.isEmpty || batchSaving)
+                        .opacity(batchSelection.isEmpty || batchSaving ? 0.45 : 1)
+                    Button(tr(.clearSelection)) { batchSelection.removeAll() }
+                        .buttonStyle(.plain).font(.caption)
+                        .disabled(batchSelection.isEmpty || batchSaving)
+                }.padding(.horizontal, 6).padding(.bottom, 8)
+            }
+            ScrollView {
+                VStack(spacing: 2) {
+                    if !batchSelecting {
+                    CaptureButton(title: tr(.editorFullScreen), icon: "rectangle.dashed", design: design, action: onCaptureFull)
+                    CaptureButton(title: tr(.editorSelection), icon: "selection.pin.in.out", design: design, action: onCaptureArea)
+                    CaptureButton(title: tr(.editorVideoFullScreen), icon: "video", design: design, action: onVideoFull)
+                    CaptureButton(title: tr(.editorVideoSection), icon: "video.badge.plus", design: design, action: onVideoArea)
+                    CaptureButton(title: tr(.openImage), icon: "folder", design: design, action: onOpenImage)
+                    }
+                    Text(tr(.historyHeader)).font(.caption2).foregroundStyle(design.textMutedColor)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 10).padding(.top, 14).padding(.bottom, 4)
+                    // Variable image heights must be measured before scrolling; lazy
+                    // estimates change the scroll extent and make AppKit correct its offset.
+                    VStack(spacing: 8) {
+                        ForEach(history.items) { item in
+                            if let thumb = history.thumbnail(item.id) {
+                                HStack(alignment: .top, spacing: 5) {
+                                    if batchSelecting {
+                                        Toggle(tr(.selectForSave), isOn: Binding(
+                                            get: { batchSelection.contains(item.id) },
+                                            set: { checked in
+                                                if checked { batchSelection.insert(item.id) }
+                                                else { batchSelection.remove(item.id) }
+                                            }))
+                                            .toggleStyle(.checkbox).labelsHidden().disabled(batchSaving)
+                                            .accessibilityLabel(Text("\(tr(.selectForSave)), \(Date(timeIntervalSince1970: item.createdAt).formatted())"))
+                                    }
+                                    HistoryThumbnailRow(item: item, thumb: thumb, selected: model.entryID == item.id,
+                                                        design: design, onSelect: onSelectHistory, onDelete: onDeleteHistory)
+                                }
+                            }
+                        }
+                    }.padding(.horizontal, 4)
+                }.padding(6)
+            }
+        }
+        .onChange(of: history.items.map(\.id)) { _, ids in batchSelection.formIntersection(ids) }
+        .dmGroupSurface(design)
+        .padding(.leading, Self.cardGap)
+        .padding(.vertical, Self.cardGap)
+    }
+
+    // A `Divider()` only renders vertically inside an HStack; anywhere else
+    // (e.g. a ZStack) it turns horizontal and greedily claims width. So the
+    // visible separator is an explicit 1pt vertical rule overlaid on a 10pt
+    // clear hit area that fills the full height for an easy drag target.
+    private var resizeHandle: some View {
+        Rectangle()
+            .fill(Color.clear)
+            .frame(width: Self.cardGap)
+            .frame(maxHeight: .infinity)
+            // No resting line: the canvas card's own edge already separates sidebar
+            // from work area, and a second hard rule right beside it reads as a
+            // doubled border. The line fades in on hover so the drag stays findable.
+            .overlay(
+                Rectangle()
+                    .fill(design.borderColor)
+                    .frame(width: 1)
+                    .opacity(resizeHovered ? 1 : 0)
+            )
+            .contentShape(Rectangle())
+            .onHover { inside in
+                withAnimation(.easeOut(duration: 0.12)) { resizeHovered = inside }
+                if inside { NSCursor.resizeLeftRight.push() } else { NSCursor.pop() }
+            }
+            .accessibilityLabel(Text(tr(.sidebarWidth)))
+            .accessibilityValue(Text("\(Int(sidebarWidth))"))
+            .accessibilityAdjustableAction { direction in
+                sidebarWidth = min(max(sidebarWidth + (direction == .increment ? 10 : -10), sidebarRange.lowerBound), sidebarRange.upperBound)
+            }
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { value in
+                        let start = sidebarDragStart ?? sidebarWidth
+                        if sidebarDragStart == nil { sidebarDragStart = start }
+                        let proposed = start + Double(value.translation.width)
+                        sidebarWidth = min(max(proposed, sidebarRange.lowerBound), sidebarRange.upperBound)
+                    }
+                    .onEnded { _ in sidebarDragStart = nil }
+            )
+    }
+
+}
+
+// Keep pointer/focus changes local: scrolling under the pointer must not redraw the canvas.
+private struct HistoryThumbnailRow: View {
+    let item: HistoryItemMeta
+    let thumb: NSImage
+    let selected: Bool
+    let design: AppDesign
+    let onSelect: (String) -> Void
+    let onDelete: (String) -> Void
+    @State private var hovered = false
+    @FocusState private var focused: Bool
+    @ObservedObject private var localizer = Localizer.shared
+
+    var body: some View {
+        let _ = localizer.language
+        Button {
+            onSelect(item.id)
+        } label: {
+            Image(nsImage: thumb)
+                .resizable().scaledToFit()
+                .frame(maxWidth: .infinity)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6)
+                        .stroke(selected ? Color.dmAccent : .clear, lineWidth: 2))
+                .overlay(alignment: .topTrailing) {
+                    if hovered {
+                        Button {
+                            onDelete(item.id)
+                        } label: {
+                            Image(systemName: "trash")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundStyle(.white)
+                                .padding(5)
+                                .background(Circle().fill(Color.black.opacity(0.55)))
+                        }
+                        .buttonStyle(.plain)
+                        .padding(4)
+                        .dmTooltip(tr(.deleteCapture))
+                    }
+                }
+                .overlay(alignment: .bottomLeading) {
+                    if item.kind == .video {
+                        Image(systemName: "play.circle.fill")
+                            .foregroundStyle(.white)
+                            .padding(4)
+                            .background(Circle().fill(Color.black.opacity(0.55)))
+                            .padding(4)
+                    }
+                }
+        }
+        .buttonStyle(.plain)
+        .focused($focused)
+        .overlay(RoundedRectangle(cornerRadius: 6).stroke(focused ? design.accentColor : .clear, lineWidth: 2))
+        .accessibilityLabel(Text("\(tr(.historyHeader)), \(Date(timeIntervalSince1970: item.createdAt).formatted())"))
+        .accessibilityAddTraits(selected ? .isSelected : [])
+        .accessibilityAction(named: Text(tr(.deleteCapture))) { onDelete(item.id) }
+        .contextMenu { Button(tr(.deleteCapture), role: .destructive) { onDelete(item.id) } }
+        // Participate in AppKit's nil-target delete: command before AppDelegate's
+        // canvas fallback; nil leaves text/canvas commands with their own responder.
+        .onDeleteCommand(perform: focused ? { onDelete(item.id) } : nil)
+        .onKeyPress(.delete) { onDelete(item.id); return .handled }
+        .onHover { hovered = $0 }
+    }
+}
