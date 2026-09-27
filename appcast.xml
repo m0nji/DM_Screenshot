@@ -701,5 +701,13 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.9.16/DM_Screenshot-v0.9.16.dmg" type="application/octet-stream" sparkle:edSignature="oToVzXHEgKMTiUsX03XLLZ73wCXuXGxh54gEkj1uQDV9pIAd0zB75mtk/OeyueCruzwsOl92QwL9OFtCJ5mUBg==" length="2436020" />
 </item>
 
+<item>
+  <title>Version 0.9.17</title>
+  <description><![CDATA[<ul><li>new: A different folder picked while saving is remembered until DM Screenshot quits: the next Save dialog opens there and batch export saves there (macOS, Windows).</li></ul>]]></description>
+  <sparkle:version>0.9.17</sparkle:version>
+  <sparkle:shortVersionString>0.9.17</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.9.17/DM_Screenshot-v0.9.17.dmg" type="application/octet-stream" sparkle:edSignature="hQGvQ4C7T7XsiEYocV1eVqVLX7wWtshAMiynlvZgfrxnO7F/C2cBDSrOBs60OFDfHBZw7nmRZ6pAb++urSWqAQ==" length="2439312" />
+</item>
+
 </channel>
 </rss>
