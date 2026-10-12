@@ -320,9 +320,12 @@ jobs:
             --outputDir Releases/win-arm64
 
           if [ "$WINDOWS_ONLY" = "true" ]; then
-            TAG_SHA="$(gh api "repos/$GITHUB_REPOSITORY/commits/$TAG" --jq .sha 2>/dev/null || true)"
-            if [ -n "$TAG_SHA" ] && [ "$TAG_SHA" != "$GITHUB_SHA" ]; then
-              echo "::error::Existing release tag points to a different commit"; exit 1
+            TAG_EXISTS="$(gh api "repos/$GITHUB_REPOSITORY/git/matching-refs/tags/$TAG" --jq "any(.[]; .ref == \"refs/tags/$TAG\")")"
+            if [ "$TAG_EXISTS" = "true" ]; then
+              TAG_SHA="$(gh api "repos/$GITHUB_REPOSITORY/commits/$TAG" --jq .sha)"
+              if [ "$TAG_SHA" != "$GITHUB_SHA" ]; then
+                echo "::error::Existing release tag points to a different commit"; exit 1
+              fi
             fi
             if ! gh release view "$TAG" >/dev/null 2>&1; then
               NOTES="$RUNNER_TEMP/windows-release-notes.md"
