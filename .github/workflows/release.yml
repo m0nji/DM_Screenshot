@@ -25,7 +25,7 @@ jobs:
   macos:
     runs-on: macos-14
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Select latest Xcode (Swift 6 toolchain for swift-tools-version 6.0)
         run: |
@@ -217,6 +217,8 @@ jobs:
   # a SmartScreen prompt. Add `--signParams` here once a cert is available.
   windows:
     runs-on: windows-latest
+    env:
+      SIXLABORS_LICENSE_KEY: ${{ secrets.SIXLABORS_LICENSE_KEY }}
     needs: macos
     # Stable release tags only — test builds (v*-*) are macOS-only and must not
     # reach the Velopack feed, which would auto-update Windows installs.
@@ -225,11 +227,11 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: '10.0.x'
 
       - name: Publish (self-contained win-x64 + win-arm64)
         run: |

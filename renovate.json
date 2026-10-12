@@ -1,0 +1,32 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    "group:allNonMajor",
+    ":dependencyDashboard"
+  ],
+  "timezone": "Europe/Berlin",
+  "schedule": [
+    "before 7am on monday"
+  ],
+  "labels": [
+    "dependencies"
+  ],
+  "prConcurrentLimit": 5,
+  "osvVulnerabilityAlerts": true,
+  "vulnerabilityAlerts": {
+    "labels": [
+      "security"
+    ]
+  },
+  "packageRules": [
+    {
+      "description": "NuGet-Referenzen mit Wildcard-Version (z.B. 17.*) versteht Renovate nicht sinnvoll (macht 17.1* daraus) – nicht anfassen.",
+      "matchManagers": [
+        "nuget"
+      ],
+      "matchCurrentValue": "/\\*/",
+      "enabled": false
+    }
+  ]
+}

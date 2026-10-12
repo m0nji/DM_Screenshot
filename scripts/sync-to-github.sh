@@ -14,7 +14,7 @@ set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 
 GITHUB_REMOTE="github"
-EXCLUDE=("docs" "CLAUDE.md" "AGENTS.md") # paths kept OUT of the public repo (and its history)
+EXCLUDE=("docs" "CLAUDE.md" "AGENTS.md" ":(glob)**/sixlabors.lic") # paths kept OUT of the public repo (and its history)
 TMP_BRANCH="_github_snapshot"
 TAG="${1:-}"
 

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Drawing.Imaging;
 using System.IO;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
@@ -70,7 +71,7 @@ public static class GifEncoder
         // GifPreviewDecoder composites the cropped frames back for the preview.
         gif.SaveAsGif(ms, new IsGifEncoder
         {
-            ColorTableMode = GifColorTableMode.Global,
+            ColorTableMode = FrameColorTableMode.Global,
             // MaxColors 255, NOT the default 256: frames 2..n are delta-encoded, which needs
             // a free palette slot for the transparent index ("unchanged — show the previous
             // frame"). With all 256 slots spent on real colours the encoder has to reuse a

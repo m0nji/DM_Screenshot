@@ -22,11 +22,9 @@
     <StartupObject>DMShot.Program</StartupObject>
   </PropertyGroup>
   <ItemGroup>
-    <!-- 3.1.12: 3.1.7's GIF encoder emitted a degenerate one-color global palette when
-         ColorTableMode=Global is combined with an explicit quantizer (every recorded GIF
-         came out near-black); fixed upstream. Also clears the 3.1.7 security advisory.
-         Do NOT jump to 4.x — it requires a commercial Six Labors license. -->
-    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.12" />
+    <!-- The approved hobby-project community license is configured at build time in
+         windows/Directory.Build.props; the license itself must never be committed. -->
+    <PackageReference Include="SixLabors.ImageSharp" Version="4.1.3" />
     <PackageReference Include="System.Drawing.Common" Version="8.0.*" />
     <PackageReference Include="Hardcodet.NotifyIcon.Wpf" Version="2.0.*" />
     <PackageReference Include="Velopack" Version="0.0.1298" />

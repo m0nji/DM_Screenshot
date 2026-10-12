@@ -9,5 +9,8 @@ mac/build/
 .idea
 .secrets
 
+# Six Labors build license (at any directory depth; never commit the key)
+sixlabors.lic
+
 # Subagent-driven-development scratch (ledger, briefs, review packages)
 .superpowers/

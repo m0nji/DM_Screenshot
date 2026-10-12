@@ -56,6 +56,22 @@ open build/DM_Screenshot.app
 
 Requires Xcode 16+ / Swift 6 toolchain and macOS 14+.
 
+### Windows build license
+
+Windows builds use ImageSharp and require a valid Six Labors license. Eligible
+hobby and open-source projects can request a free community key at
+https://licensing.sixlabors.com/.
+
+For local builds, place the supplied `sixlabors.lic` in the repository root, or
+set the `SixLaborsLicenseFile` MSBuild property to its location. The license file
+is ignored by Git and excluded from the public source snapshot; do not force-add
+it or copy it into release artifacts.
+
+GitHub Actions reads the complete license contents from the private Actions
+repository secret `SIXLABORS_LICENSE_KEY`. Public checkouts do not include the
+key; contributors must configure their own license. Keep the key out of command
+arguments, build logs, and MSBuild binary logs. Renew it before its expiry date.
+
 ### Screen Recording permission
 
 On first capture macOS prompts for **Screen Recording** (System Settings → Privacy &

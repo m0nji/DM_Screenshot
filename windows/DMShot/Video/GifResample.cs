@@ -1,5 +1,6 @@
 using System.IO;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -103,7 +104,7 @@ public static class GifResample
             using var ms = new MemoryStream();
             gif.SaveAsGif(ms, new IsGifEncoder
             {
-                ColorTableMode = GifColorTableMode.Global,
+                ColorTableMode = FrameColorTableMode.Global,
                 Quantizer = new WuQuantizer(new QuantizerOptions { Dither = null }),
             });
 
