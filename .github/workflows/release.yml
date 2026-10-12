@@ -17,12 +17,19 @@ on:
   push:
     tags: ['v*']
   workflow_dispatch:
+    inputs:
+      windows_only:
+        description: Publish Windows x64 and ARM64 only, using the checked-out VERSION
+        type: boolean
+        required: false
+        default: false
 
 permissions:
   contents: write # allow GITHUB_TOKEN to create/upload the release
 
 jobs:
   macos:
+    if: ${{ !inputs.windows_only }}
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v7
@@ -212,7 +219,8 @@ jobs:
   # Build the Windows x64 and ARM64 apps and publish their Velopack releases
   # (installer + delta + feed) into the SAME GitHub Release. Each architecture has
   # its own channel so assets never collide and installed apps stay on their native
-  # architecture. Runs after `macos` so the release already exists.
+  # architecture. Normal tags run after `macos`; a Windows-only dispatch creates
+  # its own release and tag using GITHUB_TOKEN (no recursive tag-triggered run).
   # NOTE: unsigned — no Windows code-signing cert is configured, so first launch shows
   # a SmartScreen prompt. Add `--signParams` here once a cert is available.
   windows:
@@ -220,9 +228,10 @@ jobs:
     env:
       SIXLABORS_LICENSE_KEY: ${{ secrets.SIXLABORS_LICENSE_KEY }}
     needs: macos
-    # Stable release tags only — test builds (v*-*) are macOS-only and must not
-    # reach the Velopack feed, which would auto-update Windows installs.
-    if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-')
+    # Stable tags or an explicit Windows-only dispatch. !cancelled() allows the
+    # dispatch to run despite its skipped macOS dependency, while failed normal
+    # macOS builds and prerelease tags still cannot publish a Windows update.
+    if: ${{ !cancelled() && ((needs.macos.result == 'success' && startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-')) || (github.event_name == 'workflow_dispatch' && inputs.windows_only)) }}
     defaults:
       run:
         shell: bash
@@ -232,6 +241,12 @@ jobs:
       - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '10.0.x'
+
+      - name: Build & test Windows before publishing
+        run: |
+          set -euo pipefail
+          dotnet build windows/DMShot/DMShot.csproj -c Release --nologo
+          dotnet test windows/DMShot.Tests -c Release --nologo
 
       - name: Publish (self-contained win-x64 + win-arm64)
         run: |
@@ -243,12 +258,37 @@ jobs:
             -c Release -r win-arm64 --self-contained true \
             -o publish/win-arm64
 
+      - name: Verify license is absent from publish output
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          license_value = os.environ['SIXLABORS_LICENSE_KEY'].strip()
+          assert license_value, 'The private Six Labors license secret is missing'
+          values = [license_value]
+          if 'Key=' in license_value:
+              values.append(license_value.split('Key=', 1)[1])
+          needles = [value.encode(encoding) for value in values for encoding in ('utf-8', 'utf-16le')]
+          files = [path for path in Path('publish').rglob('*') if path.is_file()]
+          for path in files:
+              assert path.name != 'sixlabors.lic', 'License file in publish output'
+              data = path.read_bytes()
+              assert not any(needle in data for needle in needles), 'License key in publish output'
+          print(f'Checked {len(files)} published files: no license file or key included.')
+          PY
+
       - name: Pack & upload Velopack releases
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          WINDOWS_ONLY: ${{ inputs.windows_only }}
         run: |
           set -euo pipefail
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="$(tr -d '\r\n' < VERSION)"
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::Invalid release VERSION"; exit 1; }
+          TAG="v$VERSION"
+          if [ "$WINDOWS_ONLY" != "true" ] && [ "$GITHUB_REF_NAME" != "$TAG" ]; then
+            echo "::error::Release tag does not match VERSION"; exit 1
+          fi
           # vpk CLI version must match the Velopack library version pinned in the csproj.
           dotnet tool install -g vpk --version 0.0.1298
           export PATH="$PATH:$HOME/.dotnet/tools"
@@ -279,14 +319,31 @@ jobs:
             --icon windows/DMShot/Resources/AppIcon.ico \
             --outputDir Releases/win-arm64
 
-          # Append both architecture feeds to the existing macOS GitHub Release.
+          if [ "$WINDOWS_ONLY" = "true" ]; then
+            TAG_SHA="$(gh api "repos/$GITHUB_REPOSITORY/commits/$TAG" --jq .sha 2>/dev/null || true)"
+            if [ -n "$TAG_SHA" ] && [ "$TAG_SHA" != "$GITHUB_SHA" ]; then
+              echo "::error::Existing release tag points to a different commit"; exit 1
+            fi
+            if ! gh release view "$TAG" >/dev/null 2>&1; then
+              NOTES="$RUNNER_TEMP/windows-release-notes.md"
+              printf 'Windows security update for x64 and ARM64.\n\n' > "$NOTES"
+              awk -v v="$VERSION" 'BEGIN{p=0} /^## /{if(p)exit; if($2==v){p=1; next}} p{print}' CHANGELOG.md >> "$NOTES"
+              MAC_RELEASE_URL="$(gh api "repos/$GITHUB_REPOSITORY/releases?per_page=20" --jq '[.[] | select(any(.assets[]; .name | endswith(".dmg")))] | .[0].html_url // empty')"
+              if [ -n "$MAC_RELEASE_URL" ]; then
+                printf '\nThe macOS release is unchanged: [download macOS](%s).\n' "$MAC_RELEASE_URL" >> "$NOTES"
+              fi
+              gh release create "$TAG" --target "$GITHUB_SHA" --title "$TAG — Windows" --notes-file "$NOTES" --latest
+            fi
+          fi
+
+          # Upload both architecture feeds into the prepared GitHub Release.
           vpk upload github \
             --outputDir Releases/win-x64 \
             --channel win \
             --repoUrl https://github.com/m0nji/DM_Screenshot \
             --token "$GH_TOKEN" \
-            --tag "${GITHUB_REF_NAME}" \
-            --releaseName "${GITHUB_REF_NAME}" \
+            --tag "$TAG" \
+            --releaseName "$TAG" \
             --merge \
             --publish
           vpk upload github \
@@ -294,7 +351,7 @@ jobs:
             --channel win-arm64 \
             --repoUrl https://github.com/m0nji/DM_Screenshot \
             --token "$GH_TOKEN" \
-            --tag "${GITHUB_REF_NAME}" \
-            --releaseName "${GITHUB_REF_NAME}" \
+            --tag "$TAG" \
+            --releaseName "$TAG" \
             --merge \
             --publish

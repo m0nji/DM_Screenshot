@@ -4,6 +4,10 @@ All notable changes to DM_Screenshot. Newest version first. Always written in En
 
 ## [Unreleased]
 
+## 0.9.18 – 2026-10-12
+
+- security: Update ImageSharp to 4.1.3 to fix known image-processing vulnerabilities (Windows).
+
 ## 0.9.17 – 2026-09-27
 
 - new: A different folder picked while saving is remembered until DM Screenshot quits: the next Save dialog opens there and batch export saves there (macOS, Windows).

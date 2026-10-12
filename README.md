@@ -72,6 +72,12 @@ repository secret `SIXLABORS_LICENSE_KEY`. Public checkouts do not include the
 key; contributors must configure their own license. Keep the key out of command
 arguments, build logs, and MSBuild binary logs. Renew it before its expiry date.
 
+For a Windows-only release, update the shared version with
+`scripts/bump-version.sh X.Y.Z`, merge and sync the verified source, then dispatch
+the Release workflow on `main` with `windows_only=true`. The workflow creates the
+matching tag and publishes both Windows channels without changing the macOS
+appcast. Do not push the GitHub tag first: that triggers the combined release.
+
 ### Screen Recording permission
 
 On first capture macOS prompts for **Screen Recording** (System Settings → Privacy &
