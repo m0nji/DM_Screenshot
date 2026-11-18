@@ -709,5 +709,20 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.9.17/DM_Screenshot-v0.9.17.dmg" type="application/octet-stream" sparkle:edSignature="hQGvQ4C7T7XsiEYocV1eVqVLX7wWtshAMiynlvZgfrxnO7F/C2cBDSrOBs60OFDfHBZw7nmRZ6pAb++urSWqAQ==" length="2439312" />
 </item>
 
+<item>
+  <title>Version 0.10.0</title>
+  <description><![CDATA[<ul><li>new: Settings → Capture adds a self-timer (3, 5 or 10 seconds) for screenshots, with a small countdown you can cancel with Esc — handy for menus and hover states (macOS, Windows).</li>
+<li>new: Choose whether the mouse pointer appears in screenshots (off by default) and in video/GIF recordings (on by default) (macOS, Windows).</li>
+<li>new: "Repeat Last Area" captures the previous area again without selecting it, from the menu bar / tray or with ⌘⇧⌥2 / Ctrl+Alt+Shift+2 (macOS, Windows).</li>
+<li>new: Settings → Saving: optionally auto-save every screenshot and GIF to the save folder right after capture (off by default), choose PNG or JPEG for saved images, and open the save folder directly (macOS, Windows).</li>
+<li>new: Reset all settings to their defaults from Settings → General; your capture history is kept (macOS, Windows).</li>
+<li>new: Copy text from a screenshot: "Copy text" in the editor and the Quick Edit bar recognizes the text in the capture on-device and copies it; "Capture text" (⌘⇧⌥T / Ctrl+Alt+Shift+T, also in the menu bar / tray menu) copies the text of a selected area directly (macOS, Windows).</li>
+<li>new: Pin a screenshot to the screen from the editor or Quick Edit: it floats above all windows with annotations and background, can be dragged, zoomed with the mouse wheel or pinch, set to 75 % or 50 % opacity, copied or saved from its context menu, and closed with its ✕ button or Esc. A double-click sends it to the bottom-right corner as a small thumbnail and back again; the first pins show a short hint (macOS, Windows).</li>
+<li>fix: The Settings window on Windows no longer opens with a scrollbar, keeps a fixed size and lines its rows up like on macOS (Windows).</li></ul>]]></description>
+  <sparkle:version>0.10.0</sparkle:version>
+  <sparkle:shortVersionString>0.10.0</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.10.0/DM_Screenshot-v0.10.0.dmg" type="application/octet-stream" sparkle:edSignature="WSdTH40h8pNg6nWWbfE1X2zAuBrq+sA5Pz9PmxBll9OQLkwUDD9h8B2+LWfX4wiYmgB/992vHdC8cDFi9nbmBQ==" length="2553037" />
+</item>
+
 </channel>
 </rss>
