@@ -724,5 +724,13 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.10.0/DM_Screenshot-v0.10.0.dmg" type="application/octet-stream" sparkle:edSignature="WSdTH40h8pNg6nWWbfE1X2zAuBrq+sA5Pz9PmxBll9OQLkwUDD9h8B2+LWfX4wiYmgB/992vHdC8cDFi9nbmBQ==" length="2553037" />
 </item>
 
+<item>
+  <title>Version 0.10.1</title>
+  <description><![CDATA[<ul><li>fix: The right-click menu of a pinned screenshot is readable again: it now uses the dark app style, with the opacity choices listed directly in the menu (Windows).</li></ul>]]></description>
+  <sparkle:version>0.10.1</sparkle:version>
+  <sparkle:shortVersionString>0.10.1</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.10.1/DM_Screenshot-v0.10.1.dmg" type="application/octet-stream" sparkle:edSignature="EbZVTneaMXzzmweqtf8OUJ9x+dFbJukshp9EcuY3HcXfNSch2+FPKMoVr79KLJEcYLGKy5jrNdBV1r0B+euqBQ==" length="2553199" />
+</item>
+
 </channel>
 </rss>
