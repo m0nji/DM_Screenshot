@@ -732,5 +732,13 @@
   <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.10.1/DM_Screenshot-v0.10.1.dmg" type="application/octet-stream" sparkle:edSignature="EbZVTneaMXzzmweqtf8OUJ9x+dFbJukshp9EcuY3HcXfNSch2+FPKMoVr79KLJEcYLGKy5jrNdBV1r0B+euqBQ==" length="2553199" />
 </item>
 
+<item>
+  <title>Version 0.11.0</title>
+  <description><![CDATA[<ul><li>change: Arrowheads are a little larger and stay clearly visible on thin arrows; very short arrows keep a visible shaft. Windows now uses the same head proportions as macOS (macOS, Windows).</li></ul>]]></description>
+  <sparkle:version>0.11.0</sparkle:version>
+  <sparkle:shortVersionString>0.11.0</sparkle:shortVersionString>
+  <enclosure url="https://github.com/m0nji/DM_Screenshot/releases/download/v0.11.0/DM_Screenshot-v0.11.0.dmg" type="application/octet-stream" sparkle:edSignature="6RHOaYTQ502SruPAXhkhD8gCFlqV3yIWoi0F6aQYzRrRTho0KLTjWMf6/L3c82XHUT5qUz3hna6OumMj6g4gCg==" length="2556463" />
+</item>
+
 </channel>
 </rss>
