@@ -1,0 +1,124 @@
+import XCTest
+import AppKit
+@testable import DMShot
+
+final class ShortcutModelTests: XCTestCase {
+    func testDefaultDisplayStrings() {
+        XCTAssertEqual(ShortcutAction.fullScreen.defaultShortcut.display, "⌘⇧1")
+        XCTAssertEqual(ShortcutAction.areaSelection.defaultShortcut.display, "⌘⇧2")
+    }
+
+    func testVideoDefaultDisplayStrings() {
+        XCTAssertEqual(ShortcutAction.videoFullScreen.defaultShortcut.display, "⌘⌃1")
+        XCTAssertEqual(ShortcutAction.videoAreaSelection.defaultShortcut.display, "⌘⌃2")
+    }
+
+    func testVideoActionsAreRegistered() {
+        XCTAssertTrue(ShortcutAction.allCases.contains(.videoFullScreen))
+        XCTAssertTrue(ShortcutAction.allCases.contains(.videoAreaSelection))
+    }
+
+    func testVideoDefaultsDoNotConflictWithScreenshot() {
+        XCTAssertNotEqual(ShortcutAction.videoFullScreen.defaultShortcut,
+                          ShortcutAction.fullScreen.defaultShortcut)
+        XCTAssertNotEqual(ShortcutAction.videoAreaSelection.defaultShortcut,
+                          ShortcutAction.areaSelection.defaultShortcut)
+    }
+
+    func testCaptureTextDefaultIsUniqueAndAvoidsSystemKeys() {
+        let text = ShortcutAction.captureText.defaultShortcut
+        XCTAssertEqual(text.display, "⌘⇧⌥T")
+        for other in ShortcutAction.allCases where other != .captureText {
+            XCTAssertNotEqual(other.defaultShortcut, text, "clashes with \(other)")
+        }
+        // ⌘⇧3/4/5 are macOS's own screenshot keys; ⌘⇧T reopens browser tabs.
+        let cmdShift = CarbonMod.cmd | CarbonMod.shift
+        for keyCode in [0x14, 0x15, 0x17, 0x11] {
+            XCTAssertNotEqual(text, Shortcut(keyCode: keyCode, carbonModifiers: cmdShift))
+        }
+    }
+
+    func testKeyCapsOrderAndContent() {
+        let s = ShortcutAction.fullScreen.defaultShortcut
+        XCTAssertEqual(s.keyCaps, ["⌘", "⇧", "1"])
+    }
+
+    func testKeyLabelForLetters() {
+        XCTAssertEqual(keyLabel(for: 0x00), "A")
+        XCTAssertEqual(keyLabel(for: 0x09), "V")
+    }
+
+    func testKeyLabelForSpecials() {
+        XCTAssertEqual(keyLabel(for: 0x24), "↩")
+        XCTAssertEqual(keyLabel(for: 0x31), "Space")
+        XCTAssertEqual(keyLabel(for: 0x7A), "F1")
+    }
+
+    func testKeyLabelUnknownFallback() {
+        XCTAssertEqual(keyLabel(for: 0x999), "Key 2457")
+    }
+
+    func testCarbonModifierConversion() {
+        let flags: NSEvent.ModifierFlags = [.command, .shift]
+        XCTAssertEqual(carbonModifiers(from: flags), CarbonMod.cmd | CarbonMod.shift)
+        XCTAssertEqual(carbonModifiers(from: [.control, .option]),
+                       CarbonMod.control | CarbonMod.option)
+        XCTAssertEqual(carbonModifiers(from: []), 0)
+    }
+}
+
+final class ShortcutStoreTests: XCTestCase {
+    private func freshDefaults() -> UserDefaults {
+        let suite = "DMShotTests.\(UUID().uuidString)"
+        let d = UserDefaults(suiteName: suite)!
+        d.removePersistentDomain(forName: suite)
+        return d
+    }
+
+    func testDefaultsWhenEmpty() {
+        let store = ShortcutStore(defaults: freshDefaults())
+        XCTAssertEqual(store.shortcuts[.fullScreen], ShortcutAction.fullScreen.defaultShortcut)
+        XCTAssertEqual(store.shortcuts[.areaSelection], ShortcutAction.areaSelection.defaultShortcut)
+    }
+
+    func testSetPersistsAcrossInstances() {
+        let defaults = freshDefaults()
+        let store = ShortcutStore(defaults: defaults)
+        let newSc = Shortcut(keyCode: 0x08, carbonModifiers: CarbonMod.cmd | CarbonMod.option) // ⌥⌘C
+        XCTAssertEqual(store.set(.fullScreen, to: newSc), .ok)
+        let reloaded = ShortcutStore(defaults: defaults)
+        XCTAssertEqual(reloaded.shortcuts[.fullScreen], newSc)
+    }
+
+    func testNeedsModifier() {
+        let store = ShortcutStore(defaults: freshDefaults())
+        let bad = Shortcut(keyCode: 0x00, carbonModifiers: 0)
+        XCTAssertEqual(store.set(.fullScreen, to: bad), .needsModifier)
+        // unchanged
+        XCTAssertEqual(store.shortcuts[.fullScreen], ShortcutAction.fullScreen.defaultShortcut)
+    }
+
+    func testConflictDetection() {
+        let store = ShortcutStore(defaults: freshDefaults())
+        // areaSelection default is ⌘⇧2; try to set fullScreen to the same combo.
+        let dup = ShortcutAction.areaSelection.defaultShortcut
+        XCTAssertEqual(store.set(.fullScreen, to: dup), .conflict(.areaSelection))
+        XCTAssertEqual(store.shortcuts[.fullScreen], ShortcutAction.fullScreen.defaultShortcut)
+    }
+
+    func testReset() {
+        let store = ShortcutStore(defaults: freshDefaults())
+        _ = store.set(.fullScreen, to: Shortcut(keyCode: 0x08, carbonModifiers: CarbonMod.cmd))
+        store.reset()
+        XCTAssertEqual(store.shortcuts[.fullScreen], ShortcutAction.fullScreen.defaultShortcut)
+    }
+
+    func testOnChangeFires() {
+        let store = ShortcutStore(defaults: freshDefaults())
+        var fired = 0
+        store.onChange = { fired += 1 }
+        _ = store.set(.fullScreen, to: Shortcut(keyCode: 0x08, carbonModifiers: CarbonMod.cmd))
+        store.reset()
+        XCTAssertEqual(fired, 2)
+    }
+}

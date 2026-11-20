@@ -1,0 +1,31 @@
+<Window x:Class="DMShot.Update.UpdatePromptWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="clr-namespace:DMShot.Localization"
+        Title="{loc:Tr updateReadyTitle}" Width="420" SizeToContent="Height"
+        Background="{DynamicResource DmWindowBackground}" Icon="/Resources/AppIcon.ico"
+        ResizeMode="NoResize" Topmost="True"
+        TextOptions.TextFormattingMode="Ideal" UseLayoutRounding="True"
+        WindowStartupLocation="CenterScreen">
+  <StackPanel Margin="18">
+    <TextBlock Text="{loc:Tr updateReadyTitle}" FontSize="16" FontWeight="SemiBold"
+               Foreground="{DynamicResource DmTextStrong}"/>
+    <TextBlock x:Name="MessageText" Margin="0,8,0,0" TextWrapping="Wrap"
+               Foreground="{DynamicResource DmText}"/>
+    <ItemsControl x:Name="Notes" Margin="0,10,0,0">
+      <ItemsControl.ItemTemplate>
+        <DataTemplate>
+          <TextBlock Text="{Binding}" FontSize="11" Margin="0,1,0,1" TextWrapping="Wrap"
+                     Foreground="{DynamicResource DmTextDim}"/>
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,18,0,0">
+      <!-- Plain button = secondary, AccentButton = primary (GifViewerWindow does the same). -->
+      <Button Content="{loc:Tr later}" Click="LaterClick" IsCancel="True"
+              MinWidth="96" Height="32"/>
+      <Button Content="{loc:Tr restartInstall}" Click="RestartClick" IsDefault="True"
+              Style="{StaticResource AccentButton}" MinWidth="140" Height="32" Margin="10,0,0,0"/>
+    </StackPanel>
+  </StackPanel>
+</Window>

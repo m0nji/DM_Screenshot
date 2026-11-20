@@ -1,0 +1,10 @@
+<Project>
+  <PropertyGroup>
+    <!-- CI supplies the complete license through a private repository secret.
+         Explicit MSBuild properties remain available for other build environments. -->
+    <SixLaborsLicenseKey Condition="'$(SixLaborsLicenseKey)' == ''">$(SIXLABORS_LICENSE_KEY)</SixLaborsLicenseKey>
+    <!-- Local builds use the ignored license in the repository root. This is a
+         build input only: do not add it to Content or copy it to publish output. -->
+    <SixLaborsLicenseFile Condition="'$(SixLaborsLicenseKey)' == '' and '$(SixLaborsLicenseFile)' == '' and Exists('$(MSBuildThisFileDirectory)../sixlabors.lic')">$(MSBuildThisFileDirectory)../sixlabors.lic</SixLaborsLicenseFile>
+  </PropertyGroup>
+</Project>
